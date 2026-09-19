@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import math
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -20,7 +21,8 @@ from angel_client import get_client
 # Liquidity Sweep -> Displacement -> MSS -> FVG/OB
 # -> Retest -> Confirmation -> Volume -> Entry
 #
-# NO CLOCK-TIME RESTRICTION.
+# Scan window: 09:15 AM to 03:00 PM IST on weekdays.
+# Outside the window the process stays alive but makes no scan/API calls.
 # Timestamps are Asia/Kolkata (IST).
 # ============================================================
 
@@ -92,8 +94,11 @@ def build_telegram_message(result):
         f"✓ Retest: PASS\n"
         f"✓ Confirmation: PASS\n"
         f"✓ Volume: {result['volume']:.0f} > SMA {result['volume_sma']:.0f}\n"
+        f"✓ RSI(14): {result['rsi_15m']:.2f} {result['rsi_condition']}\n"
+        f"✓ Daily MACD: {result['daily_macd']:.4f} vs Signal {result['daily_macd_signal']:.4f}\n"
+        f"✓ Market Cap: ₹{result['market_cap_cr']:,.0f} Cr\n"
         f"✓ HTF Filter: {result['htf_status']}\n"
-        f"✓ Trading Time: NO RESTRICTION\n\n"
+        f"✓ Trading Time: 09:15 AM - 03:00 PM IST\n\n"
         f"<b>Reason:</b> Complete TradingView V1 sequential setup\n\n"
         f"⚠️ Signal only — no automatic order placed."
     )
@@ -102,14 +107,21 @@ def build_telegram_message(result):
 # ============================================================
 # SETTINGS
 # ============================================================
-REFRESH_MINUTES = 5
+SCAN_START_HOUR = 9
+SCAN_START_MINUTE = 15
+SCAN_END_HOUR = 15
+SCAN_END_MINUTE = 0
+
+# No 5-minute refresh interval. The scanner runs continuously
+# during the allowed window, with API pacing between requests.
 API_DELAY_SECONDS = 0.40
 
-# 0 = all NSE F&O stocks found in Angel instrument master.
-MAX_STOCKS = 0
+# Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
+MARKET_CAP_MIN_CR = 5000.0
+MAX_STOCKS = 0  # 0 = all qualifying stocks
 
 CANDLE_LIMIT_15M = 250
-CANDLE_LIMIT_1H = 250
+DAILY_HISTORY_DAYS = 450
 
 SWING_LEFT = 2
 SWING_RIGHT = 2
@@ -124,6 +136,17 @@ OB_LOOKBACK = 5
 USE_VOLUME_FILTER = True
 VOLUME_LENGTH = 20
 
+# Added from the user's Chartink reference as extra confirmation.
+USE_RSI_FILTER = True
+RSI_LENGTH = 14
+RSI_LONG_MIN = 50.0
+RSI_SHORT_MAX = 50.0
+
+USE_DAILY_MACD_FILTER = True
+DAILY_MACD_FAST = 12
+DAILY_MACD_SLOW = 26
+DAILY_MACD_SIGNAL = 9
+
 # Same as TradingView V1 default: OFF.
 USE_HTF_FILTER = False
 HIGHER_TIMEFRAME = "ONE_HOUR"
@@ -132,9 +155,9 @@ HIGHER_TF_EMA_LENGTH = 50
 STOP_LOSS_PERCENT = 1.0
 TAKE_PROFIT_PERCENT = 2.0
 
-# NO CLOCK-TIME RESTRICTION.
 SETUP_EXPIRY_BARS = 12
 
+NSE_BASE_URL = "https://www.nseindia.com"
 INSTRUMENT_URL = (
     "https://margincalculator.angelone.in/"
     "OpenAPI_File/files/OpenAPIScripMaster.json"
@@ -157,109 +180,133 @@ def load_instruments():
     return data
 
 
-def get_nse_fno_stocks(instruments):
-    """
-    Build the NSE cash-equity universe from the current Angel One
-    instrument master.
-
-    Angel One has changed/varied instrument-master fields over time,
-    so do not depend only on instrumenttype == FUTSTK. We accept:
-      1) explicit FUTSTK records, and
-      2) NFO symbols ending in FUT.
-
-    Cash symbols are matched primarily by NSE symbol (without -EQ),
-    with the Angel `name` field as a secondary key.
-    """
-    nfo_names = set()
-    nfo_symbols = set()
-
-    nfo_count = 0
-    fut_count = 0
-    futstk_count = 0
-
-    for item in instruments:
-        if not isinstance(item, dict):
-            continue
-
-        exch = str(item.get("exch_seg", "")).strip().upper()
-        if exch != "NFO":
-            continue
-
-        nfo_count += 1
-
-        name = str(item.get("name", "")).strip().upper()
-        symbol = str(item.get("symbol", "")).strip().upper()
-        instrument_type = str(item.get("instrumenttype", "")).strip().upper()
-
-        is_stock_future = (
-            instrument_type == "FUTSTK"
-            or symbol.endswith("FUT")
-        )
-
-        if not is_stock_future:
-            continue
-
-        fut_count += 1
-
-        if instrument_type == "FUTSTK":
-            futstk_count += 1
-
-        # Prefer the explicit name. For masters where name is blank,
-        # derive the underlying from a FUT symbol.
-        if name:
-            nfo_names.add(name)
-
-        if symbol.endswith("FUT"):
-            base = symbol[:-3].strip()
-            if base:
-                nfo_symbols.add(base)
-
+def build_nse_equity_universe(instruments):
+    """Return all NSE cash-equity -EQ symbols with Angel tokens."""
     stocks = []
-
     for item in instruments:
         if not isinstance(item, dict):
             continue
-
         exch = str(item.get("exch_seg", "")).strip().upper()
-        if exch not in ("NSE_CM", "NSE"):
-            continue
-
         symbol = str(item.get("symbol", "")).strip().upper()
-        name = str(item.get("name", "")).strip().upper()
         token = str(item.get("token", "")).strip()
-
-        if not symbol.endswith("-EQ") or not token:
-            continue
-
-        base_symbol = symbol[:-3].strip()
-
-        if (
-            name in nfo_names
-            or base_symbol in nfo_symbols
-            or base_symbol == name and name in nfo_names
-        ):
+        name = str(item.get("name", "")).strip().upper()
+        if exch in ("NSE_CM", "NSE") and symbol.endswith("-EQ") and token:
             stocks.append({
                 "symbol": symbol,
-                "name": name or base_symbol,
+                "name": name or symbol[:-3],
                 "token": token,
+                "market_cap_cr": None,
             })
+    unique = {x["symbol"]: x for x in stocks}
+    return sorted(unique.values(), key=lambda x: x["symbol"])
 
-    unique = {}
-    for stock in stocks:
-        unique[stock["symbol"]] = stock
 
-    stocks = sorted(unique.values(), key=lambda x: x["symbol"])
+NSE_SESSION = requests.Session()
+NSE_SESSION.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0 Safari/537.36",
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Accept-Language": "en-IN,en;q=0.9,en-US;q=0.8",
+    "Accept-Encoding": "gzip, deflate",
+    "Referer": "https://www.nseindia.com/",
+})
 
+
+def init_nse_session():
+    try:
+        NSE_SESSION.get(NSE_BASE_URL, timeout=20)
+    except Exception as e:
+        print(f"NSE session init warning: {e}")
+
+
+def _first_number(value):
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        return float(value)
+    if isinstance(value, str):
+        text = value.replace(",", "").replace("₹", "").strip()
+        try:
+            return float(text)
+        except Exception:
+            return None
+    return None
+
+
+def extract_market_cap_cr(payload):
+    """Extract NSE market cap in ₹ crore from quote-equity response."""
+    try:
+        pi = payload.get("priceInfo", {}) or {}
+        for key in ("marketCap", "marketCapitalization", "marketCapInCr"):
+            n = _first_number(pi.get(key))
+            if n is not None:
+                return n
+
+        trade = (payload.get("marketDeptOrderBook", {}) or {}).get("tradeInfo", {}) or {}
+        for key in ("totalMarketCap", "marketCap"):
+            n = _first_number(trade.get(key))
+            if n is not None:
+                return n
+    except Exception:
+        pass
+    return None
+
+
+def fetch_nse_market_cap(symbol):
+    base = symbol.replace("-EQ", "", 1)
+    url = f"{NSE_BASE_URL}/api/quote-equity"
+
+    try:
+        r = NSE_SESSION.get(url, params={"symbol": base}, timeout=15)
+        if r.status_code == 200:
+            cap = extract_market_cap_cr(r.json())
+            if cap is not None:
+                return cap
+    except Exception:
+        pass
+
+    try:
+        r = NSE_SESSION.get(
+            url,
+            params={"symbol": base, "section": "trade_info"},
+            timeout=15,
+        )
+        if r.status_code == 200:
+            cap = extract_market_cap_cr(r.json())
+            if cap is not None:
+                return cap
+    except Exception:
+        pass
+
+    return None
+
+
+def filter_market_cap_universe(stocks):
+    """Fetch current NSE market cap once at startup and keep >= threshold."""
+    init_nse_session()
+    qualified = []
+    failed = 0
+
+    print(f"Checking NSE market cap for {len(stocks)} equity symbols...")
+
+    for n, stock in enumerate(stocks, 1):
+        cap = fetch_nse_market_cap(stock["symbol"])
+        if cap is None:
+            failed += 1
+            print(f"[{n}/{len(stocks)}] {stock['symbol']}: market cap unavailable")
+        else:
+            stock["market_cap_cr"] = cap
+            if cap >= MARKET_CAP_MIN_CR:
+                qualified.append(stock)
+            print(f"[{n}/{len(stocks)}] {stock['symbol']}: ₹{cap:,.0f} Cr {'PASS' if cap >= MARKET_CAP_MIN_CR else 'SKIP'}")
+        time.sleep(0.20)
+
+    qualified.sort(key=lambda x: x["market_cap_cr"], reverse=True)
     if MAX_STOCKS > 0:
-        stocks = stocks[:MAX_STOCKS]
+        qualified = qualified[:MAX_STOCKS]
 
     print(
-        f"Instrument master diagnostics: NFO={nfo_count}, "
-        f"stock futures={fut_count}, FUTSTK={futstk_count}, "
-        f"NSE F&O equities={len(stocks)}"
+        f"Market-cap universe: {len(qualified)} stocks >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr; "
+        f"unavailable={failed}"
     )
-
-    return stocks
+    return qualified
 
 
 # ============================================================
@@ -324,6 +371,33 @@ def fetch_candles(client, token, interval, days):
 
 
 # ============================================================
+# DAILY CANDLES / INDICATORS
+# ============================================================
+def fetch_daily_candles(client, token):
+    return fetch_candles(client, token, "ONE_DAY", DAILY_HISTORY_DAYS)
+
+
+def add_daily_indicators(df):
+    d = df.copy()
+    fast = d["close"].ewm(span=DAILY_MACD_FAST, adjust=False).mean()
+    slow = d["close"].ewm(span=DAILY_MACD_SLOW, adjust=False).mean()
+    d["macd"] = fast - slow
+    d["macd_signal"] = d["macd"].ewm(span=DAILY_MACD_SIGNAL, adjust=False).mean()
+    return d
+
+
+def rsi_wilder(series, length=14):
+    delta = series.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1.0 / length, adjust=False, min_periods=length).mean()
+    avg_loss = loss.ewm(alpha=1.0 / length, adjust=False, min_periods=length).mean()
+    rs = avg_gain / avg_loss.replace(0, pd.NA)
+    rsi = 100 - (100 / (1 + rs))
+    rsi = rsi.fillna(100).astype(float)
+    return rsi
+
+# ============================================================
 # INDICATORS
 # ============================================================
 def add_indicators(df):
@@ -350,6 +424,8 @@ def add_indicators(df):
     d["volume_sma"] = d["volume"].rolling(
         VOLUME_LENGTH
     ).mean()
+
+    d["rsi"] = rsi_wilder(d["close"], RSI_LENGTH)
 
     d["body"] = (
         d["close"] - d["open"]
@@ -425,7 +501,7 @@ def ist_time(timestamp):
 # ============================================================
 # CORE TRADINGVIEW V1 STATE MACHINE
 # ============================================================
-def scan_stock(client, stock):
+def scan_stock(client, stock, daily_cache):
     symbol = stock["symbol"]
     token = stock["token"]
 
@@ -438,6 +514,21 @@ def scan_stock(client, stock):
 
     d = add_indicators(raw)
     d = calculate_confirmed_pivots(d)
+
+    # Daily MACD is cached for the trading day to avoid repeated API calls.
+    cache_key = stock["symbol"]
+    if cache_key not in daily_cache:
+        daily_raw = fetch_daily_candles(client, token)
+        daily_cache[cache_key] = add_daily_indicators(daily_raw)
+    daily = daily_cache[cache_key]
+    if len(daily) < 40:
+        return {"symbol": symbol, "signal": "NO TRADE", "reason": "Insufficient daily candles"}
+
+    daily_last = daily.iloc[-1]
+    daily_macd = float(daily_last["macd"])
+    daily_macd_signal = float(daily_last["macd_signal"])
+    daily_macd_long = daily_macd > daily_macd_signal
+    daily_macd_short = daily_macd < daily_macd_signal
 
     # Ignore current/open candle.
     last_closed = len(d) - 2
@@ -765,9 +856,23 @@ def scan_stock(client, stock):
         # Keep V1 default HTF filter OFF.
         # If enabled later, fetch separately.
 
+        rsi_value = float(row["rsi"]) if not pd.isna(row["rsi"]) else float("nan")
+        rsi_pass = (
+            not USE_RSI_FILTER
+            or (direction == 1 and rsi_value > RSI_LONG_MIN)
+            or (direction == -1 and rsi_value < RSI_SHORT_MAX)
+        )
+        macd_pass = (
+            not USE_DAILY_MACD_FILTER
+            or (direction == 1 and daily_macd_long)
+            or (direction == -1 and daily_macd_short)
+        )
+
         entry_allowed = (
             setup_state == 6
             and volume_pass
+            and rsi_pass
+            and macd_pass
             and htf_pass
         )
 
@@ -808,6 +913,11 @@ def scan_stock(client, stock):
                 "zone_type": zone_type,
                 "volume": float(row["volume"]),
                 "volume_sma": float(volume_sma),
+                "rsi_15m": rsi_value,
+                "rsi_condition": "> 50" if direction == 1 else "< 50",
+                "daily_macd": daily_macd,
+                "daily_macd_signal": daily_macd_signal,
+                "market_cap_cr": float(stock.get("market_cap_cr") or 0),
                 "htf_status": htf_status,
                 "reason": "Complete TradingView V1 sequential setup",
                 "stage_times": dict(stage_times),
@@ -852,6 +962,9 @@ def print_result(result):
         print(f" Sweep         : {result['sweep_type']}")
         print(f" Displacement  : {result['displacement_atr']:.2f} ATR")
         print(f" Volume        : {result['volume']:.0f} / {result['volume_sma']:.0f}")
+        print(f" RSI(14)       : {result['rsi_15m']:.2f}")
+        print(f" Daily MACD    : {result['daily_macd']:.4f} / {result['daily_macd_signal']:.4f}")
+        print(f" Market Cap    : ₹{result['market_cap_cr']:,.0f} Cr")
         print(f" HTF           : {result['htf_status']}")
         print(f" Candle Time   : {result['candle_time']}")
     else:
@@ -865,110 +978,166 @@ def print_result(result):
 # ============================================================
 # MAIN
 # ============================================================
+def is_scan_window(now=None):
+    now = now or datetime.now(IST)
+    if now.weekday() >= 5:
+        return False
+    current_minutes = now.hour * 60 + now.minute
+    start = SCAN_START_HOUR * 60 + SCAN_START_MINUTE
+    end = SCAN_END_HOUR * 60 + SCAN_END_MINUTE
+    return start <= current_minutes < end
+
+
+def seconds_until_next_start(now=None):
+    now = now or datetime.now(IST)
+    start_today = now.replace(
+        hour=SCAN_START_HOUR,
+        minute=SCAN_START_MINUTE,
+        second=0,
+        microsecond=0,
+    )
+    if now < start_today and now.weekday() < 5:
+        return max(1, int((start_today - now).total_seconds()))
+
+    days = 1
+    while (now + timedelta(days=days)).weekday() >= 5:
+        days += 1
+    nxt = (now + timedelta(days=days)).replace(
+        hour=SCAN_START_HOUR,
+        minute=SCAN_START_MINUTE,
+        second=0,
+        microsecond=0,
+    )
+    return max(1, int((nxt - now).total_seconds()))
+
+
+def send_morning_welcome(stock_count):
+    today = datetime.now(IST).strftime("%d-%m-%Y")
+    message = (
+        "🌅 <b>GOOD MORNING!</b>\n\n"
+        "🇮🇳 <b>Indian NSE SMC Scanner</b>\n"
+        f"📅 Date: {today}\n"
+        f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
+        f"📈 Timeframe: 15 Minutes\n"
+        f"🔎 Stocks: {stock_count}\n"
+        "⏰ Scan Time: 09:15 AM - 03:00 PM IST\n"
+        "📌 RSI + Daily MACD: ON\n"
+        "🚀 Scanner Status: STARTED\n\n"
+        "⚠️ Signal Only — No Automatic Orders"
+    )
+    return send_telegram_message(message)
+
+
 def main():
     print()
     print("=" * 78)
-    print(" INDIAN NSE - TRADINGVIEW V1 SMC MIRROR")
-    print(" Angel One SmartAPI | NSE F&O Stocks")
+    print(" INDIAN NSE - TRADINGVIEW V1 SMC SCANNER")
+    print(" Angel One SmartAPI + NSE Market Cap + Telegram")
+    print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
-    print(" -> Retest -> Confirmation -> Volume -> ENTRY")
-    print(" TIME RESTRICTION: DISABLED (ALL DAY)")
+    print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
+    print(" Scan window: 09:15 AM - 03:00 PM IST | No 5-minute refresh")
     print("=" * 78)
 
-    print(
-        "Current:",
-        datetime.now(IST).strftime(
-            "%Y-%m-%d %H:%M:%S IST"
-        ),
-    )
-    print(f"Refresh: {REFRESH_MINUTES} minutes")
-    print(f"Volume filter: {USE_VOLUME_FILTER}")
-    print(f"HTF filter: {USE_HTF_FILTER}")
-    print("=" * 78)
-
-    client = get_client()
-
-    instruments = load_instruments()
-    stocks = get_nse_fno_stocks(instruments)
-
-    if not stocks:
-        raise RuntimeError(
-            "No NSE F&O stocks found in Angel One instrument master."
-        )
-
-    print(f"NSE F&O stocks found: {len(stocks)}")
-
-    if MAX_STOCKS > 0:
-        print(f"MAX_STOCKS: {MAX_STOCKS}")
-
+    client = None
+    stocks = None
+    daily_cache = {}
+    current_day = None
+    welcome_sent_day = None
     scan_number = 0
 
     while True:
-        scan_number += 1
+        now = datetime.now(IST)
 
-        print()
-        print("=" * 78)
-        print(f" NSE F&O GLOBAL SCAN #{scan_number}")
-        print(
-            datetime.now(IST).strftime(
-                "%Y-%m-%d %H:%M:%S IST"
-            )
-        )
+        if not is_scan_window(now):
+            if client is not None:
+                print(
+                    f"[{now.strftime('%Y-%m-%d %H:%M:%S IST')}] "
+                    "Outside scan window. No scan/API calls."
+                )
+            else:
+                print(
+                    f"[{now.strftime('%Y-%m-%d %H:%M:%S IST')}] "
+                    "Waiting for 09:15 AM IST. No scan/API calls."
+                )
+            try:
+                time.sleep(min(60, seconds_until_next_start(now)))
+            except KeyboardInterrupt:
+                print("\nScanner stopped by user.")
+                break
+            continue
+
+        # New trading day: rebuild market-cap universe and daily cache.
+        if current_day != now.date():
+            current_day = now.date()
+            welcome_sent_day = None
+            daily_cache = {}
+            print("\nNew trading day: loading NSE universe...")
+
+            if client is None:
+                client = get_client()
+
+            instruments = load_instruments()
+            all_nse = build_nse_equity_universe(instruments)
+            print(f"NSE equity symbols found: {len(all_nse)}")
+            stocks = filter_market_cap_universe(all_nse)
+
+            if not stocks:
+                raise RuntimeError(
+                    f"No NSE stocks found with market cap >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr."
+                )
+
+        if welcome_sent_day != current_day:
+            send_morning_welcome(len(stocks))
+            welcome_sent_day = current_day
+
+        scan_number += 1
+        print("\n" + "=" * 78)
+        print(f" NSE SCAN #{scan_number} | {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')}")
+        print(f" Stocks in universe: {len(stocks)}")
         print("=" * 78)
 
         signal_count = 0
 
         for n, stock in enumerate(stocks, 1):
-            try:
-                print(
-                    f"[{n}/{len(stocks)}] "
-                    f"Scanning {stock['symbol']} ..."
-                )
+            # Stop immediately once 03:00 PM is reached.
+            if not is_scan_window(datetime.now(IST)):
+                print("03:00 PM reached. Scanning stopped for today.")
+                break
 
-                result = scan_stock(client, stock)
+            try:
+                print(f"[{n}/{len(stocks)}] Scanning {stock['symbol']} ...")
+                result = scan_stock(client, stock, daily_cache)
                 print_result(result)
 
                 if result.get("signal") in ("LONG", "SHORT"):
                     signal_count += 1
                     key = signal_key(result)
-
                     if key not in SENT_SIGNALS:
-                        message = build_telegram_message(result)
-
-                        if send_telegram_message(message):
+                        if send_telegram_message(build_telegram_message(result)):
                             SENT_SIGNALS.add(key)
                     else:
-                        print(
-                            "Telegram: DUPLICATE SIGNAL SKIPPED"
-                        )
+                        print("Telegram: DUPLICATE SIGNAL SKIPPED")
 
-                # Stay below aggressive API request rates.
                 time.sleep(API_DELAY_SECONDS)
 
             except Exception as e:
-                print()
                 print("-" * 78)
                 print(f"{stock['symbol']} ERROR: {e}")
                 print("-" * 78)
-
-                # Give API a little breathing room after errors.
                 time.sleep(1.0)
 
-        print()
-        print("=" * 78)
-        print("NSE F&O SCAN COMPLETE")
-        print(f"Stocks scanned : {len(stocks)}")
-        print(f"Entry signals  : {signal_count}")
-        print(
-            f"Next refresh in {REFRESH_MINUTES} minutes..."
-        )
+        print("\n" + "=" * 78)
+        print("NSE SCAN PASS COMPLETE")
+        print(f"Stocks in universe : {len(stocks)}")
+        print(f"Entry signals      : {signal_count}")
+        print("No 5-minute refresh. Starting next pass immediately while within time window.")
         print("=" * 78)
 
-        try:
-            time.sleep(REFRESH_MINUTES * 60)
-        except KeyboardInterrupt:
-            print("\nScanner stopped by user.")
-            break
+        if not is_scan_window(datetime.now(IST)):
+            continue
+
+
 
 
 if __name__ == "__main__":
