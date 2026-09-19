@@ -1,0 +1,6 @@
+smartapi-python
+pandas
+numpy
+requests
+python-dotenv
+pyotp
