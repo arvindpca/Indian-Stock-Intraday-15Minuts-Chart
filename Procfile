@@ -1,0 +1,1 @@
+web: python Indian_NSE_TradingView_V1_SMC_Telegram.py
