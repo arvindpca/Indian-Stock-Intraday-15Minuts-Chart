@@ -21,7 +21,7 @@ from angel_client import get_client
 # Liquidity Sweep -> Displacement -> MSS -> FVG/OB
 # -> Retest -> Confirmation -> Volume -> Entry
 #
-# Scan mode: 09:15 AM to 03:30 PM IST on NSE weekdays.
+# Scan mode: ALL TIME / 24x7. No clock-time or weekday restriction.
 # Timestamps are Asia/Kolkata (IST).
 # ============================================================
 
@@ -97,7 +97,7 @@ def build_telegram_message(result):
         f"✓ Daily MACD: {result['daily_macd']:.4f} vs Signal {result['daily_macd_signal']:.4f}\n"
         f"✓ Market Cap: ₹{result['market_cap_cr']:,.0f} Cr\n"
         f"✓ HTF Filter: {result['htf_status']}\n"
-        f"✓ Trading Time: ALL TIME / 24x7\n\n"
+        f"✓ Trading Time: 09:15 AM - 03:30 PM IST\n\n"
         f"<b>Reason:</b> Complete TradingView V1 sequential setup\n\n"
         f"⚠️ Signal only — no automatic order placed."
     )
@@ -109,7 +109,7 @@ def build_telegram_message(result):
 SCAN_START_HOUR = 9
 SCAN_START_MINUTE = 15
 SCAN_END_HOUR = 15
-SCAN_END_MINUTE = 30
+SCAN_END_MINUTE = 30	
 
 # No 5-minute refresh interval. The scanner runs continuously
 # during the allowed window, with API pacing between requests.
@@ -145,6 +145,20 @@ USE_DAILY_MACD_FILTER = True
 DAILY_MACD_FAST = 12
 DAILY_MACD_SLOW = 26
 DAILY_MACD_SIGNAL = 9
+
+# ============================================================
+# CHARTINK-STYLE FAST PRE-FILTER
+# Exact conditions supplied by the user.
+# This runs BEFORE the full SMC state-machine scan.
+# ============================================================
+USE_CHARTINK_FAST_FILTER = True
+CHARTINK_VOLUME_MULTIPLIER = 1.5
+CHARTINK_LONG_RSI_MIN = 50.0
+CHARTINK_SHORT_RSI_MAX = 50.0
+CHARTINK_LONG_CANDLE_RATIO = 0.50
+CHARTINK_SHORT_BODY_RATIO = 0.30
+CHARTINK_ATR_LENGTH = 14
+
 
 # Same as TradingView V1 default: OFF.
 USE_HTF_FILTER = False
@@ -1083,44 +1097,25 @@ def print_result(result):
 # MAIN
 # ============================================================
 def is_scan_window(now=None):
-    """Scan only on NSE weekdays from 09:15 AM to 03:30 PM IST."""
     now = now or datetime.now(IST)
-
     if now.weekday() >= 5:
         return False
-
-    current_minutes = now.hour * 60 + now.minute
-    start_minutes = SCAN_START_HOUR * 60 + SCAN_START_MINUTE
-    end_minutes = SCAN_END_HOUR * 60 + SCAN_END_MINUTE
-
-    return start_minutes <= current_minutes < end_minutes
+    start = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
+    end = now.replace(hour=SCAN_END_HOUR, minute=SCAN_END_MINUTE, second=0, microsecond=0)
+    return start <= now < end
 
 
 def seconds_until_next_start(now=None):
-    """Seconds until the next 09:15 AM IST scan window."""
     now = now or datetime.now(IST)
+    if now.weekday() < 5 and now.hour < SCAN_START_HOUR:
+        target = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
+        return max(1, int((target - now).total_seconds()))
 
-    if now.weekday() < 5:
-        start_today = now.replace(
-            hour=SCAN_START_HOUR,
-            minute=SCAN_START_MINUTE,
-            second=0,
-            microsecond=0,
-        )
-        if now < start_today:
-            return max(1, int((start_today - now).total_seconds()))
-
-    days = 1
-    while (now + timedelta(days=days)).weekday() >= 5:
-        days += 1
-
-    next_start = (now + timedelta(days=days)).replace(
-        hour=SCAN_START_HOUR,
-        minute=SCAN_START_MINUTE,
-        second=0,
-        microsecond=0,
-    )
-    return max(1, int((next_start - now).total_seconds()))
+    target = now + timedelta(days=1)
+    while target.weekday() >= 5:
+        target += timedelta(days=1)
+    target = target.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
+    return max(1, int((target - now).total_seconds()))
 
 
 def send_morning_welcome(stock_count):
@@ -1132,7 +1127,7 @@ def send_morning_welcome(stock_count):
         f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
-        "⏰ Scan Time: 09:15 AM - 03:30 PM IST\n"
+        "⏰ Scan Mode: 09:15 AM - 03:30 PM IST\n"
         "📌 RSI + Daily MACD: ON\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
@@ -1148,7 +1143,7 @@ def main():
     print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan window: 09:15 AM - 03:30 PM IST | No 5-minute refresh")
+    print(" Scan mode: 09:15 AM - 03:30 PM IST | Chartink Fast Filter + SMC")
     print("=" * 78)
 
     client = None
@@ -1227,9 +1222,9 @@ def main():
         signal_count = 0
 
         for n, stock in enumerate(stocks, 1):
-            # Stop immediately once 03:00 PM is reached.
+            # Stop immediately once 03:30 PM is reached.
             if not is_scan_window(datetime.now(IST)):
-                print("03:00 PM reached. Scanning stopped for today.")
+                print("03:30 PM reached. Scanning stopped for today.")
                 break
 
             try:
@@ -1258,7 +1253,7 @@ def main():
         print("NSE SCAN PASS COMPLETE")
         print(f"Stocks in universe : {len(stocks)}")
         print(f"Entry signals      : {signal_count}")
-        print("Scan window active: next pass starts immediately only while before 03:30 PM IST.")
+        print("09:15-15:30 MODE: Starting next pass immediately while within the allowed window.")
         print("=" * 78)
 
         if not is_scan_window(datetime.now(IST)):
