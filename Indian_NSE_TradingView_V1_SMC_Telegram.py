@@ -21,8 +21,7 @@ from angel_client import get_client
 # Liquidity Sweep -> Displacement -> MSS -> FVG/OB
 # -> Retest -> Confirmation -> Volume -> Entry
 #
-# Scan window: 09:15 AM to 03:00 PM IST on weekdays.
-# Outside the window the process stays alive but makes no scan/API calls.
+# Scan mode: ALL TIME / 24x7. No clock-time or weekday restriction.
 # Timestamps are Asia/Kolkata (IST).
 # ============================================================
 
@@ -98,7 +97,7 @@ def build_telegram_message(result):
         f"✓ Daily MACD: {result['daily_macd']:.4f} vs Signal {result['daily_macd_signal']:.4f}\n"
         f"✓ Market Cap: ₹{result['market_cap_cr']:,.0f} Cr\n"
         f"✓ HTF Filter: {result['htf_status']}\n"
-        f"✓ Trading Time: 09:15 AM - 03:00 PM IST\n\n"
+        f"✓ Trading Time: ALL TIME / 24x7\n\n"
         f"<b>Reason:</b> Complete TradingView V1 sequential setup\n\n"
         f"⚠️ Signal only — no automatic order placed."
     )
@@ -107,9 +106,9 @@ def build_telegram_message(result):
 # ============================================================
 # SETTINGS
 # ============================================================
-SCAN_START_HOUR = 9
-SCAN_START_MINUTE = 15
-SCAN_END_HOUR = 15
+SCAN_START_HOUR = 0
+SCAN_START_MINUTE = 0
+SCAN_END_HOUR = 24
 SCAN_END_MINUTE = 0
 
 # No 5-minute refresh interval. The scanner runs continuously
@@ -117,7 +116,7 @@ SCAN_END_MINUTE = 0
 API_DELAY_SECONDS = 0.40
 
 # Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
-MARKET_CAP_MIN_CR = 3000.0
+MARKET_CAP_MIN_CR = 5000.0
 MAX_STOCKS = 0  # 0 = all qualifying stocks
 
 CANDLE_LIMIT_15M = 250
@@ -201,21 +200,51 @@ def build_nse_equity_universe(instruments):
     return sorted(unique.values(), key=lambda x: x["symbol"])
 
 
+# NSE uses Akamai/browser-session protection.  Keep one persistent session
+# and initialise it with a real navigation request before API calls.
 NSE_SESSION = requests.Session()
-NSE_SESSION.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0 Safari/537.36",
-    "Accept": "application/json, text/javascript, */*; q=0.01",
+NSE_BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-IN,en;q=0.9,en-US;q=0.8",
     "Accept-Encoding": "gzip, deflate",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+}
+NSE_API_HEADERS = {
+    "User-Agent": NSE_BROWSER_HEADERS["User-Agent"],
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-IN,en;q=0.9,en-US;q=0.8",
     "Referer": "https://www.nseindia.com/",
-})
+    "X-Requested-With": "XMLHttpRequest",
+}
 
 
 def init_nse_session():
+    """Prime NSE cookies using a browser-like page navigation."""
     try:
-        NSE_SESSION.get(NSE_BASE_URL, timeout=20)
+        NSE_SESSION.headers.clear()
+        NSE_SESSION.headers.update(NSE_BROWSER_HEADERS)
+        page = NSE_SESSION.get(
+            "https://www.nseindia.com/get-quotes/equity?symbol=SBIN",
+            timeout=20,
+        )
+        print(f"NSE session: HTTP {page.status_code}, cookies={len(NSE_SESSION.cookies)}")
+        return page.status_code == 200
     except Exception as e:
         print(f"NSE session init warning: {e}")
+        return False
+
+
+def _refresh_nse_session():
+    try:
+        NSE_SESSION.cookies.clear()
+    except Exception:
+        pass
+    return init_nse_session()
 
 
 def _first_number(value):
@@ -231,60 +260,133 @@ def _first_number(value):
 
 
 def extract_market_cap_cr(payload):
-    """Extract NSE market cap in ₹ crore from quote-equity response."""
-    try:
-        pi = payload.get("priceInfo", {}) or {}
-        for key in ("marketCap", "marketCapitalization", "marketCapInCr"):
+    """Extract NSE total market cap in ₹ crore from quote-equity and NextApi responses."""
+    if not isinstance(payload, dict):
+        return None
+
+    # NextApi getSymbolData normally returns: equityResponse[0]
+    # with tradeInfo directly inside that object.
+    candidates = [payload]
+    equity_response = payload.get("equityResponse")
+    if isinstance(equity_response, list):
+        candidates.extend(x for x in equity_response if isinstance(x, dict))
+    elif isinstance(equity_response, dict):
+        candidates.append(equity_response)
+
+    # Also support wrappers used by some NSE responses.
+    data = payload.get("data")
+    if isinstance(data, dict):
+        candidates.append(data)
+    elif isinstance(data, list):
+        candidates.extend(x for x in data if isinstance(x, dict))
+
+    for obj in candidates:
+        # NextApi structure: equityResponse[0].tradeInfo.totalMarketCap
+        trade = obj.get("tradeInfo") or {}
+        for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
+            n = _first_number(trade.get(key))
+            if n is not None:
+                return n
+
+        # quote-equity trade_info structure:
+        # marketDeptOrderBook.tradeInfo.totalMarketCap
+        nested = obj.get("marketDeptOrderBook") or {}
+        nested_trade = nested.get("tradeInfo") or {}
+        for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
+            n = _first_number(nested_trade.get(key))
+            if n is not None:
+                return n
+
+        # Some wrappers expose market cap directly.
+        for key in (
+            "totalMarketCap", "totalMarketCapitalization",
+            "marketCapInCr", "marketCapitalizationInCr",
+            "totalMarketCapInCr",
+        ):
+            n = _first_number(obj.get(key))
+            if n is not None:
+                return n
+
+        # Older quote-equity valuation shape. Only explicit crore fields are
+        # accepted so a rupee-denominated value is not misread as ₹ crore.
+        pi = obj.get("priceInfo") or {}
+        for key in ("marketCapInCr", "marketCapitalizationInCr"):
             n = _first_number(pi.get(key))
             if n is not None:
                 return n
 
-        trade = (payload.get("marketDeptOrderBook", {}) or {}).get("tradeInfo", {}) or {}
-        for key in ("totalMarketCap", "marketCap"):
-            n = _first_number(trade.get(key))
-            if n is not None:
-                return n
-    except Exception:
-        pass
+    return None
+
+
+def _nse_json_get(url, params, referer=None):
+    """GET an NSE JSON endpoint with one refresh/retry for protected responses."""
+    headers = dict(NSE_API_HEADERS)
+    if referer:
+        headers["Referer"] = referer
+
+    for attempt in range(3):
+        try:
+            r = NSE_SESSION.get(url, params=params, headers=headers, timeout=15)
+            if r.status_code == 200:
+                try:
+                    return r.json()
+                except Exception:
+                    return None
+
+            if r.status_code in (401, 403, 429, 500, 502, 503, 504):
+                if attempt < 2:
+                    time.sleep(1.0 + attempt * 1.5)
+                    _refresh_nse_session()
+                    continue
+            return None
+        except requests.RequestException:
+            if attempt < 2:
+                time.sleep(1.0 + attempt * 1.5)
+                _refresh_nse_session()
     return None
 
 
 def fetch_nse_market_cap(symbol):
-    base = symbol.replace("-EQ", "", 1)
-    url = f"{NSE_BASE_URL}/api/quote-equity"
+    """Fetch total market cap using NSE NextApi first, then trade_info fallback."""
+    base = symbol.replace("-EQ", "", 1).strip().upper()
 
-    try:
-        r = NSE_SESSION.get(url, params={"symbol": base}, timeout=15)
-        if r.status_code == 200:
-            cap = extract_market_cap_cr(r.json())
-            if cap is not None:
-                return cap
-    except Exception:
-        pass
+    # Newer NSE NextApi: one request can contain total market cap.
+    next_url = f"{NSE_BASE_URL}/api/NextApi/apiClient/GetQuoteApi"
+    payload = _nse_json_get(
+        next_url,
+        {
+            "functionName": "getSymbolData",
+            "marketType": "N",
+            "series": "EQ",
+            "symbol": base,
+        },
+        referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
+    )
+    cap = extract_market_cap_cr(payload) if payload else None
+    if cap is not None:
+        return cap
 
-    try:
-        r = NSE_SESSION.get(
-            url,
-            params={"symbol": base, "section": "trade_info"},
-            timeout=15,
-        )
-        if r.status_code == 200:
-            cap = extract_market_cap_cr(r.json())
-            if cap is not None:
-                return cap
-    except Exception:
-        pass
+    # Standard NSE trade_info endpoint.
+    quote_url = f"{NSE_BASE_URL}/api/quote-equity"
+    payload = _nse_json_get(
+        quote_url,
+        {"symbol": base, "section": "trade_info"},
+        referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
+    )
+    cap = extract_market_cap_cr(payload) if payload else None
+    if cap is not None:
+        return cap
 
     return None
 
 
 def filter_market_cap_universe(stocks):
-    """Fetch current NSE market cap once at startup and keep >= threshold."""
+    """Fetch NSE market cap and keep all stocks >= configured threshold."""
     init_nse_session()
     qualified = []
     failed = 0
 
-    print(f"Checking NSE market cap for {len(stocks)} equity symbols...")
+    print(f"STAGE 1 ONLY: checking market cap for {len(stocks)} NSE equity symbols...")
 
     for n, stock in enumerate(stocks, 1):
         cap = fetch_nse_market_cap(stock["symbol"])
@@ -296,7 +398,9 @@ def filter_market_cap_universe(stocks):
             if cap >= MARKET_CAP_MIN_CR:
                 qualified.append(stock)
             print(f"[{n}/{len(stocks)}] {stock['symbol']}: ₹{cap:,.0f} Cr {'PASS' if cap >= MARKET_CAP_MIN_CR else 'SKIP'}")
-        time.sleep(0.20)
+
+        # Slightly slower pacing reduces NSE protection/rate-limit failures.
+        time.sleep(0.35)
 
     qualified.sort(key=lambda x: x["market_cap_cr"], reverse=True)
     if MAX_STOCKS > 0:
@@ -979,36 +1083,15 @@ def print_result(result):
 # MAIN
 # ============================================================
 def is_scan_window(now=None):
-    now = now or datetime.now(IST)
-    if now.weekday() >= 5:
-        return False
-    current_minutes = now.hour * 60 + now.minute
-    start = SCAN_START_HOUR * 60 + SCAN_START_MINUTE
-    end = SCAN_END_HOUR * 60 + SCAN_END_MINUTE
-    return start <= current_minutes < end
+    # ALL-TIME SCAN: no clock-time or weekday restriction.
+    # The scanner continuously runs and starts the next scan pass immediately.
+    return True
 
 
 def seconds_until_next_start(now=None):
-    now = now or datetime.now(IST)
-    start_today = now.replace(
-        hour=SCAN_START_HOUR,
-        minute=SCAN_START_MINUTE,
-        second=0,
-        microsecond=0,
-    )
-    if now < start_today and now.weekday() < 5:
-        return max(1, int((start_today - now).total_seconds()))
-
-    days = 1
-    while (now + timedelta(days=days)).weekday() >= 5:
-        days += 1
-    nxt = (now + timedelta(days=days)).replace(
-        hour=SCAN_START_HOUR,
-        minute=SCAN_START_MINUTE,
-        second=0,
-        microsecond=0,
-    )
-    return max(1, int((nxt - now).total_seconds()))
+    # Kept for compatibility with the main loop.
+    # ALL-TIME mode never waits for a market-open time.
+    return 0
 
 
 def send_morning_welcome(stock_count):
@@ -1020,7 +1103,7 @@ def send_morning_welcome(stock_count):
         f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
-        "⏰ Scan Time: 09:15 AM - 03:00 PM IST\n"
+        "⏰ Scan Mode: ALL TIME / 24x7\n"
         "📌 RSI + Daily MACD: ON\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
@@ -1036,7 +1119,7 @@ def main():
     print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan window: 09:15 AM - 03:00 PM IST | No 5-minute refresh")
+    print(" Scan mode: ALL TIME / 24x7 | No 5-minute refresh")
     print("=" * 78)
 
     client = None
@@ -1058,7 +1141,7 @@ def main():
             else:
                 print(
                     f"[{now.strftime('%Y-%m-%d %H:%M:%S IST')}] "
-                    "Waiting for 09:15 AM IST. No scan/API calls."
+                    "Scanner waiting. No scan/API calls."
                 )
             try:
                 time.sleep(min(60, seconds_until_next_start(now)))
@@ -1067,25 +1150,39 @@ def main():
                 break
             continue
 
-        # New trading day: rebuild market-cap universe and daily cache.
+        # ========================================================
+        # STAGE 1 — MARKET-CAP FILTER
+        # Run once per IST calendar day.
+        # Only stocks that PASS ₹5,000 Cr proceed to Stage 2.
+        # ========================================================
         if current_day != now.date():
             current_day = now.date()
             welcome_sent_day = None
             daily_cache = {}
-            print("\nNew trading day: loading NSE universe...")
+            print("\n" + "=" * 78)
+            print("STAGE 1: BUILDING MARKET-CAP UNIVERSE")
+            print(f"Filter: Market Cap >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr")
+            print("No 15M candles / SMC scan before this filter.")
+            print("=" * 78)
 
             if client is None:
                 client = get_client()
 
             instruments = load_instruments()
             all_nse = build_nse_equity_universe(instruments)
-            print(f"NSE equity symbols found: {len(all_nse)}")
+            print(f"NSE equity symbols available: {len(all_nse)}")
+
             stocks = filter_market_cap_universe(all_nse)
 
             if not stocks:
                 raise RuntimeError(
                     f"No NSE stocks found with market cap >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr."
                 )
+
+            print("=" * 78)
+            print(f"STAGE 1 COMPLETE: {len(stocks)} stocks PASSED market-cap filter")
+            print("STAGE 2 will scan ONLY these stocks.")
+            print("=" * 78)
 
         if welcome_sent_day != current_day:
             send_morning_welcome(len(stocks))
@@ -1094,7 +1191,8 @@ def main():
         scan_number += 1
         print("\n" + "=" * 78)
         print(f" NSE SCAN #{scan_number} | {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')}")
-        print(f" Stocks in universe: {len(stocks)}")
+        print(f" Stocks passed market-cap filter: {len(stocks)}")
+        print(" ONLY market-cap PASS stocks are sent to 15M/SMC processing.")
         print("=" * 78)
 
         signal_count = 0
@@ -1131,7 +1229,7 @@ def main():
         print("NSE SCAN PASS COMPLETE")
         print(f"Stocks in universe : {len(stocks)}")
         print(f"Entry signals      : {signal_count}")
-        print("No 5-minute refresh. Starting next pass immediately while within time window.")
+        print("ALL-TIME MODE: Starting next pass immediately. No 5-minute refresh and no clock-time restriction.")
         print("=" * 78)
 
         if not is_scan_window(datetime.now(IST)):
