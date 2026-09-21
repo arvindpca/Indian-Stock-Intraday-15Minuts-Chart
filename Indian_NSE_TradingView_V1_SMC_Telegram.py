@@ -106,10 +106,10 @@ def build_telegram_message(result):
 # ============================================================
 # SETTINGS
 # ============================================================
-SCAN_START_HOUR = 0
-SCAN_START_MINUTE = 0
-SCAN_END_HOUR = 24
-SCAN_END_MINUTE = 0
+SCAN_START_HOUR = 9
+SCAN_START_MINUTE = 15
+SCAN_END_HOUR = 15
+SCAN_END_MINUTE = 30
 
 # No 5-minute refresh interval. The scanner runs continuously
 # during the allowed window, with API pacing between requests.
