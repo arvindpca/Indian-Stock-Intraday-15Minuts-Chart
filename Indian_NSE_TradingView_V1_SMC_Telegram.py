@@ -21,7 +21,7 @@ from angel_client import get_client
 # Liquidity Sweep -> Displacement -> MSS -> FVG/OB
 # -> Retest -> Confirmation -> Volume -> Entry
 #
-# Scan mode: ALL TIME / 24x7. No clock-time or weekday restriction.
+# Scan mode: 09:15 AM to 03:30 PM IST on NSE weekdays.
 # Timestamps are Asia/Kolkata (IST).
 # ============================================================
 
@@ -1083,15 +1083,44 @@ def print_result(result):
 # MAIN
 # ============================================================
 def is_scan_window(now=None):
-    # ALL-TIME SCAN: no clock-time or weekday restriction.
-    # The scanner continuously runs and starts the next scan pass immediately.
-    return True
+    """Scan only on NSE weekdays from 09:15 AM to 03:30 PM IST."""
+    now = now or datetime.now(IST)
+
+    if now.weekday() >= 5:
+        return False
+
+    current_minutes = now.hour * 60 + now.minute
+    start_minutes = SCAN_START_HOUR * 60 + SCAN_START_MINUTE
+    end_minutes = SCAN_END_HOUR * 60 + SCAN_END_MINUTE
+
+    return start_minutes <= current_minutes < end_minutes
 
 
 def seconds_until_next_start(now=None):
-    # Kept for compatibility with the main loop.
-    # ALL-TIME mode never waits for a market-open time.
-    return 0
+    """Seconds until the next 09:15 AM IST scan window."""
+    now = now or datetime.now(IST)
+
+    if now.weekday() < 5:
+        start_today = now.replace(
+            hour=SCAN_START_HOUR,
+            minute=SCAN_START_MINUTE,
+            second=0,
+            microsecond=0,
+        )
+        if now < start_today:
+            return max(1, int((start_today - now).total_seconds()))
+
+    days = 1
+    while (now + timedelta(days=days)).weekday() >= 5:
+        days += 1
+
+    next_start = (now + timedelta(days=days)).replace(
+        hour=SCAN_START_HOUR,
+        minute=SCAN_START_MINUTE,
+        second=0,
+        microsecond=0,
+    )
+    return max(1, int((next_start - now).total_seconds()))
 
 
 def send_morning_welcome(stock_count):
@@ -1103,7 +1132,7 @@ def send_morning_welcome(stock_count):
         f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
-        "⏰ Scan Mode: ALL TIME / 24x7\n"
+        "⏰ Scan Time: 09:15 AM - 03:30 PM IST\n"
         "📌 RSI + Daily MACD: ON\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
@@ -1119,7 +1148,7 @@ def main():
     print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan mode: ALL TIME / 24x7 | No 5-minute refresh")
+    print(" Scan window: 09:15 AM - 03:30 PM IST | No 5-minute refresh")
     print("=" * 78)
 
     client = None
@@ -1229,7 +1258,7 @@ def main():
         print("NSE SCAN PASS COMPLETE")
         print(f"Stocks in universe : {len(stocks)}")
         print(f"Entry signals      : {signal_count}")
-        print("ALL-TIME MODE: Starting next pass immediately. No 5-minute refresh and no clock-time restriction.")
+        print("Scan window active: next pass starts immediately only while before 03:30 PM IST.")
         print("=" * 78)
 
         if not is_scan_window(datetime.now(IST)):
