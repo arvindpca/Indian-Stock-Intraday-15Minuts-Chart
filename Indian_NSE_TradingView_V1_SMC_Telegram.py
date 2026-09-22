@@ -21,7 +21,7 @@ from angel_client import get_client
 # Liquidity Sweep -> Displacement -> MSS -> FVG/OB
 # -> Retest -> Confirmation -> Volume -> Entry
 #
-# Scan mode: 09:15 AM - 03:30 PM IST, weekdays only.
+# Scan mode: ALL TIME / 24x7. No clock-time or weekday restriction.
 # Timestamps are Asia/Kolkata (IST).
 # ============================================================
 
@@ -97,7 +97,7 @@ def build_telegram_message(result):
         f"✓ Daily MACD: {result['daily_macd']:.4f} vs Signal {result['daily_macd_signal']:.4f}\n"
         f"✓ Market Cap: ₹{result['market_cap_cr']:,.0f} Cr\n"
         f"✓ HTF Filter: {result['htf_status']}\n"
-        f"✓ Trading Time: 09:15 AM - 03:30 PM IST\n\n"
+        f"✓ Trading Time: ALL TIME / 24x7\n\n"
         f"<b>Reason:</b> Complete TradingView V1 sequential setup\n\n"
         f"⚠️ Signal only — no automatic order placed."
     )
@@ -113,9 +113,10 @@ SCAN_END_MINUTE = 30
 
 # No 5-minute refresh interval. The scanner runs continuously
 # during the allowed window, with API pacing between requests.
-API_DELAY_SECONDS = 0.60
+API_DELAY_SECONDS = 0.40
 
 # Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
+MARKET_CAP_MIN_CR = 5000.0
 MAX_STOCKS = 0  # 0 = all qualifying stocks
 
 CANDLE_LIMIT_15M = 250
@@ -144,27 +145,6 @@ USE_DAILY_MACD_FILTER = True
 DAILY_MACD_FAST = 12
 DAILY_MACD_SLOW = 26
 DAILY_MACD_SIGNAL = 9
-
-# ============================================================
-# CHARTINK-STYLE FAST PRE-FILTER
-# Mirrors the user's supplied LONG / SHORT Chartink conditions.
-# It runs BEFORE the full SMC state-machine scan.
-# ============================================================
-USE_CHARTINK_FAST_FILTER = True
-CHARTINK_VOLUME_MULTIPLIER = 1.5
-CHARTINK_RSI_LENGTH = 14
-CHARTINK_LONG_RSI_MIN = 50.0
-CHARTINK_SHORT_RSI_MAX = 50.0
-CHARTINK_EMA_FAST = 8
-CHARTINK_EMA_SLOW = 21
-CHARTINK_ATR_LENGTH = 14
-CHARTINK_LONG_CANDLE_RATIO = 0.50
-CHARTINK_SHORT_BODY_RATIO = 0.30
-
-# Exact user-requested market-cap threshold: Rs 5,000 Cr = Rs 50,000,000,000.
-MARKET_CAP_MIN_RUPEES = 50000000000  # ₹50,000,000,000 = ₹5,000 Cr
-MARKET_CAP_MIN_CR = MARKET_CAP_MIN_RUPEES / 10_000
-
 
 # Same as TradingView V1 default: OFF.
 USE_HTF_FILTER = False
@@ -280,20 +260,12 @@ def _first_number(value):
 
 
 def extract_market_cap_cr(payload):
-    """Extract market cap in ₹ crore.
-
-    Preferred method: NSE quote-equity gives priceInfo.lastPrice and
-    securityInfo.issuedSize. For the NSE response used by this scanner,
-    market cap is calculated as:
-        last price × issuedSize / 1,00,00,000
-    because 1 crore rupees = 1,00,00,000 rupees.
-
-    The trade_info totalMarketCap field is retained only as a fallback and
-    is converted using the NSE API field convention used by this scanner.
-    """
+    """Extract NSE total market cap in ₹ crore from quote-equity and NextApi responses."""
     if not isinstance(payload, dict):
         return None
 
+    # NextApi getSymbolData normally returns: equityResponse[0]
+    # with tradeInfo directly inside that object.
     candidates = [payload]
     equity_response = payload.get("equityResponse")
     if isinstance(equity_response, list):
@@ -301,6 +273,7 @@ def extract_market_cap_cr(payload):
     elif isinstance(equity_response, dict):
         candidates.append(equity_response)
 
+    # Also support wrappers used by some NSE responses.
     data = payload.get("data")
     if isinstance(data, dict):
         candidates.append(data)
@@ -308,40 +281,34 @@ def extract_market_cap_cr(payload):
         candidates.extend(x for x in data if isinstance(x, dict))
 
     for obj in candidates:
-        # Most reliable calculation: current NSE price × issued shares.
-        price_info = obj.get("priceInfo") or {}
-        security_info = obj.get("securityInfo") or {}
-        last_price = _first_number(price_info.get("lastPrice"))
-        issued_size = _first_number(security_info.get("issuedSize"))
-        if last_price is not None and issued_size is not None and last_price > 0 and issued_size > 0:
-            # Convert: price × issued shares / 1 crore rupees.
-            # IMPORTANT: Do not multiply issued_size by 1000 here.
-            return (last_price * issued_size) / 10_000_000.0
-
-    # Fallback: NSE trade_info totalMarketCap.
-    # The API value is handled as ₹ lakh here, so 100 lakh = 1 crore.
-    for obj in candidates:
+        # NextApi structure: equityResponse[0].tradeInfo.totalMarketCap
         trade = obj.get("tradeInfo") or {}
         for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
             n = _first_number(trade.get(key))
             if n is not None:
-                return n / 100.0
+                return n
 
+        # quote-equity trade_info structure:
+        # marketDeptOrderBook.tradeInfo.totalMarketCap
         nested = obj.get("marketDeptOrderBook") or {}
         nested_trade = nested.get("tradeInfo") or {}
         for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
             n = _first_number(nested_trade.get(key))
             if n is not None:
-                return n / 100.0
+                return n
 
-        # Explicitly named crore fields need no conversion.
+        # Some wrappers expose market cap directly.
         for key in (
-            "marketCapInCr", "marketCapitalizationInCr", "totalMarketCapInCr"
+            "totalMarketCap", "totalMarketCapitalization",
+            "marketCapInCr", "marketCapitalizationInCr",
+            "totalMarketCapInCr",
         ):
             n = _first_number(obj.get(key))
             if n is not None:
                 return n
 
+        # Older quote-equity valuation shape. Only explicit crore fields are
+        # accepted so a rupee-denominated value is not misread as ₹ crore.
         pi = obj.get("priceInfo") or {}
         for key in ("marketCapInCr", "marketCapitalizationInCr"):
             n = _first_number(pi.get(key))
@@ -349,6 +316,7 @@ def extract_market_cap_cr(payload):
                 return n
 
     return None
+
 
 def _nse_json_get(url, params, referer=None):
     """GET an NSE JSON endpoint with one refresh/retry for protected responses."""
@@ -379,25 +347,10 @@ def _nse_json_get(url, params, referer=None):
 
 
 def fetch_nse_market_cap(symbol):
-    """Fetch NSE market cap using price × issued shares first.
-
-    This avoids displaying an NSE raw field with the wrong unit. The
-    calculated value is returned directly in ₹ crore.
-    """
+    """Fetch total market cap using NSE NextApi first, then trade_info fallback."""
     base = symbol.replace("-EQ", "", 1).strip().upper()
 
-    # Standard NSE equity quote contains both last price and issued size.
-    quote_url = f"{NSE_BASE_URL}/api/quote-equity"
-    payload = _nse_json_get(
-        quote_url,
-        {"symbol": base},
-        referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
-    )
-    cap = extract_market_cap_cr(payload) if payload else None
-    if cap is not None:
-        return cap
-
-    # Fallback to the newer NSE NextApi quote endpoint.
+    # Newer NSE NextApi: one request can contain total market cap.
     next_url = f"{NSE_BASE_URL}/api/NextApi/apiClient/GetQuoteApi"
     payload = _nse_json_get(
         next_url,
@@ -413,14 +366,19 @@ def fetch_nse_market_cap(symbol):
     if cap is not None:
         return cap
 
-    # Final fallback: trade_info endpoint.
+    # Standard NSE trade_info endpoint.
+    quote_url = f"{NSE_BASE_URL}/api/quote-equity"
     payload = _nse_json_get(
         quote_url,
         {"symbol": base, "section": "trade_info"},
         referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
     )
     cap = extract_market_cap_cr(payload) if payload else None
-    return cap
+    if cap is not None:
+        return cap
+
+    return None
+
 
 def filter_market_cap_universe(stocks):
     """Fetch NSE market cap and keep all stocks >= configured threshold."""
@@ -429,8 +387,6 @@ def filter_market_cap_universe(stocks):
     failed = 0
 
     print(f"STAGE 1 ONLY: checking market cap for {len(stocks)} NSE equity symbols...")
-    print("Market Cap = NSE last price × issued shares, converted to ₹ crore.")
-    print("NSE issuedSize is treated as thousands of shares.")
 
     for n, stock in enumerate(stocks, 1):
         cap = fetch_nse_market_cap(stock["symbol"])
@@ -476,44 +432,11 @@ def fetch_candles(client, token, interval, days):
         "todate": now_ist.strftime("%Y-%m-%d %H:%M"),
     }
 
-    response = None
-    last_error = None
-    for attempt in range(5):
-        try:
-            response = client.getCandleData(params)
-        except Exception as exc:
-            last_error = str(exc)
-            response = None
-
-        if response and response.get("status"):
-            break
-
-        message = (
-            response.get("message", "Unknown candle API error")
-            if isinstance(response, dict)
-            else (last_error or "Empty response")
-        )
-        lower = str(message).lower()
-        rate_limited = any(
-            x in lower for x in ["access denied", "exceeding access rate", "rate limit", "429", "too many"]
-        )
-        if not rate_limited:
-            raise RuntimeError(f"Candle API failed: {message}")
-
-        wait_seconds = min(30, 5 * (2 ** attempt))
-        print(
-            f"SmartAPI rate limit for token {token}. "
-            f"Retry {attempt + 1}/5 in {wait_seconds}s..."
-        )
-        time.sleep(wait_seconds)
+    response = client.getCandleData(params)
 
     if not response or not response.get("status"):
-        message = (
-            response.get("message", "Unknown candle API error")
-            if isinstance(response, dict)
-            else (last_error or "Empty response")
-        )
-        raise RuntimeError(f"Candle API failed after retries: {message}")
+        message = response.get("message", "Unknown candle API error") if response else "Empty response"
+        raise RuntimeError(f"Candle API failed: {message}")
 
     rows = response.get("data") or []
 
@@ -564,8 +487,6 @@ def add_daily_indicators(df):
     slow = d["close"].ewm(span=DAILY_MACD_SLOW, adjust=False).mean()
     d["macd"] = fast - slow
     d["macd_signal"] = d["macd"].ewm(span=DAILY_MACD_SIGNAL, adjust=False).mean()
-    d["ema8"] = d["close"].ewm(span=8, adjust=False).mean()
-    d["ema21"] = d["close"].ewm(span=21, adjust=False).mean()
     return d
 
 
@@ -682,192 +603,6 @@ def ist_time(timestamp):
 
 
 # ============================================================
-# CHARTINK INDICATORS / EXACT FAST FILTER
-# ============================================================
-def add_chartink_indicators(df):
-    d = df.copy()
-    d["ema8"] = d["close"].ewm(span=CHARTINK_EMA_FAST, adjust=False).mean()
-    d["ema21"] = d["close"].ewm(span=CHARTINK_EMA_SLOW, adjust=False).mean()
-    d["rsi14"] = rsi_wilder(d["close"], CHARTINK_RSI_LENGTH)
-
-    prev_close = d["close"].shift(1)
-    tr = pd.concat(
-        [
-            d["high"] - d["low"],
-            (d["high"] - prev_close).abs(),
-            (d["low"] - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-    # Wilder ATR, matching TradingView/Chartink-style ATR behavior.
-    d["atr14"] = tr.ewm(
-        alpha=1.0 / CHARTINK_ATR_LENGTH,
-        adjust=False,
-        min_periods=CHARTINK_ATR_LENGTH,
-    ).mean()
-    d["volume_sma20"] = d["volume"].rolling(20).mean()
-
-    # Intraday/session VWAP. Reset at each IST calendar day.
-    local_dates = d["time"].dt.tz_convert(IST).dt.date
-    typical = (d["high"] + d["low"] + d["close"]) / 3.0
-    pv = typical * d["volume"]
-    cum_pv = pv.groupby(local_dates).cumsum()
-    cum_vol = d["volume"].groupby(local_dates).cumsum()
-    d["vwap"] = cum_pv / cum_vol.replace(0, pd.NA)
-    return d
-
-
-def chartink_fast_filter(df):
-    """
-    Evaluate the latest CLOSED 15M candle against the user's supplied
-    Chartink LONG/SHORT conditions.
-
-    Returns:
-        (passed, direction, failed_reasons, metrics)
-    """
-    d = add_chartink_indicators(df)
-    if len(d) < 30:
-        return False, 0, ["Insufficient 15M candles"], {}
-
-    # Ignore the currently forming 15M candle.
-    i = len(d) - 2
-    if i < 25:
-        return False, 0, ["Insufficient closed 15M candles"], {}
-
-    row = d.iloc[i]
-    prev1 = d.iloc[i - 1]
-    prev2 = d.iloc[i - 2]
-    prev3 = d.iloc[i - 3]
-    prev5 = d.iloc[i - 5]
-
-    close = float(row["close"])
-    open_ = float(row["open"])
-    high = float(row["high"])
-    low = float(row["low"])
-    volume = float(row["volume"])
-    vwap = float(row["vwap"])
-    ema8 = float(row["ema8"])
-    ema21 = float(row["ema21"])
-    rsi = float(row["rsi14"])
-    atr = float(row["atr14"])
-    vol_sma = float(row["volume_sma20"])
-
-    candle_range = high - low
-    body = abs(close - open_)
-
-    common = {
-        "close": close,
-        "open": open_,
-        "high": high,
-        "low": low,
-        "vwap": vwap,
-        "ema8": ema8,
-        "ema21": ema21,
-        "rsi": rsi,
-        "volume": volume,
-        "volume_sma20": vol_sma,
-        "atr14": atr,
-        "candle_time": ist_time(row["time"]).strftime("%Y-%m-%d %H:%M:%S IST"),
-    }
-
-    if any(pd.isna(x) for x in [vwap, ema8, ema21, rsi, atr, vol_sma]):
-        return False, 0, ["Indicator data unavailable"], common
-
-    # ---------------- LONG: user's Chartink conditions ----------------
-    long_checks = {
-        "Candle bullish": close > open_,
-        "Close > VWAP": close > vwap,
-        "EMA8 > EMA21": ema8 > ema21,
-        "RSI > 50": rsi > CHARTINK_LONG_RSI_MIN,
-        "Volume > SMA20 x 1.5": volume > vol_sma * CHARTINK_VOLUME_MULTIPLIER,
-        "Candle upper 50%": candle_range > 0 and close > open_ + candle_range * CHARTINK_LONG_CANDLE_RATIO,
-        "[-2] High < [0] Low": float(prev2["high"]) < low,
-        "[-3] Low < [-5] Low": float(prev3["low"]) < float(prev5["low"]),
-        "[-3] Close > [-5] Low": float(prev3["close"]) > float(prev5["low"]),
-        "[0] Close > [-2] High": close > float(prev2["high"]),
-        "[0] Close > [-1] High": close > float(prev1["high"]),
-        "Body >= ATR14": body >= atr,
-    }
-
-    # ---------------- SHORT: user's Chartink conditions ----------------
-    short_checks = {
-        "Candle bearish": close < open_,
-        "Close < VWAP": close < vwap,
-        "EMA8 < EMA21": ema8 < ema21,
-        "RSI < 50": rsi < CHARTINK_SHORT_RSI_MAX,
-        "Bear body > 30% range": candle_range > 0 and (open_ - close) > candle_range * CHARTINK_SHORT_BODY_RATIO,
-        "Volume > SMA20 x 1.5": volume > vol_sma * CHARTINK_VOLUME_MULTIPLIER,
-        "[0] High > [-1] High": high > float(prev1["high"]),
-        "[0] Close < [-1] High": close < float(prev1["high"]),
-        "Daily filters pending": True,
-        "Body >= ATR14": body >= atr,
-    }
-
-    long_pass = all(long_checks.values())
-    short_pass = all(short_checks.values())
-
-    if long_pass and short_pass:
-        # This is theoretically possible only with inconsistent data;
-        # reject ambiguity rather than invent a direction.
-        return False, 0, ["Both LONG and SHORT filters passed"], common
-
-    if long_pass:
-        return True, 1, [], common
-
-    if short_pass:
-        return True, -1, [], common
-
-    # Keep the most useful diagnostics in the log while still returning WAIT.
-    long_failed = [k for k, v in long_checks.items() if not v]
-    short_failed = [k for k, v in short_checks.items() if not v]
-    common["long_failed"] = long_failed
-    common["short_failed"] = short_failed
-    return False, 0, ["LONG: " + ", ".join(long_failed), "SHORT: " + ", ".join(short_failed)], common
-
-
-def chartink_daily_filter(daily, direction):
-    """User's daily MACD + EMA8/EMA21 conditions, using the latest CLOSED day."""
-    if daily is None or len(daily) < 40:
-        return False, "Insufficient daily candles"
-
-    dd = daily.copy()
-    # Chartink's supplied daily conditions use the latest available daily
-    # candle (including today's developing candle during market hours).
-    # This mirrors the user's Chartink expression rather than forcing a
-    # previous-day-only calculation.
-    row = dd.iloc[-1]
-    if len(dd) < 40:
-        return False, "Insufficient daily candles"
-    macd = float(row["macd"])
-    signal = float(row["macd_signal"])
-    ema8 = float(row["ema8"])
-    ema21 = float(row["ema21"])
-    close = float(row["close"])
-
-    if direction == 1:
-        ok = (
-            macd > signal
-            and close > ema8
-            and ema8 > ema21
-        )
-        reason = (
-            f"Daily LONG: MACD {macd:.4f}>{signal:.4f}, "
-            f"Close {close:.2f}>EMA8 {ema8:.2f}>EMA21 {ema21:.2f}"
-        )
-    else:
-        ok = (
-            macd < signal
-            and close < ema8
-            and ema8 < ema21
-        )
-        reason = (
-            f"Daily SHORT: MACD {macd:.4f}<{signal:.4f}, "
-            f"Close {close:.2f}<EMA8 {ema8:.2f}<EMA21 {ema21:.2f}"
-        )
-    return ok, reason
-
-
-# ============================================================
 # CORE TRADINGVIEW V1 STATE MACHINE
 # ============================================================
 def scan_stock(client, stock, daily_cache):
@@ -881,59 +616,25 @@ def scan_stock(client, stock, daily_cache):
         days=30,
     )
 
-    # --------------------------------------------------------
-    # STEP 1: exact Chartink-style 15M fast filter.
-    # This avoids the expensive daily API call + SMC processing
-    # for stocks that cannot produce a Chartink-style signal.
-    # --------------------------------------------------------
-    if USE_CHARTINK_FAST_FILTER:
-        fast_pass, fast_direction, fast_failed, fast_metrics = chartink_fast_filter(raw)
-        if not fast_pass:
-            reason = "Chartink fast filter failed"
-            if fast_failed:
-                reason += " | " + " ; ".join(fast_failed[:2])
-            return {
-                "symbol": symbol,
-                "signal": "NO TRADE",
-                "status": "WAIT",
-                "reason": reason,
-                "chartink": "FAIL",
-            }
-    else:
-        fast_direction = 0
-        fast_metrics = {}
-
     d = add_indicators(raw)
     d = calculate_confirmed_pivots(d)
 
-    # --------------------------------------------------------
-    # STEP 2: daily Chartink conditions, fetched only after
-    # the 15M fast filter passes. Cache once per IST day.
-    # --------------------------------------------------------
+    # Daily MACD is cached for the trading day to avoid repeated API calls.
     cache_key = stock["symbol"]
     if cache_key not in daily_cache:
         daily_raw = fetch_daily_candles(client, token)
         daily_cache[cache_key] = add_daily_indicators(daily_raw)
     daily = daily_cache[cache_key]
+    if len(daily) < 40:
+        return {"symbol": symbol, "signal": "NO TRADE", "reason": "Insufficient daily candles"}
 
-    daily_pass, daily_reason = chartink_daily_filter(daily, fast_direction)
-    if not daily_pass:
-        return {
-            "symbol": symbol,
-            "signal": "NO TRADE",
-            "status": "WAIT",
-            "reason": "Chartink daily filter failed | " + daily_reason,
-            "chartink": "15M PASS / DAILY FAIL",
-        }
-
-    # Same daily candle used by the Chartink mirror: latest available row.
     daily_last = daily.iloc[-1]
     daily_macd = float(daily_last["macd"])
     daily_macd_signal = float(daily_last["macd_signal"])
     daily_macd_long = daily_macd > daily_macd_signal
     daily_macd_short = daily_macd < daily_macd_signal
 
-    # Ignore current/open 15M candle.
+    # Ignore current/open candle.
     last_closed = len(d) - 2
 
     if last_closed < 50:
@@ -1271,18 +972,12 @@ def scan_stock(client, stock, daily_cache):
             or (direction == -1 and daily_macd_short)
         )
 
-        chartink_direction_pass = (
-            not USE_CHARTINK_FAST_FILTER
-            or (fast_direction == direction)
-        )
-
         entry_allowed = (
             setup_state == 6
             and volume_pass
             and rsi_pass
             and macd_pass
             and htf_pass
-            and chartink_direction_pass
         )
 
         if entry_allowed:
@@ -1328,9 +1023,7 @@ def scan_stock(client, stock, daily_cache):
                 "daily_macd_signal": daily_macd_signal,
                 "market_cap_cr": float(stock.get("market_cap_cr") or 0),
                 "htf_status": htf_status,
-                "reason": "Chartink 15M + daily filters + complete TradingView V1 sequential setup",
-                "chartink": "PASS",
-                "chartink_metrics": dict(fast_metrics),
+                "reason": "Complete TradingView V1 sequential setup",
                 "stage_times": dict(stage_times),
             }
 
@@ -1381,7 +1074,6 @@ def print_result(result):
     else:
         print(f" SIGNAL        : {result['signal']}")
         print(f" STATUS        : {result.get('direction', 'WAIT')}")
-        print(f" CHARTINK      : {result.get('chartink', 'N/A')}")
         print(f" REASON        : {result.get('reason', '')}")
 
     print("=" * 78)
@@ -1396,20 +1088,21 @@ def is_scan_window(now=None):
         return False
     start = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
     end = now.replace(hour=SCAN_END_HOUR, minute=SCAN_END_MINUTE, second=0, microsecond=0)
-    return start <= now < end
+    return start <= now <= end
 
 
 def seconds_until_next_start(now=None):
     now = now or datetime.now(IST)
-    if now.weekday() < 5 and now.hour < SCAN_START_HOUR:
-        target = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
-        return max(1, int((target - now).total_seconds()))
-
-    target = now + timedelta(days=1)
-    while target.weekday() >= 5:
-        target += timedelta(days=1)
-    target = target.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
-    return max(1, int((target - now).total_seconds()))
+    start_today = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
+    if now.weekday() < 5 and now < start_today:
+        return max(1, int((start_today - now).total_seconds()))
+    days = 1
+    nxt = now + timedelta(days=days)
+    while nxt.weekday() >= 5:
+        days += 1
+        nxt = now + timedelta(days=days)
+    nxt = nxt.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
+    return max(1, int((nxt - now).total_seconds()))
 
 
 def send_morning_welcome(stock_count):
@@ -1421,7 +1114,7 @@ def send_morning_welcome(stock_count):
         f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
-        "⏰ Scan Mode: 09:15 AM - 03:30 PM IST\n"
+        "⏰ Scan Time: 09:15 AM - 03:30 PM IST\n"
         "📌 RSI + Daily MACD: ON\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
@@ -1437,7 +1130,7 @@ def main():
     print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan mode: 09:15 AM - 03:30 PM IST | Chartink Exact + SMC")
+    print(" Scan window: 09:15 AM - 03:30 PM IST | No 5-minute refresh")
     print("=" * 78)
 
     client = None
@@ -1547,7 +1240,7 @@ def main():
         print("NSE SCAN PASS COMPLETE")
         print(f"Stocks in universe : {len(stocks)}")
         print(f"Entry signals      : {signal_count}")
-        print("09:15-15:30 MODE: Next pass starts only while still inside the allowed window.")
+        print("Next scan pass starts immediately while inside 09:15-15:30 IST; no 5-minute refresh.")
         print("=" * 78)
 
         if not is_scan_window(datetime.now(IST)):
