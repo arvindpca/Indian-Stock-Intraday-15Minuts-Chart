@@ -116,7 +116,7 @@ SCAN_END_MINUTE = 30
 API_DELAY_SECONDS = 0.40
 
 # Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
-MARKET_CAP_MIN_CR = 5000.0
+MARKET_CAP_MIN_CR = 50000000000.0
 MAX_STOCKS = 0  # 0 = all qualifying stocks
 
 CANDLE_LIMIT_15M = 250
