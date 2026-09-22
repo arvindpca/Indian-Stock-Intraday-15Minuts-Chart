@@ -283,8 +283,9 @@ def extract_market_cap_cr(payload):
     """Extract market cap in ₹ crore.
 
     Preferred method: NSE quote-equity gives priceInfo.lastPrice and
-    securityInfo.issuedSize. Market cap is calculated as:
-        last price × issued shares / 1,00,00,000
+    securityInfo.issuedSize. NSE reports issuedSize in thousands of shares,
+    so market cap is calculated as:
+        last price × issuedSize × 1,000 / 1,00,00,000
     because 1 crore rupees = 1,00,00,000 rupees.
 
     The trade_info totalMarketCap field is retained only as a fallback and
@@ -313,7 +314,9 @@ def extract_market_cap_cr(payload):
         last_price = _first_number(price_info.get("lastPrice"))
         issued_size = _first_number(security_info.get("issuedSize"))
         if last_price is not None and issued_size is not None and last_price > 0 and issued_size > 0:
-            return (last_price * issued_size) / 10_000_000.0
+            # NSE securityInfo.issuedSize is reported in thousands of shares.
+            # Convert: price × issuedSize(thousands) × 1000 shares / 1 crore rupees.
+            return (last_price * issued_size * 1000.0) / 10_000_000.0
 
     # Fallback: NSE trade_info totalMarketCap.
     # The API value is handled as ₹ lakh here, so 100 lakh = 1 crore.
@@ -427,6 +430,7 @@ def filter_market_cap_universe(stocks):
 
     print(f"STAGE 1 ONLY: checking market cap for {len(stocks)} NSE equity symbols...")
     print("Market Cap = NSE last price × issued shares, converted to ₹ crore.")
+    print("NSE issuedSize is treated as thousands of shares.")
 
     for n, stock in enumerate(stocks, 1):
         cap = fetch_nse_market_cap(stock["symbol"])
