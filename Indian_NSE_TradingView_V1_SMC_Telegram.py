@@ -280,12 +280,19 @@ def _first_number(value):
 
 
 def extract_market_cap_cr(payload):
-    """Extract NSE total market cap in ₹ crore from quote-equity and NextApi responses. NSE tradeInfo totalMarketCap is ₹ lakh, so it is converted /100."""
+    """Extract market cap in ₹ crore.
+
+    Preferred method: NSE quote-equity gives priceInfo.lastPrice and
+    securityInfo.issuedSize. Market cap is calculated as:
+        last price × issued shares / 1,00,00,000
+    because 1 crore rupees = 1,00,00,000 rupees.
+
+    The trade_info totalMarketCap field is retained only as a fallback and
+    is converted using the NSE API field convention used by this scanner.
+    """
     if not isinstance(payload, dict):
         return None
 
-    # NextApi getSymbolData normally returns: equityResponse[0]
-    # with tradeInfo directly inside that object.
     candidates = [payload]
     equity_response = payload.get("equityResponse")
     if isinstance(equity_response, list):
@@ -293,7 +300,6 @@ def extract_market_cap_cr(payload):
     elif isinstance(equity_response, dict):
         candidates.append(equity_response)
 
-    # Also support wrappers used by some NSE responses.
     data = payload.get("data")
     if isinstance(data, dict):
         candidates.append(data)
@@ -301,37 +307,38 @@ def extract_market_cap_cr(payload):
         candidates.extend(x for x in data if isinstance(x, dict))
 
     for obj in candidates:
-        # NextApi structure: equityResponse[0].tradeInfo.totalMarketCap
+        # Most reliable calculation: current NSE price × issued shares.
+        price_info = obj.get("priceInfo") or {}
+        security_info = obj.get("securityInfo") or {}
+        last_price = _first_number(price_info.get("lastPrice"))
+        issued_size = _first_number(security_info.get("issuedSize"))
+        if last_price is not None and issued_size is not None and last_price > 0 and issued_size > 0:
+            return (last_price * issued_size) / 10_000_000.0
+
+    # Fallback: NSE trade_info totalMarketCap.
+    # The API value is handled as ₹ lakh here, so 100 lakh = 1 crore.
+    for obj in candidates:
         trade = obj.get("tradeInfo") or {}
         for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
             n = _first_number(trade.get(key))
             if n is not None:
-                # NSE tradeInfo market-cap values are in ₹ lakh.
-                # 100 lakh = 1 crore.
                 return n / 100.0
 
-        # quote-equity trade_info structure:
-        # marketDeptOrderBook.tradeInfo.totalMarketCap
-        # The value is ₹ lakh; extract_market_cap_cr() converts it to ₹ crore.
         nested = obj.get("marketDeptOrderBook") or {}
         nested_trade = nested.get("tradeInfo") or {}
         for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
             n = _first_number(nested_trade.get(key))
             if n is not None:
-                return n
+                return n / 100.0
 
-        # Some wrappers expose market cap directly.
+        # Explicitly named crore fields need no conversion.
         for key in (
-            "totalMarketCap", "totalMarketCapitalization",
-            "marketCapInCr", "marketCapitalizationInCr",
-            "totalMarketCapInCr",
+            "marketCapInCr", "marketCapitalizationInCr", "totalMarketCapInCr"
         ):
             n = _first_number(obj.get(key))
             if n is not None:
                 return n
 
-        # Older quote-equity valuation shape. Only explicit crore fields are
-        # accepted so a rupee-denominated value is not misread as ₹ crore.
         pi = obj.get("priceInfo") or {}
         for key in ("marketCapInCr", "marketCapitalizationInCr"):
             n = _first_number(pi.get(key))
@@ -339,7 +346,6 @@ def extract_market_cap_cr(payload):
                 return n
 
     return None
-
 
 def _nse_json_get(url, params, referer=None):
     """GET an NSE JSON endpoint with one refresh/retry for protected responses."""
@@ -370,10 +376,25 @@ def _nse_json_get(url, params, referer=None):
 
 
 def fetch_nse_market_cap(symbol):
-    """Fetch total market cap using NSE NextApi first, then trade_info fallback."""
+    """Fetch NSE market cap using price × issued shares first.
+
+    This avoids displaying an NSE raw field with the wrong unit. The
+    calculated value is returned directly in ₹ crore.
+    """
     base = symbol.replace("-EQ", "", 1).strip().upper()
 
-    # Newer NSE NextApi: one request can contain total market cap.
+    # Standard NSE equity quote contains both last price and issued size.
+    quote_url = f"{NSE_BASE_URL}/api/quote-equity"
+    payload = _nse_json_get(
+        quote_url,
+        {"symbol": base},
+        referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
+    )
+    cap = extract_market_cap_cr(payload) if payload else None
+    if cap is not None:
+        return cap
+
+    # Fallback to the newer NSE NextApi quote endpoint.
     next_url = f"{NSE_BASE_URL}/api/NextApi/apiClient/GetQuoteApi"
     payload = _nse_json_get(
         next_url,
@@ -389,19 +410,14 @@ def fetch_nse_market_cap(symbol):
     if cap is not None:
         return cap
 
-    # Standard NSE trade_info endpoint.
-    quote_url = f"{NSE_BASE_URL}/api/quote-equity"
+    # Final fallback: trade_info endpoint.
     payload = _nse_json_get(
         quote_url,
         {"symbol": base, "section": "trade_info"},
         referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
     )
     cap = extract_market_cap_cr(payload) if payload else None
-    if cap is not None:
-        return cap
-
-    return None
-
+    return cap
 
 def filter_market_cap_universe(stocks):
     """Fetch NSE market cap and keep all stocks >= configured threshold."""
@@ -410,7 +426,7 @@ def filter_market_cap_universe(stocks):
     failed = 0
 
     print(f"STAGE 1 ONLY: checking market cap for {len(stocks)} NSE equity symbols...")
-    print("NSE totalMarketCap is converted from ₹ lakh to ₹ crore before filtering.")
+    print("Market Cap = NSE last price × issued shares, converted to ₹ crore.")
 
     for n, stock in enumerate(stocks, 1):
         cap = fetch_nse_market_cap(stock["symbol"])
