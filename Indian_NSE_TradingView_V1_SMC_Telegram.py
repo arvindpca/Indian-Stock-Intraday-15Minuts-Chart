@@ -280,7 +280,7 @@ def _first_number(value):
 
 
 def extract_market_cap_cr(payload):
-    """Extract NSE total market cap in ₹ crore from quote-equity and NextApi responses."""
+    """Extract NSE total market cap in ₹ crore from quote-equity and NextApi responses. NSE tradeInfo totalMarketCap is ₹ lakh, so it is converted /100."""
     if not isinstance(payload, dict):
         return None
 
@@ -306,10 +306,13 @@ def extract_market_cap_cr(payload):
         for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
             n = _first_number(trade.get(key))
             if n is not None:
-                return n
+                # NSE tradeInfo market-cap values are in ₹ lakh.
+                # 100 lakh = 1 crore.
+                return n / 100.0
 
         # quote-equity trade_info structure:
         # marketDeptOrderBook.tradeInfo.totalMarketCap
+        # The value is ₹ lakh; extract_market_cap_cr() converts it to ₹ crore.
         nested = obj.get("marketDeptOrderBook") or {}
         nested_trade = nested.get("tradeInfo") or {}
         for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
@@ -407,6 +410,7 @@ def filter_market_cap_universe(stocks):
     failed = 0
 
     print(f"STAGE 1 ONLY: checking market cap for {len(stocks)} NSE equity symbols...")
+    print("NSE totalMarketCap is converted from ₹ lakh to ₹ crore before filtering.")
 
     for n, stock in enumerate(stocks, 1):
         cap = fetch_nse_market_cap(stock["symbol"])
