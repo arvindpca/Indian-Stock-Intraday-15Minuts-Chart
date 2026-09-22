@@ -113,7 +113,7 @@ SCAN_END_MINUTE = 30
 
 # No 5-minute refresh interval. The scanner runs continuously
 # during the allowed window, with API pacing between requests.
-API_DELAY_SECONDS = 0.40
+API_DELAY_SECONDS = 0.10
 
 # Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
 MARKET_CAP_MIN_CR = 50000000000.0
@@ -221,6 +221,35 @@ NSE_API_HEADERS = {
     "Referer": "https://www.nseindia.com/",
     "X-Requested-With": "XMLHttpRequest",
 }
+
+# ANGEL ONE HISTORICAL API RATE LIMITER
+# SmartAPI documents getCandleData at 3 requests/sec and 150 requests/minute.
+# Keep a safety margin because 403 rate-limit responses can occur below the published limit.
+HIST_MIN_INTERVAL_SECONDS = 0.55
+HIST_MAX_REQUESTS_PER_MINUTE = 120
+HIST_RATE_WINDOW_SECONDS = 60.0
+HIST_REQUEST_TIMES = []
+HIST_RATE_LOCK = __import__("threading").Lock()
+
+def _wait_for_historical_slot():
+    import time as _time
+    while True:
+        now = _time.monotonic()
+        with HIST_RATE_LOCK:
+            cutoff = now - HIST_RATE_WINDOW_SECONDS
+            while HIST_REQUEST_TIMES and HIST_REQUEST_TIMES[0] <= cutoff:
+                HIST_REQUEST_TIMES.pop(0)
+            sleep_for = 0.0
+            if HIST_REQUEST_TIMES:
+                elapsed = now - HIST_REQUEST_TIMES[-1]
+                if elapsed < HIST_MIN_INTERVAL_SECONDS:
+                    sleep_for = HIST_MIN_INTERVAL_SECONDS - elapsed
+            if sleep_for <= 0 and len(HIST_REQUEST_TIMES) < HIST_MAX_REQUESTS_PER_MINUTE:
+                HIST_REQUEST_TIMES.append(now)
+                return
+            if sleep_for <= 0:
+                sleep_for = max(0.1, HIST_REQUEST_TIMES[0] + HIST_RATE_WINDOW_SECONDS - now + 0.05)
+        _time.sleep(sleep_for)
 
 
 def init_nse_session():
@@ -417,61 +446,36 @@ def filter_market_cap_universe(stocks):
 # HISTORICAL CANDLES
 # ============================================================
 def fetch_candles(client, token, interval, days):
-    """
-    Angel One getCandleData returns:
-    [timestamp, open, high, low, close, volume]
-    """
+    """Fetch historical candles with global rate limiting and retry/backoff."""
     now_ist = datetime.now(IST)
     from_dt = now_ist - timedelta(days=days)
-
     params = {
-        "exchange": "NSE",
-        "symboltoken": str(token),
-        "interval": interval,
+        "exchange": "NSE", "symboltoken": str(token), "interval": interval,
         "fromdate": from_dt.strftime("%Y-%m-%d %H:%M"),
         "todate": now_ist.strftime("%Y-%m-%d %H:%M"),
     }
-
-    response = client.getCandleData(params)
-
-    if not response or not response.get("status"):
-        message = response.get("message", "Unknown candle API error") if response else "Empty response"
-        raise RuntimeError(f"Candle API failed: {message}")
-
-    rows = response.get("data") or []
-
-    if not rows:
-        raise ValueError("No candle data returned")
-
-    df = pd.DataFrame(
-        rows,
-        columns=[
-            "time",
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume",
-        ],
-    )
-
-    for col in ["open", "high", "low", "close", "volume"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    df["time"] = pd.to_datetime(
-        df["time"],
-        errors="coerce",
-        utc=True,
-    )
-
-    df = (
-        df.dropna()
-        .sort_values("time")
-        .drop_duplicates("time")
-        .reset_index(drop=True)
-    )
-
-    return df
+    last_error = None
+    for attempt in range(4):
+        _wait_for_historical_slot()
+        try:
+            response = client.getCandleData(params)
+            if response and response.get("status"):
+                rows = response.get("data") or []
+                if not rows:
+                    raise ValueError("No candle data returned")
+                df = pd.DataFrame(rows, columns=["time","open","high","low","close","volume"])
+                for col in ["open","high","low","close","volume"]:
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
+                df["time"] = pd.to_datetime(df["time"], errors="coerce", utc=True)
+                return df.dropna().sort_values("time").drop_duplicates("time").reset_index(drop=True)
+            last_error = RuntimeError((response.get("message", "Unknown candle API error") if response else "Empty response"))
+        except Exception as e:
+            last_error = e
+        if attempt < 3:
+            backoff = [2.0, 5.0, 12.0][attempt]
+            print(f"Historical API retry {attempt + 1}/3 for token {token} ({interval}) after error: {last_error}. Waiting {backoff:.0f}s...")
+            time.sleep(backoff)
+    raise RuntimeError(str(last_error) if last_error else "Candle API failed")
 
 
 # ============================================================
@@ -602,6 +606,22 @@ def ist_time(timestamp):
     return timestamp.to_pydatetime().astimezone(IST)
 
 
+# 15M CANDLE CACHE
+# Reuse downloaded 15M history until the next 15-minute bucket.
+INTRADAY_CACHE = {}
+
+def get_cached_15m(client, stock):
+    symbol = stock["symbol"]
+    now_ist = datetime.now(IST)
+    bucket = now_ist.replace(minute=(now_ist.minute // 15) * 15, second=0, microsecond=0)
+    cached = INTRADAY_CACHE.get(symbol)
+    if cached is not None and cached.get("bucket") == bucket:
+        return cached["raw"]
+    raw = fetch_candles(client, stock["token"], "FIFTEEN_MINUTE", days=30)
+    INTRADAY_CACHE[symbol] = {"bucket": bucket, "raw": raw}
+    return raw
+
+
 # ============================================================
 # CORE TRADINGVIEW V1 STATE MACHINE
 # ============================================================
@@ -609,12 +629,7 @@ def scan_stock(client, stock, daily_cache):
     symbol = stock["symbol"]
     token = stock["token"]
 
-    raw = fetch_candles(
-        client,
-        token,
-        "FIFTEEN_MINUTE",
-        days=30,
-    )
+    raw = get_cached_15m(client, stock)
 
     d = add_indicators(raw)
     d = calculate_confirmed_pivots(d)
@@ -1083,26 +1098,15 @@ def print_result(result):
 # MAIN
 # ============================================================
 def is_scan_window(now=None):
-    now = now or datetime.now(IST)
-    if now.weekday() >= 5:
-        return False
-    start = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
-    end = now.replace(hour=SCAN_END_HOUR, minute=SCAN_END_MINUTE, second=0, microsecond=0)
-    return start <= now <= end
+    # ALL-TIME SCAN: no clock-time or weekday restriction.
+    # The scanner continuously runs and starts the next scan pass immediately.
+    return True
 
 
 def seconds_until_next_start(now=None):
-    now = now or datetime.now(IST)
-    start_today = now.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
-    if now.weekday() < 5 and now < start_today:
-        return max(1, int((start_today - now).total_seconds()))
-    days = 1
-    nxt = now + timedelta(days=days)
-    while nxt.weekday() >= 5:
-        days += 1
-        nxt = now + timedelta(days=days)
-    nxt = nxt.replace(hour=SCAN_START_HOUR, minute=SCAN_START_MINUTE, second=0, microsecond=0)
-    return max(1, int((nxt - now).total_seconds()))
+    # Kept for compatibility with the main loop.
+    # ALL-TIME mode never waits for a market-open time.
+    return 0
 
 
 def send_morning_welcome(stock_count):
@@ -1114,7 +1118,7 @@ def send_morning_welcome(stock_count):
         f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
-        "⏰ Scan Time: 09:15 AM - 03:30 PM IST\n"
+        "⏰ Scan Mode: ALL TIME / 24x7\n"
         "📌 RSI + Daily MACD: ON\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
@@ -1128,9 +1132,10 @@ def main():
     print(" INDIAN NSE - TRADINGVIEW V1 SMC SCANNER")
     print(" Angel One SmartAPI + NSE Market Cap + Telegram")
     print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
+    print(" Historical API: 120 requests/min safety cap | 0.55s spacing")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan window: 09:15 AM - 03:30 PM IST | No 5-minute refresh")
+    print(" Scan mode: ALL TIME / 24x7 | No 5-minute refresh")
     print("=" * 78)
 
     client = None
@@ -1170,6 +1175,7 @@ def main():
             current_day = now.date()
             welcome_sent_day = None
             daily_cache = {}
+            INTRADAY_CACHE.clear()
             print("\n" + "=" * 78)
             print("STAGE 1: BUILDING MARKET-CAP UNIVERSE")
             print(f"Filter: Market Cap >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr")
@@ -1240,7 +1246,7 @@ def main():
         print("NSE SCAN PASS COMPLETE")
         print(f"Stocks in universe : {len(stocks)}")
         print(f"Entry signals      : {signal_count}")
-        print("Next scan pass starts immediately while inside 09:15-15:30 IST; no 5-minute refresh.")
+        print("RATE-LIMITED MODE: 15M data is cached within each 15-minute candle; API requests are throttled safely.")
         print("=" * 78)
 
         if not is_scan_window(datetime.now(IST)):
