@@ -21,7 +21,7 @@ from angel_client import get_client
 # Liquidity Sweep -> Displacement -> MSS -> FVG/OB
 # -> Retest -> Confirmation -> Volume -> Entry
 #
-# Scan mode: ALL TIME / 24x7. No clock-time or weekday restriction.
+# Scan mode: 09:15 AM - 03:30 PM IST, weekdays only.
 # Timestamps are Asia/Kolkata (IST).
 # ============================================================
 
@@ -109,14 +109,13 @@ def build_telegram_message(result):
 SCAN_START_HOUR = 9
 SCAN_START_MINUTE = 15
 SCAN_END_HOUR = 15
-SCAN_END_MINUTE = 30	
+SCAN_END_MINUTE = 30
 
 # No 5-minute refresh interval. The scanner runs continuously
 # during the allowed window, with API pacing between requests.
-API_DELAY_SECONDS = 0.40
+API_DELAY_SECONDS = 0.60
 
 # Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
-MARKET_CAP_MIN_CR = 50000000000.0
 MAX_STOCKS = 0  # 0 = all qualifying stocks
 
 CANDLE_LIMIT_15M = 250
@@ -148,16 +147,23 @@ DAILY_MACD_SIGNAL = 9
 
 # ============================================================
 # CHARTINK-STYLE FAST PRE-FILTER
-# Exact conditions supplied by the user.
-# This runs BEFORE the full SMC state-machine scan.
+# Mirrors the user's supplied LONG / SHORT Chartink conditions.
+# It runs BEFORE the full SMC state-machine scan.
 # ============================================================
 USE_CHARTINK_FAST_FILTER = True
 CHARTINK_VOLUME_MULTIPLIER = 1.5
+CHARTINK_RSI_LENGTH = 14
 CHARTINK_LONG_RSI_MIN = 50.0
 CHARTINK_SHORT_RSI_MAX = 50.0
+CHARTINK_EMA_FAST = 8
+CHARTINK_EMA_SLOW = 21
+CHARTINK_ATR_LENGTH = 14
 CHARTINK_LONG_CANDLE_RATIO = 0.50
 CHARTINK_SHORT_BODY_RATIO = 0.30
-CHARTINK_ATR_LENGTH = 14
+
+# Exact user-requested market-cap threshold: Rs 5,000 Cr = Rs 50,000,000,000.
+MARKET_CAP_MIN_RUPEES = 50000000000  # ₹50,000,000,000 = ₹5,000 Cr
+MARKET_CAP_MIN_CR = MARKET_CAP_MIN_RUPEES / 10_000_000
 
 
 # Same as TradingView V1 default: OFF.
@@ -446,11 +452,44 @@ def fetch_candles(client, token, interval, days):
         "todate": now_ist.strftime("%Y-%m-%d %H:%M"),
     }
 
-    response = client.getCandleData(params)
+    response = None
+    last_error = None
+    for attempt in range(5):
+        try:
+            response = client.getCandleData(params)
+        except Exception as exc:
+            last_error = str(exc)
+            response = None
+
+        if response and response.get("status"):
+            break
+
+        message = (
+            response.get("message", "Unknown candle API error")
+            if isinstance(response, dict)
+            else (last_error or "Empty response")
+        )
+        lower = str(message).lower()
+        rate_limited = any(
+            x in lower for x in ["access denied", "exceeding access rate", "rate limit", "429", "too many"]
+        )
+        if not rate_limited:
+            raise RuntimeError(f"Candle API failed: {message}")
+
+        wait_seconds = min(30, 5 * (2 ** attempt))
+        print(
+            f"SmartAPI rate limit for token {token}. "
+            f"Retry {attempt + 1}/5 in {wait_seconds}s..."
+        )
+        time.sleep(wait_seconds)
 
     if not response or not response.get("status"):
-        message = response.get("message", "Unknown candle API error") if response else "Empty response"
-        raise RuntimeError(f"Candle API failed: {message}")
+        message = (
+            response.get("message", "Unknown candle API error")
+            if isinstance(response, dict)
+            else (last_error or "Empty response")
+        )
+        raise RuntimeError(f"Candle API failed after retries: {message}")
 
     rows = response.get("data") or []
 
@@ -501,6 +540,8 @@ def add_daily_indicators(df):
     slow = d["close"].ewm(span=DAILY_MACD_SLOW, adjust=False).mean()
     d["macd"] = fast - slow
     d["macd_signal"] = d["macd"].ewm(span=DAILY_MACD_SIGNAL, adjust=False).mean()
+    d["ema8"] = d["close"].ewm(span=8, adjust=False).mean()
+    d["ema21"] = d["close"].ewm(span=21, adjust=False).mean()
     return d
 
 
@@ -617,6 +658,192 @@ def ist_time(timestamp):
 
 
 # ============================================================
+# CHARTINK INDICATORS / EXACT FAST FILTER
+# ============================================================
+def add_chartink_indicators(df):
+    d = df.copy()
+    d["ema8"] = d["close"].ewm(span=CHARTINK_EMA_FAST, adjust=False).mean()
+    d["ema21"] = d["close"].ewm(span=CHARTINK_EMA_SLOW, adjust=False).mean()
+    d["rsi14"] = rsi_wilder(d["close"], CHARTINK_RSI_LENGTH)
+
+    prev_close = d["close"].shift(1)
+    tr = pd.concat(
+        [
+            d["high"] - d["low"],
+            (d["high"] - prev_close).abs(),
+            (d["low"] - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    # Wilder ATR, matching TradingView/Chartink-style ATR behavior.
+    d["atr14"] = tr.ewm(
+        alpha=1.0 / CHARTINK_ATR_LENGTH,
+        adjust=False,
+        min_periods=CHARTINK_ATR_LENGTH,
+    ).mean()
+    d["volume_sma20"] = d["volume"].rolling(20).mean()
+
+    # Intraday/session VWAP. Reset at each IST calendar day.
+    local_dates = d["time"].dt.tz_convert(IST).dt.date
+    typical = (d["high"] + d["low"] + d["close"]) / 3.0
+    pv = typical * d["volume"]
+    cum_pv = pv.groupby(local_dates).cumsum()
+    cum_vol = d["volume"].groupby(local_dates).cumsum()
+    d["vwap"] = cum_pv / cum_vol.replace(0, pd.NA)
+    return d
+
+
+def chartink_fast_filter(df):
+    """
+    Evaluate the latest CLOSED 15M candle against the user's supplied
+    Chartink LONG/SHORT conditions.
+
+    Returns:
+        (passed, direction, failed_reasons, metrics)
+    """
+    d = add_chartink_indicators(df)
+    if len(d) < 30:
+        return False, 0, ["Insufficient 15M candles"], {}
+
+    # Ignore the currently forming 15M candle.
+    i = len(d) - 2
+    if i < 25:
+        return False, 0, ["Insufficient closed 15M candles"], {}
+
+    row = d.iloc[i]
+    prev1 = d.iloc[i - 1]
+    prev2 = d.iloc[i - 2]
+    prev3 = d.iloc[i - 3]
+    prev5 = d.iloc[i - 5]
+
+    close = float(row["close"])
+    open_ = float(row["open"])
+    high = float(row["high"])
+    low = float(row["low"])
+    volume = float(row["volume"])
+    vwap = float(row["vwap"])
+    ema8 = float(row["ema8"])
+    ema21 = float(row["ema21"])
+    rsi = float(row["rsi14"])
+    atr = float(row["atr14"])
+    vol_sma = float(row["volume_sma20"])
+
+    candle_range = high - low
+    body = abs(close - open_)
+
+    common = {
+        "close": close,
+        "open": open_,
+        "high": high,
+        "low": low,
+        "vwap": vwap,
+        "ema8": ema8,
+        "ema21": ema21,
+        "rsi": rsi,
+        "volume": volume,
+        "volume_sma20": vol_sma,
+        "atr14": atr,
+        "candle_time": ist_time(row["time"]).strftime("%Y-%m-%d %H:%M:%S IST"),
+    }
+
+    if any(pd.isna(x) for x in [vwap, ema8, ema21, rsi, atr, vol_sma]):
+        return False, 0, ["Indicator data unavailable"], common
+
+    # ---------------- LONG: user's Chartink conditions ----------------
+    long_checks = {
+        "Candle bullish": close > open_,
+        "Close > VWAP": close > vwap,
+        "EMA8 > EMA21": ema8 > ema21,
+        "RSI > 50": rsi > CHARTINK_LONG_RSI_MIN,
+        "Volume > SMA20 x 1.5": volume > vol_sma * CHARTINK_VOLUME_MULTIPLIER,
+        "Candle upper 50%": candle_range > 0 and close > open_ + candle_range * CHARTINK_LONG_CANDLE_RATIO,
+        "[-2] High < [0] Low": float(prev2["high"]) < low,
+        "[-3] Low < [-5] Low": float(prev3["low"]) < float(prev5["low"]),
+        "[-3] Close > [-5] Low": float(prev3["close"]) > float(prev5["low"]),
+        "[0] Close > [-2] High": close > float(prev2["high"]),
+        "[0] Close > [-1] High": close > float(prev1["high"]),
+        "Body >= ATR14": body >= atr,
+    }
+
+    # ---------------- SHORT: user's Chartink conditions ----------------
+    short_checks = {
+        "Candle bearish": close < open_,
+        "Close < VWAP": close < vwap,
+        "EMA8 < EMA21": ema8 < ema21,
+        "RSI < 50": rsi < CHARTINK_SHORT_RSI_MAX,
+        "Bear body > 30% range": candle_range > 0 and (open_ - close) > candle_range * CHARTINK_SHORT_BODY_RATIO,
+        "Volume > SMA20 x 1.5": volume > vol_sma * CHARTINK_VOLUME_MULTIPLIER,
+        "[0] High > [-1] High": high > float(prev1["high"]),
+        "[0] Close < [-1] High": close < float(prev1["high"]),
+        "Daily filters pending": True,
+        "Body >= ATR14": body >= atr,
+    }
+
+    long_pass = all(long_checks.values())
+    short_pass = all(short_checks.values())
+
+    if long_pass and short_pass:
+        # This is theoretically possible only with inconsistent data;
+        # reject ambiguity rather than invent a direction.
+        return False, 0, ["Both LONG and SHORT filters passed"], common
+
+    if long_pass:
+        return True, 1, [], common
+
+    if short_pass:
+        return True, -1, [], common
+
+    # Keep the most useful diagnostics in the log while still returning WAIT.
+    long_failed = [k for k, v in long_checks.items() if not v]
+    short_failed = [k for k, v in short_checks.items() if not v]
+    common["long_failed"] = long_failed
+    common["short_failed"] = short_failed
+    return False, 0, ["LONG: " + ", ".join(long_failed), "SHORT: " + ", ".join(short_failed)], common
+
+
+def chartink_daily_filter(daily, direction):
+    """User's daily MACD + EMA8/EMA21 conditions, using the latest CLOSED day."""
+    if daily is None or len(daily) < 40:
+        return False, "Insufficient daily candles"
+
+    dd = daily.copy()
+    # Chartink's supplied daily conditions use the latest available daily
+    # candle (including today's developing candle during market hours).
+    # This mirrors the user's Chartink expression rather than forcing a
+    # previous-day-only calculation.
+    row = dd.iloc[-1]
+    if len(dd) < 40:
+        return False, "Insufficient daily candles"
+    macd = float(row["macd"])
+    signal = float(row["macd_signal"])
+    ema8 = float(row["ema8"])
+    ema21 = float(row["ema21"])
+    close = float(row["close"])
+
+    if direction == 1:
+        ok = (
+            macd > signal
+            and close > ema8
+            and ema8 > ema21
+        )
+        reason = (
+            f"Daily LONG: MACD {macd:.4f}>{signal:.4f}, "
+            f"Close {close:.2f}>EMA8 {ema8:.2f}>EMA21 {ema21:.2f}"
+        )
+    else:
+        ok = (
+            macd < signal
+            and close < ema8
+            and ema8 < ema21
+        )
+        reason = (
+            f"Daily SHORT: MACD {macd:.4f}<{signal:.4f}, "
+            f"Close {close:.2f}<EMA8 {ema8:.2f}<EMA21 {ema21:.2f}"
+        )
+    return ok, reason
+
+
+# ============================================================
 # CORE TRADINGVIEW V1 STATE MACHINE
 # ============================================================
 def scan_stock(client, stock, daily_cache):
@@ -630,25 +857,59 @@ def scan_stock(client, stock, daily_cache):
         days=30,
     )
 
+    # --------------------------------------------------------
+    # STEP 1: exact Chartink-style 15M fast filter.
+    # This avoids the expensive daily API call + SMC processing
+    # for stocks that cannot produce a Chartink-style signal.
+    # --------------------------------------------------------
+    if USE_CHARTINK_FAST_FILTER:
+        fast_pass, fast_direction, fast_failed, fast_metrics = chartink_fast_filter(raw)
+        if not fast_pass:
+            reason = "Chartink fast filter failed"
+            if fast_failed:
+                reason += " | " + " ; ".join(fast_failed[:2])
+            return {
+                "symbol": symbol,
+                "signal": "NO TRADE",
+                "status": "WAIT",
+                "reason": reason,
+                "chartink": "FAIL",
+            }
+    else:
+        fast_direction = 0
+        fast_metrics = {}
+
     d = add_indicators(raw)
     d = calculate_confirmed_pivots(d)
 
-    # Daily MACD is cached for the trading day to avoid repeated API calls.
+    # --------------------------------------------------------
+    # STEP 2: daily Chartink conditions, fetched only after
+    # the 15M fast filter passes. Cache once per IST day.
+    # --------------------------------------------------------
     cache_key = stock["symbol"]
     if cache_key not in daily_cache:
         daily_raw = fetch_daily_candles(client, token)
         daily_cache[cache_key] = add_daily_indicators(daily_raw)
     daily = daily_cache[cache_key]
-    if len(daily) < 40:
-        return {"symbol": symbol, "signal": "NO TRADE", "reason": "Insufficient daily candles"}
 
+    daily_pass, daily_reason = chartink_daily_filter(daily, fast_direction)
+    if not daily_pass:
+        return {
+            "symbol": symbol,
+            "signal": "NO TRADE",
+            "status": "WAIT",
+            "reason": "Chartink daily filter failed | " + daily_reason,
+            "chartink": "15M PASS / DAILY FAIL",
+        }
+
+    # Same daily candle used by the Chartink mirror: latest available row.
     daily_last = daily.iloc[-1]
     daily_macd = float(daily_last["macd"])
     daily_macd_signal = float(daily_last["macd_signal"])
     daily_macd_long = daily_macd > daily_macd_signal
     daily_macd_short = daily_macd < daily_macd_signal
 
-    # Ignore current/open candle.
+    # Ignore current/open 15M candle.
     last_closed = len(d) - 2
 
     if last_closed < 50:
@@ -986,12 +1247,18 @@ def scan_stock(client, stock, daily_cache):
             or (direction == -1 and daily_macd_short)
         )
 
+        chartink_direction_pass = (
+            not USE_CHARTINK_FAST_FILTER
+            or (fast_direction == direction)
+        )
+
         entry_allowed = (
             setup_state == 6
             and volume_pass
             and rsi_pass
             and macd_pass
             and htf_pass
+            and chartink_direction_pass
         )
 
         if entry_allowed:
@@ -1037,7 +1304,9 @@ def scan_stock(client, stock, daily_cache):
                 "daily_macd_signal": daily_macd_signal,
                 "market_cap_cr": float(stock.get("market_cap_cr") or 0),
                 "htf_status": htf_status,
-                "reason": "Complete TradingView V1 sequential setup",
+                "reason": "Chartink 15M + daily filters + complete TradingView V1 sequential setup",
+                "chartink": "PASS",
+                "chartink_metrics": dict(fast_metrics),
                 "stage_times": dict(stage_times),
             }
 
@@ -1088,6 +1357,7 @@ def print_result(result):
     else:
         print(f" SIGNAL        : {result['signal']}")
         print(f" STATUS        : {result.get('direction', 'WAIT')}")
+        print(f" CHARTINK      : {result.get('chartink', 'N/A')}")
         print(f" REASON        : {result.get('reason', '')}")
 
     print("=" * 78)
@@ -1143,7 +1413,7 @@ def main():
     print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan mode: 09:15 AM - 03:30 PM IST | Chartink Fast Filter + SMC")
+    print(" Scan mode: 09:15 AM - 03:30 PM IST | Chartink Exact + SMC")
     print("=" * 78)
 
     client = None
@@ -1253,7 +1523,7 @@ def main():
         print("NSE SCAN PASS COMPLETE")
         print(f"Stocks in universe : {len(stocks)}")
         print(f"Entry signals      : {signal_count}")
-        print("09:15-15:30 MODE: Starting next pass immediately while within the allowed window.")
+        print("09:15-15:30 MODE: Next pass starts only while still inside the allowed window.")
         print("=" * 78)
 
         if not is_scan_window(datetime.now(IST)):
