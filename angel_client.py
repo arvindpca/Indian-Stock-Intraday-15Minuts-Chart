@@ -233,3 +233,15 @@ def get_feed_token() -> str:
     client = get_client()
 
     return client.getfeedToken()
+# ---------------------------------------------------------
+# WebSocket auth token
+# ---------------------------------------------------------
+def get_auth_token() -> str:
+    """Return the JWT auth token from the active SmartAPI session."""
+    global _session_data
+    if _session_data is None:
+        login()
+    try:
+        return str(_session_data["data"]["jwtToken"])
+    except Exception as e:
+        raise RuntimeError(f"Angel auth token unavailable: {e}")
