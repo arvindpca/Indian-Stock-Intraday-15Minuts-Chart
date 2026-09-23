@@ -4,6 +4,8 @@ import json
 import math
 import re
 import difflib
+import threading
+from urllib.parse import quote
 from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -12,11 +14,11 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
-from angel_client import get_client
+from angel_client import get_client, get_feed_token, get_auth_token
 
 # ============================================================
 # INDIAN NSE - TRADINGVIEW V1 SMC MIRROR
-# Angel One SmartAPI + Telegram
+# Angel One SmartAPI WebSocket + Yahoo warm-up + Telegram
 #
 # Signal only. NO automatic order placement.
 #
@@ -114,11 +116,10 @@ SCAN_START_MINUTE = 15
 SCAN_END_HOUR = 23
 SCAN_END_MINUTE = 59
 
-# Scan only once per 15-minute candle. Do not start another full pass
-# immediately after the previous pass; that would hammer the Historical API.
+# Scan once per 15-minute candle. Live candles are built locally from Angel WebSocket ticks.
 API_DELAY_SECONDS = 0.05
 SCAN_INTERVAL_MINUTES = 15
-HIST_RATE_COOLDOWN_SECONDS = 90.0
+HIST_RATE_COOLDOWN_SECONDS = 90.0  # retained only for legacy helper; scanner does not call Angel historical API
 
 # Universe: ONLY the user-provided stock_names.txt watchlist.
 MAX_STOCKS = 0  # 0 = all matched watchlist stocks
@@ -168,6 +169,23 @@ INSTRUMENT_URL = (
     "https://margincalculator.angelone.in/"
     "OpenAPI_File/files/OpenAPIScripMaster.json"
 )
+
+# ============================================================
+# LIVE MARKET DATA ENGINE
+# Angel WebSocket -> local 15-minute OHLCV candles
+# ============================================================
+LOCAL_15M_CACHE = {}
+LIVE_CANDLE_STATE = {}
+LIVE_LOCK = threading.RLock()
+WATCHLIST_BY_TOKEN = {}
+WEBSOCKET_INSTANCE = None
+WEBSOCKET_THREAD = None
+WEBSOCKET_STARTED = False
+
+YAHOO_BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
+YAHOO_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130 Safari/537.36"
+}
 
 
 # ============================================================
@@ -457,10 +475,252 @@ def fetch_candles(client, token, interval, days):
 
 
 # ============================================================
+# YAHOO WARM-UP / DAILY DATA
+# Angel Historical API is intentionally NOT used by the scanner.
+# Yahoo is used only for indicator warm-up; live data comes from Angel WebSocket.
+# ============================================================
+def _yahoo_chart(symbol, interval, period1, period2=None):
+    ticker = str(symbol).upper().replace("-EQ", "") + ".NS"
+    url = YAHOO_BASE_URL + quote(ticker, safe="")
+    params = {"interval": interval, "period1": int(period1), "events": "history", "includePrePost": "false"}
+    if period2 is not None:
+        params["period2"] = int(period2)
+    response = requests.get(url, params=params, headers=YAHOO_HEADERS, timeout=20)
+    response.raise_for_status()
+    payload = response.json()
+    result = (payload.get("chart") or {}).get("result") or []
+    if not result:
+        raise RuntimeError(f"Yahoo returned no data for {ticker}")
+    r = result[0]
+    timestamps = r.get("timestamp") or []
+    q = ((r.get("indicators") or {}).get("quote") or [{}])[0]
+    rows = []
+    for i, ts in enumerate(timestamps):
+        try:
+            o = q.get("open", [])[i]
+            h = q.get("high", [])[i]
+            l = q.get("low", [])[i]
+            c = q.get("close", [])[i]
+            v = q.get("volume", [])[i]
+            if None in (o, h, l, c, v):
+                continue
+            rows.append({"time": pd.to_datetime(int(ts), unit="s", utc=True),
+                         "open": float(o), "high": float(h), "low": float(l),
+                         "close": float(c), "volume": float(v)})
+        except (IndexError, TypeError, ValueError):
+            continue
+    df = pd.DataFrame(rows)
+    if df.empty:
+        raise RuntimeError(f"Yahoo returned empty candles for {ticker}")
+    return df.sort_values("time").drop_duplicates("time").reset_index(drop=True)
+
+
+def yahoo_15m_warmup(stock):
+    # Yahoo permits recent intraday history; 30 days gives ample warm-up for
+    # the 14 ATR/RSI, 20 volume SMA and the V1 state machine.
+    now = int(time.time())
+    period1 = now - (30 * 24 * 60 * 60)
+    df = _yahoo_chart(stock["symbol"], "15m", period1, now)
+    return df
+
+
+def yahoo_daily_history(symbol):
+    now = int(time.time())
+    period1 = now - (450 * 24 * 60 * 60)
+    return _yahoo_chart(symbol, "1d", period1, now)
+
+
+def _current_15m_bucket(ts=None):
+    if ts is None:
+        ts = datetime.now(IST)
+    return ts.astimezone(IST).replace(
+        minute=(ts.minute // 15) * 15, second=0, microsecond=0
+    )
+
+
+def _append_closed_live_candle(token, state):
+    stock = WATCHLIST_BY_TOKEN.get(str(token))
+    if stock is None:
+        return
+    symbol = stock["symbol"]
+    candle = {
+        "time": pd.Timestamp(state["bucket"]).tz_convert("UTC"),
+        "open": float(state["open"]),
+        "high": float(state["high"]),
+        "low": float(state["low"]),
+        "close": float(state["close"]),
+        "volume": max(0.0, float(state.get("volume", 0.0))),
+    }
+    with LIVE_LOCK:
+        df = LOCAL_15M_CACHE.get(symbol)
+        if df is None:
+            return
+        row_df = pd.DataFrame([candle])
+        df = pd.concat([df, row_df], ignore_index=True)
+        df = df.sort_values("time").drop_duplicates("time", keep="last").tail(CANDLE_LIMIT_15M).reset_index(drop=True)
+        LOCAL_15M_CACHE[symbol] = df
+
+
+def _on_live_tick(wsapp, message):
+    try:
+        if not isinstance(message, dict):
+            return
+        token = str(message.get("token", ""))
+        stock = WATCHLIST_BY_TOKEN.get(token)
+        if stock is None:
+            return
+        raw_price = message.get("last_traded_price")
+        if raw_price is None:
+            return
+        price = float(raw_price) / 100.0
+        if price <= 0:
+            return
+        ts_ms = message.get("exchange_timestamp")
+        ts = (pd.to_datetime(int(ts_ms), unit="ms", utc=True).tz_convert(IST)
+              if ts_ms else datetime.now(IST))
+        bucket = _current_15m_bucket(ts)
+        day_volume = message.get("volume_trade_for_the_day")
+        day_volume = float(day_volume) if day_volume is not None else None
+
+        with LIVE_LOCK:
+            state = LIVE_CANDLE_STATE.get(token)
+            if state is None or state["bucket"] != bucket:
+                if state is not None:
+                    _append_closed_live_candle(token, state)
+                baseline = day_volume if day_volume is not None else 0.0
+                LIVE_CANDLE_STATE[token] = {
+                    "bucket": bucket, "open": price, "high": price,
+                    "low": price, "close": price,
+                    "start_day_volume": baseline,
+                    "volume": 0.0,
+                }
+                state = LIVE_CANDLE_STATE[token]
+            else:
+                state["high"] = max(state["high"], price)
+                state["low"] = min(state["low"], price)
+                state["close"] = price
+
+            if day_volume is not None:
+                start = float(state.get("start_day_volume", day_volume))
+                state["volume"] = max(0.0, day_volume - start)
+            else:
+                qty = float(message.get("last_traded_quantity") or 0.0)
+                state["volume"] = float(state.get("volume", 0.0)) + max(0.0, qty)
+    except Exception as e:
+        print(f"WebSocket tick error: {e}")
+
+
+def start_market_websocket(stocks, client):
+    global WEBSOCKET_INSTANCE, WEBSOCKET_THREAD, WEBSOCKET_STARTED, WATCHLIST_BY_TOKEN
+    if WEBSOCKET_STARTED:
+        return
+    try:
+        from SmartApi.smartWebSocketV2 import SmartWebSocketV2
+    except Exception as e:
+        raise RuntimeError(f"SmartWebSocketV2 unavailable: {e}")
+
+    WATCHLIST_BY_TOKEN = {str(x["token"]): x for x in stocks}
+    auth_token = get_auth_token()
+    feed_token = get_feed_token()
+    api_key = os.getenv("ANGEL_API_KEY", "").strip()
+    client_code = os.getenv("ANGEL_CLIENT_ID", "").strip()
+    if not all([auth_token, feed_token, api_key, client_code]):
+        raise RuntimeError("Angel WebSocket credentials/session data are incomplete")
+
+    WEBSOCKET_INSTANCE = SmartWebSocketV2(
+        auth_token, api_key, client_code, feed_token,
+        max_retry_attempt=3, retry_strategy=1, retry_delay=5, retry_multiplier=2, retry_duration=60
+    )
+
+    tokens = [str(x["token"]) for x in stocks]
+    token_list = [{"exchangeType": 1, "tokens": tokens}]
+
+    def on_open(wsapp):
+        print(f"WEBSOCKET: CONNECTED | subscribing {len(tokens)} NSE stocks | mode=3 SNAP_QUOTE")
+        WEBSOCKET_INSTANCE.subscribe("nse15m01", 3, token_list)
+        print("WEBSOCKET: SUBSCRIPTION SENT")
+
+    def on_error(wsapp, error):
+        print(f"WEBSOCKET ERROR: {error}")
+
+    def on_close(wsapp):
+        print("WEBSOCKET: CLOSED")
+
+    def on_control(wsapp, message):
+        print(f"WEBSOCKET CONTROL: {message}")
+
+    WEBSOCKET_INSTANCE.on_open = on_open
+    WEBSOCKET_INSTANCE.on_data = _on_live_tick
+    WEBSOCKET_INSTANCE.on_error = on_error
+    WEBSOCKET_INSTANCE.on_close = on_close
+    WEBSOCKET_INSTANCE.on_control_message = on_control
+
+    WEBSOCKET_STARTED = True
+    WEBSOCKET_THREAD = threading.Thread(
+        target=WEBSOCKET_INSTANCE.connect, name="AngelWebSocket", daemon=True
+    )
+    WEBSOCKET_THREAD.start()
+    print("WEBSOCKET: background thread started")
+
+
+def get_local_15m(stock):
+    symbol = stock["symbol"]
+    now_bucket = pd.Timestamp(_current_15m_bucket()).tz_convert("UTC")
+
+    with LIVE_LOCK:
+        cached = LOCAL_15M_CACHE.get(symbol)
+        if cached is None or len(cached) < 50:
+            cached = None
+
+    if cached is None:
+        print(f"WARM-UP: downloading Yahoo 15M history for {symbol} (Angel Historical API OFF)")
+        df = yahoo_15m_warmup(stock)
+        # Do not treat Yahoo's current/open candle as a closed signal candle.
+        df = df[df["time"] < now_bucket].tail(CANDLE_LIMIT_15M).reset_index(drop=True)
+        with LIVE_LOCK:
+            LOCAL_15M_CACHE[symbol] = df
+            cached = df
+
+    # Expose the currently-forming local candle as the final row. The V1
+    # engine deliberately ignores the final/open candle and evaluates only
+    # the previous closed 15M candle.
+    with LIVE_LOCK:
+        token = str(stock["token"])
+        state = LIVE_CANDLE_STATE.get(token)
+        df = LOCAL_15M_CACHE[symbol].copy()
+        if state is not None and state["bucket"] == now_bucket.tz_convert(IST):
+            open_row = pd.DataFrame([{
+                "time": now_bucket,
+                "open": float(state["open"]),
+                "high": float(state["high"]),
+                "low": float(state["low"]),
+                "close": float(state["close"]),
+                "volume": float(state.get("volume", 0.0)),
+            }])
+        else:
+            # Before the first live tick, keep a synthetic open candle based
+            # on the latest closed price. It is ignored by the V1 engine but
+            # preserves the closed-candle indexing contract.
+            last_close = float(df.iloc[-1]["close"])
+            open_row = pd.DataFrame([{
+                "time": now_bucket,
+                "open": last_close,
+                "high": last_close,
+                "low": last_close,
+                "close": last_close,
+                "volume": 0.0,
+            }])
+        df = pd.concat([df[df["time"] < now_bucket], open_row], ignore_index=True)
+        return df.tail(CANDLE_LIMIT_15M).reset_index(drop=True)
+
+
+# ============================================================
 # DAILY CANDLES / INDICATORS
 # ============================================================
-def fetch_daily_candles(client, token):
-    return fetch_candles(client, token, "ONE_DAY", DAILY_HISTORY_DAYS)
+def fetch_daily_candles(client, token_or_symbol):
+    # Daily MACD warm-up also bypasses Angel Historical API.
+    symbol = token_or_symbol if isinstance(token_or_symbol, str) and not token_or_symbol.isdigit() else str(token_or_symbol)
+    return yahoo_daily_history(symbol)
 
 
 def add_daily_indicators(df):
@@ -589,15 +849,9 @@ def ist_time(timestamp):
 INTRADAY_CACHE = {}
 
 def get_cached_15m(client, stock):
-    symbol = stock["symbol"]
-    now_ist = datetime.now(IST)
-    bucket = now_ist.replace(minute=(now_ist.minute // 15) * 15, second=0, microsecond=0)
-    cached = INTRADAY_CACHE.get(symbol)
-    if cached is not None and cached.get("bucket") == bucket:
-        return cached["raw"]
-    raw = fetch_candles(client, stock["token"], "FIFTEEN_MINUTE", days=30)
-    INTRADAY_CACHE[symbol] = {"bucket": bucket, "raw": raw}
-    return raw
+    # Live candle source: Angel WebSocket.
+    # Historical warm-up: Yahoo. Never call Angel getCandleData here.
+    return get_local_15m(stock)
 
 
 # ============================================================
@@ -958,7 +1212,7 @@ def scan_stock(client, stock, daily_cache):
         if setup_state == 6 and USE_DAILY_MACD_FILTER:
             cache_key = stock["symbol"]
             if cache_key not in daily_cache:
-                daily_raw = fetch_daily_candles(client, token)
+                daily_raw = fetch_daily_candles(client, symbol)
                 daily_cache[cache_key] = add_daily_indicators(daily_raw)
 
             daily = daily_cache[cache_key]
@@ -1172,8 +1426,8 @@ def main():
     print()
     print("=" * 78)
     print(" INDIAN NSE - TRADINGVIEW V1 SMC WATCHLIST SCANNER")
-    print(" Angel One SmartAPI + USER STOCK NAME LIST + Telegram")
-    print(" Universe: ONLY stock_names.txt | 15M | RSI + Daily MACD")
+    print(" Angel One WebSocket + Yahoo warm-up + USER STOCK NAME LIST + Telegram")
+    print(" Universe: ONLY stock_names.txt | 15M | RSI + Daily MACD | Historical API OFF")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
     print("=" * 78)
@@ -1204,6 +1458,7 @@ def main():
             instruments = load_instruments()
             requested_names = load_stock_name_watchlist()
             stocks = build_watchlist_from_names(instruments, requested_names)
+            start_market_websocket(stocks, client)
 
         if welcome_sent_day != current_day:
             send_morning_welcome(len(stocks))
