@@ -120,9 +120,8 @@ API_DELAY_SECONDS = 0.05
 SCAN_INTERVAL_MINUTES = 15
 HIST_RATE_COOLDOWN_SECONDS = 90.0
 
-# Universe: all NSE equity stocks with market cap >= ₹5,000 Cr.
-MARKET_CAP_MIN_CR = 50000000000.0
-MAX_STOCKS = 0  # 0 = all qualifying stocks
+# Universe: ONLY the user-provided stock_names.txt watchlist.
+MAX_STOCKS = 0  # 0 = all matched watchlist stocks
 # Persist the market-cap-filtered universe so Railway restarts do NOT
 # re-query NSE for the same 5,000 Cr filter repeatedly on the same day.
 WATCHLIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stock_names.txt")
@@ -289,6 +288,48 @@ def build_watchlist_from_names(instruments, requested_names):
         raise RuntimeError("No Stock Name from stock_names.txt could be matched to Angel NSE-EQ instruments.")
     return result
 
+
+# ============================================================
+# HISTORICAL API RATE LIMIT / CIRCUIT BREAKER
+# ============================================================
+class HistoricalRateLimitError(RuntimeError):
+    """Raised when Angel One historical candle API reports access-rate blocking."""
+    pass
+
+
+_HIST_RATE_LOCK = __import__("threading").Lock()
+_HIST_LAST_REQUEST_MONO = 0.0
+_HIST_BLOCKED_UNTIL_MONO = 0.0
+HIST_MIN_INTERVAL_SECONDS = 1.05
+
+
+def _wait_for_historical_slot():
+    """Serialize historical requests and respect the local circuit breaker."""
+    global _HIST_LAST_REQUEST_MONO
+
+    with _HIST_RATE_LOCK:
+        now = time.monotonic()
+
+        # If the previous request was blocked, do not hammer the endpoint.
+        if now < _HIST_BLOCKED_UNTIL_MONO:
+            wait = _HIST_BLOCKED_UNTIL_MONO - now
+            print(f"Historical API cooldown active. Waiting {wait:.0f}s...")
+            time.sleep(wait)
+            now = time.monotonic()
+
+        gap = now - _HIST_LAST_REQUEST_MONO
+        if gap < HIST_MIN_INTERVAL_SECONDS:
+            time.sleep(HIST_MIN_INTERVAL_SECONDS - gap)
+
+        _HIST_LAST_REQUEST_MONO = time.monotonic()
+
+
+def _mark_historical_rate_limit():
+    """Activate the circuit breaker after an Angel historical API rate-limit response."""
+    global _HIST_BLOCKED_UNTIL_MONO
+    _HIST_BLOCKED_UNTIL_MONO = (
+        time.monotonic() + HIST_RATE_COOLDOWN_SECONDS
+    )
 
 # ============================================================
 # HISTORICAL CANDLES
