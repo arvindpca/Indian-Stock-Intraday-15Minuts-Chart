@@ -2,6 +2,8 @@ import os
 import time
 import json
 import math
+import difflib
+from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -95,7 +97,7 @@ def build_telegram_message(result):
         f"✓ Volume: {result['volume']:.0f} > SMA {result['volume_sma']:.0f}\n"
         f"✓ RSI(14): {result['rsi_15m']:.2f} {result['rsi_condition']}\n"
         f"✓ Daily MACD: {result['daily_macd']:.4f} vs Signal {result['daily_macd_signal']:.4f}\n"
-        f"✓ Market Cap: ₹{result['market_cap_cr']:,.0f} Cr\n"
+        f"✓ Watchlist: USER STOCK NAME LIST\n"
         f"✓ HTF Filter: {result['htf_status']}\n"
         f"✓ Trading Time: ALL TIME / 24x7\n\n"
         f"<b>Reason:</b> Complete TradingView V1 sequential setup\n\n"
@@ -122,7 +124,7 @@ MARKET_CAP_MIN_CR = 50000000000.0
 MAX_STOCKS = 0  # 0 = all qualifying stocks
 # Persist the market-cap-filtered universe so Railway restarts do NOT
 # re-query NSE for the same 5,000 Cr filter repeatedly on the same day.
-MARKET_CAP_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "market_cap_universe_cache.json")
+WATCHLIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stock_names.txt")
 
 CANDLE_LIMIT_15M = 250
 DAILY_HISTORY_DAYS = 450
@@ -205,312 +207,86 @@ def build_nse_equity_universe(instruments):
     return sorted(unique.values(), key=lambda x: x["symbol"])
 
 
-# NSE uses Akamai/browser-session protection.  Keep one persistent session
-# and initialise it with a real navigation request before API calls.
-NSE_SESSION = requests.Session()
-NSE_BROWSER_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language": "en-IN,en;q=0.9,en-US;q=0.8",
-    "Accept-Encoding": "gzip, deflate",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-}
-NSE_API_HEADERS = {
-    "User-Agent": NSE_BROWSER_HEADERS["User-Agent"],
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-IN,en;q=0.9,en-US;q=0.8",
-    "Referer": "https://www.nseindia.com/",
-    "X-Requested-With": "XMLHttpRequest",
-}
+def _norm_name(value):
+    s = str(value or "").upper().strip()
+    s = re.sub(r"[^A-Z0-9]+", " ", s)
+    # Common legal/company suffixes are ignored for matching.
+    s = re.sub(r"\b(LTD|LIMITED|PRIVATE|PVT|PLC|INC|CORPORATION|CORP|COMPANY|CO)\b", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
 
-# ANGEL ONE HISTORICAL API RATE LIMITER
-# SmartAPI documents getCandleData at 3 requests/sec and 150 requests/minute.
-# Keep a safety margin because 403 rate-limit responses can occur below the published limit.
-HIST_MIN_INTERVAL_SECONDS = 0.75
-HIST_MAX_REQUESTS_PER_MINUTE = 80
-HIST_RATE_WINDOW_SECONDS = 60.0
-HIST_REQUEST_TIMES = []
-HIST_RATE_COOLDOWN_UNTIL = 0.0
-HIST_RATE_LOCK = __import__("threading").Lock()
 
-class HistoricalRateLimitError(RuntimeError):
-    """Raised when Angel One explicitly blocks historical API access."""
-    pass
-
-def _mark_historical_rate_limit():
-    global HIST_RATE_COOLDOWN_UNTIL
-    with HIST_RATE_LOCK:
-        HIST_RATE_COOLDOWN_UNTIL = max(
-            HIST_RATE_COOLDOWN_UNTIL,
-            time.monotonic() + HIST_RATE_COOLDOWN_SECONDS,
+def load_stock_name_watchlist(path=WATCHLIST_FILE):
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"Watchlist file not found: {path}. Put stock_names.txt beside this Python file."
         )
-
-def _wait_for_historical_slot():
-    while True:
-        now = time.monotonic()
-        with HIST_RATE_LOCK:
-            cooldown_remaining = HIST_RATE_COOLDOWN_UNTIL - now
-            cutoff = now - HIST_RATE_WINDOW_SECONDS
-            while HIST_REQUEST_TIMES and HIST_REQUEST_TIMES[0] <= cutoff:
-                HIST_REQUEST_TIMES.pop(0)
-
-            if cooldown_remaining > 0:
-                sleep_for = cooldown_remaining
-            else:
-                sleep_for = 0.0
-                if HIST_REQUEST_TIMES:
-                    elapsed = now - HIST_REQUEST_TIMES[-1]
-                    if elapsed < HIST_MIN_INTERVAL_SECONDS:
-                        sleep_for = HIST_MIN_INTERVAL_SECONDS - elapsed
-
-                if sleep_for <= 0 and len(HIST_REQUEST_TIMES) < HIST_MAX_REQUESTS_PER_MINUTE:
-                    HIST_REQUEST_TIMES.append(now)
-                    return
-
-                if sleep_for <= 0:
-                    sleep_for = max(
-                        0.1,
-                        HIST_REQUEST_TIMES[0] + HIST_RATE_WINDOW_SECONDS - now + 0.05,
-                    )
-
-        print(f"Historical API pacing: waiting {sleep_for:.1f}s...")
-        time.sleep(sleep_for)
+    names = []
+    seen = set()
+    with open(path, "r", encoding="utf-8-sig") as f:
+        for line in f:
+            name = line.strip()
+            if not name:
+                continue
+            key = _norm_name(name)
+            if key and key not in seen:
+                seen.add(key)
+                names.append(name)
+    if not names:
+        raise RuntimeError("stock_names.txt is empty.")
+    return names
 
 
-def init_nse_session():
-    """Prime NSE cookies using a browser-like page navigation."""
-    try:
-        NSE_SESSION.headers.clear()
-        NSE_SESSION.headers.update(NSE_BROWSER_HEADERS)
-        page = NSE_SESSION.get(
-            "https://www.nseindia.com/get-quotes/equity?symbol=SBIN",
-            timeout=20,
-        )
-        print(f"NSE session: HTTP {page.status_code}, cookies={len(NSE_SESSION.cookies)}")
-        return page.status_code == 200
-    except Exception as e:
-        print(f"NSE session init warning: {e}")
-        return False
+def build_watchlist_from_names(instruments, requested_names):
+    """Resolve ONLY the supplied Stock Name list to NSE-EQ Angel tokens."""
+    universe = build_nse_equity_universe(instruments)
+    by_name = {}
+    for item in universe:
+        for candidate in (item.get("name", ""), item.get("symbol", "").replace("-EQ", "")):
+            n = _norm_name(candidate)
+            if n:
+                by_name.setdefault(n, []).append(item)
 
+    result = []
+    used_symbols = set()
+    unmatched = []
+    for requested in requested_names:
+        q = _norm_name(requested)
+        candidates = by_name.get(q, [])
+        chosen = candidates[0] if candidates else None
 
-def _refresh_nse_session():
-    try:
-        NSE_SESSION.cookies.clear()
-    except Exception:
-        pass
-    return init_nse_session()
+        if chosen is None:
+            # Company-name feeds can differ slightly from Angel's short name.
+            keys = list(by_name.keys())
+            close = difflib.get_close_matches(q, keys, n=3, cutoff=0.55)
+            for k in close:
+                if by_name[k]:
+                    chosen = by_name[k][0]
+                    break
 
+        if chosen is None:
+            unmatched.append(requested)
+            continue
+        if chosen["symbol"] not in used_symbols:
+            item = dict(chosen)
+            item["watchlist_name"] = requested
+            item["market_cap_cr"] = None
+            result.append(item)
+            used_symbols.add(chosen["symbol"])
 
-def _first_number(value):
-    if isinstance(value, (int, float)) and math.isfinite(float(value)):
-        return float(value)
-    if isinstance(value, str):
-        text = value.replace(",", "").replace("₹", "").strip()
-        try:
-            return float(text)
-        except Exception:
-            return None
-    return None
-
-
-def extract_market_cap_cr(payload):
-    """Extract NSE total market cap in ₹ crore from quote-equity and NextApi responses."""
-    if not isinstance(payload, dict):
-        return None
-
-    # NextApi getSymbolData normally returns: equityResponse[0]
-    # with tradeInfo directly inside that object.
-    candidates = [payload]
-    equity_response = payload.get("equityResponse")
-    if isinstance(equity_response, list):
-        candidates.extend(x for x in equity_response if isinstance(x, dict))
-    elif isinstance(equity_response, dict):
-        candidates.append(equity_response)
-
-    # Also support wrappers used by some NSE responses.
-    data = payload.get("data")
-    if isinstance(data, dict):
-        candidates.append(data)
-    elif isinstance(data, list):
-        candidates.extend(x for x in data if isinstance(x, dict))
-
-    for obj in candidates:
-        # NextApi structure: equityResponse[0].tradeInfo.totalMarketCap
-        trade = obj.get("tradeInfo") or {}
-        for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
-            n = _first_number(trade.get(key))
-            if n is not None:
-                return n
-
-        # quote-equity trade_info structure:
-        # marketDeptOrderBook.tradeInfo.totalMarketCap
-        nested = obj.get("marketDeptOrderBook") or {}
-        nested_trade = nested.get("tradeInfo") or {}
-        for key in ("totalMarketCap", "marketCap", "totalMarketCapitalization"):
-            n = _first_number(nested_trade.get(key))
-            if n is not None:
-                return n
-
-        # Some wrappers expose market cap directly.
-        for key in (
-            "totalMarketCap", "totalMarketCapitalization",
-            "marketCapInCr", "marketCapitalizationInCr",
-            "totalMarketCapInCr",
-        ):
-            n = _first_number(obj.get(key))
-            if n is not None:
-                return n
-
-        # Older quote-equity valuation shape. Only explicit crore fields are
-        # accepted so a rupee-denominated value is not misread as ₹ crore.
-        pi = obj.get("priceInfo") or {}
-        for key in ("marketCapInCr", "marketCapitalizationInCr"):
-            n = _first_number(pi.get(key))
-            if n is not None:
-                return n
-
-    return None
-
-
-def _nse_json_get(url, params, referer=None):
-    """GET an NSE JSON endpoint with one refresh/retry for protected responses."""
-    headers = dict(NSE_API_HEADERS)
-    if referer:
-        headers["Referer"] = referer
-
-    for attempt in range(3):
-        try:
-            r = NSE_SESSION.get(url, params=params, headers=headers, timeout=15)
-            if r.status_code == 200:
-                try:
-                    return r.json()
-                except Exception:
-                    return None
-
-            if r.status_code in (401, 403, 429, 500, 502, 503, 504):
-                if attempt < 2:
-                    time.sleep(1.0 + attempt * 1.5)
-                    _refresh_nse_session()
-                    continue
-            return None
-        except requests.RequestException:
-            if attempt < 2:
-                time.sleep(1.0 + attempt * 1.5)
-                _refresh_nse_session()
-    return None
-
-
-def fetch_nse_market_cap(symbol):
-    """Fetch total market cap using NSE NextApi first, then trade_info fallback."""
-    base = symbol.replace("-EQ", "", 1).strip().upper()
-
-    # Newer NSE NextApi: one request can contain total market cap.
-    next_url = f"{NSE_BASE_URL}/api/NextApi/apiClient/GetQuoteApi"
-    payload = _nse_json_get(
-        next_url,
-        {
-            "functionName": "getSymbolData",
-            "marketType": "N",
-            "series": "EQ",
-            "symbol": base,
-        },
-        referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
-    )
-    cap = extract_market_cap_cr(payload) if payload else None
-    if cap is not None:
-        return cap
-
-    # Standard NSE trade_info endpoint.
-    quote_url = f"{NSE_BASE_URL}/api/quote-equity"
-    payload = _nse_json_get(
-        quote_url,
-        {"symbol": base, "section": "trade_info"},
-        referer=f"https://www.nseindia.com/get-quotes/equity?symbol={base}",
-    )
-    cap = extract_market_cap_cr(payload) if payload else None
-    if cap is not None:
-        return cap
-
-    return None
-
-
-def load_market_cap_cache(cache_date):
-    """Load today's already-built market-cap universe from disk."""
-    try:
-        if not os.path.exists(MARKET_CAP_CACHE_FILE):
-            return None
-        with open(MARKET_CAP_CACHE_FILE, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        if payload.get("date") != cache_date:
-            return None
-        qualified = payload.get("qualified")
-        if not isinstance(qualified, list) or not qualified:
-            return None
-        print(f"MARKET-CAP CACHE HIT: {len(qualified)} stocks loaded for {cache_date}")
-        print("Skipping NSE market-cap API calls for this day.")
-        return qualified
-    except Exception as e:
-        print(f"Market-cap cache read warning: {e}")
-        return None
-
-
-def save_market_cap_cache(cache_date, qualified):
-    """Save today's market-cap universe only after a complete successful build."""
-    temp_file = MARKET_CAP_CACHE_FILE + ".tmp"
-    payload = {
-        "date": cache_date,
-        "threshold": MARKET_CAP_MIN_CR,
-        "qualified": qualified,
-    }
-    try:
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        os.replace(temp_file, MARKET_CAP_CACHE_FILE)
-        print(f"MARKET-CAP CACHE SAVED: {MARKET_CAP_CACHE_FILE}")
-    except Exception as e:
-        print(f"Market-cap cache save warning: {e}")
-        try:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        except Exception:
-            pass
-
-
-def filter_market_cap_universe(stocks):
-    """Fetch NSE market cap and keep all stocks >= configured threshold."""
-    init_nse_session()
-    qualified = []
-    failed = 0
-
-    print(f"STAGE 1 ONLY: checking market cap for {len(stocks)} NSE equity symbols...")
-
-    for n, stock in enumerate(stocks, 1):
-        cap = fetch_nse_market_cap(stock["symbol"])
-        if cap is None:
-            failed += 1
-            print(f"[{n}/{len(stocks)}] {stock['symbol']}: market cap unavailable")
-        else:
-            stock["market_cap_cr"] = cap
-            if cap >= MARKET_CAP_MIN_CR:
-                qualified.append(stock)
-            print(f"[{n}/{len(stocks)}] {stock['symbol']}: ₹{cap:,.0f} Cr {'PASS' if cap >= MARKET_CAP_MIN_CR else 'SKIP'}")
-
-        # Slightly slower pacing reduces NSE protection/rate-limit failures.
-        time.sleep(0.35)
-
-    qualified.sort(key=lambda x: x["market_cap_cr"], reverse=True)
-    if MAX_STOCKS > 0:
-        qualified = qualified[:MAX_STOCKS]
-
-    print(
-        f"Market-cap universe: {len(qualified)} stocks >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr; "
-        f"unavailable={failed}"
-    )
-    return qualified
+    print("=" * 78)
+    print(f"WATCHLIST FILE : {Path(WATCHLIST_FILE).name}")
+    print(f"REQUESTED NAMES: {len(requested_names)}")
+    print(f"MATCHED STOCKS : {len(result)}")
+    print(f"UNMATCHED      : {len(unmatched)}")
+    if unmatched:
+        print("Unmatched names (first 30):")
+        for x in unmatched[:30]:
+            print(f"  - {x}")
+    print("ONLY matched watchlist stocks will be scanned.")
+    print("=" * 78)
+    if not result:
+        raise RuntimeError("No Stock Name from stock_names.txt could be matched to Angel NSE-EQ instruments.")
+    return result
 
 
 # ============================================================
@@ -1254,7 +1030,7 @@ def print_result(result):
         print(f" Volume        : {result['volume']:.0f} / {result['volume_sma']:.0f}")
         print(f" RSI(14)       : {result['rsi_15m']:.2f}")
         print(f" Daily MACD    : {result['daily_macd']:.4f} / {result['daily_macd_signal']:.4f}")
-        print(f" Market Cap    : ₹{result['market_cap_cr']:,.0f} Cr")
+        print(" Watchlist      : USER STOCK NAME LIST")
         print(f" HTF           : {result['htf_status']}")
         print(f" Candle Time   : {result['candle_time']}")
     else:
@@ -1339,7 +1115,7 @@ def send_morning_welcome(stock_count):
         "🌅 <b>GOOD MORNING!</b>\n\n"
         "🇮🇳 <b>Indian NSE SMC Scanner</b>\n"
         f"📅 Date: {today}\n"
-        f"📊 Market Cap: ≥ ₹{MARKET_CAP_MIN_CR:,.0f} Cr\n"
+        "📊 Universe: USER STOCK NAME LIST\n"
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
         "⏰ Scan Mode: ALL TIME / 24x7\n"
@@ -1353,13 +1129,11 @@ def send_morning_welcome(stock_count):
 def main():
     print()
     print("=" * 78)
-    print(" INDIAN NSE - TRADINGVIEW V1 SMC SCANNER")
-    print(" Angel One SmartAPI + NSE Market Cap + Telegram")
-    print(" Market Cap >= ₹5,000 Cr | RSI + Daily MACD ON")
-    print(" Historical API: 80 requests/min safety cap | 0.75s spacing | no rate-limit retries")
+    print(" INDIAN NSE - TRADINGVIEW V1 SMC WATCHLIST SCANNER")
+    print(" Angel One SmartAPI + USER STOCK NAME LIST + Telegram")
+    print(" Universe: ONLY stock_names.txt | 15M | RSI + Daily MACD")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
-    print(" Scan mode: WEEKDAYS 09:15-23:59 IST | 15-minute scan cycle")
     print("=" * 78)
 
     client = None
@@ -1373,68 +1147,21 @@ def main():
         now = datetime.now(IST)
 
         if not is_scan_window(now):
-            if client is not None:
-                print(
-                    f"[{now.strftime('%Y-%m-%d %H:%M:%S IST')}] "
-                    "Outside scan window. No scan/API calls."
-                )
-            else:
-                print(
-                    f"[{now.strftime('%Y-%m-%d %H:%M:%S IST')}] "
-                    "Scanner waiting. No scan/API calls."
-                )
-            try:
-                time.sleep(min(60, seconds_until_next_start(now)))
-            except KeyboardInterrupt:
-                print("\nScanner stopped by user.")
-                break
+            time.sleep(min(60, max(1, seconds_until_next_start(now))))
             continue
 
-        # ========================================================
-        # STAGE 1 — MARKET-CAP FILTER
-        # Run once per IST calendar day.
-        # Only stocks that PASS ₹5,000 Cr proceed to Stage 2.
-        # ========================================================
         if current_day != now.date():
             current_day = now.date()
             welcome_sent_day = None
             daily_cache = {}
             INTRADAY_CACHE.clear()
-            print("\n" + "=" * 78)
-            print("STAGE 1: BUILDING MARKET-CAP UNIVERSE")
-            print(f"Filter: Market Cap >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr")
-            print("No 15M candles / SMC scan before this filter.")
-            print("Market-cap filter is built ONCE per day and persisted to disk.")
-            print("=" * 78)
 
             if client is None:
                 client = get_client()
 
-            cache_date = current_day.strftime("%Y-%m-%d")
-            stocks = load_market_cap_cache(cache_date)
-
-            if stocks is None:
-                instruments = load_instruments()
-                all_nse = build_nse_equity_universe(instruments)
-                print(f"NSE equity symbols available: {len(all_nse)}")
-
-                stocks = filter_market_cap_universe(all_nse)
-
-                if not stocks:
-                    raise RuntimeError(
-                        f"No NSE stocks found with market cap >= ₹{MARKET_CAP_MIN_CR:,.0f} Cr."
-                    )
-
-                save_market_cap_cache(cache_date, stocks)
-            else:
-                # Cache already contains the fully filtered universe. Do NOT
-                # download instruments or call NSE market-cap endpoints again.
-                print(f"Using cached market-cap universe: {len(stocks)} stocks")
-
-            print("=" * 78)
-            print(f"STAGE 1 COMPLETE: {len(stocks)} stocks PASSED market-cap filter")
-            print("STAGE 2 will scan ONLY these stocks.")
-            print("=" * 78)
+            instruments = load_instruments()
+            requested_names = load_stock_name_watchlist()
+            stocks = build_watchlist_from_names(instruments, requested_names)
 
         if welcome_sent_day != current_day:
             send_morning_welcome(len(stocks))
@@ -1442,21 +1169,17 @@ def main():
 
         scan_number += 1
         print("\n" + "=" * 78)
-        print(f" NSE SCAN #{scan_number} | {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')}")
-        print(f" Stocks passed market-cap filter: {len(stocks)}")
-        print(" ONLY market-cap PASS stocks are sent to 15M/SMC processing.")
+        print(f" NSE WATCHLIST SCAN #{scan_number} | {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')}")
+        print(f" Stocks from stock_names.txt: {len(stocks)}")
+        print(" ONLY user-provided Stock Names are being scanned.")
         print("=" * 78)
 
         signal_count = 0
-
         for n, stock in enumerate(stocks, 1):
-            # Stop immediately once 11:59 PM is reached.
             if not is_scan_window(datetime.now(IST)):
-                print("11:59 PM reached. Scanning stopped for today.")
                 break
-
             try:
-                print(f"[{n}/{len(stocks)}] Scanning {stock['symbol']} ...")
+                print(f"[{n}/{len(stocks)}] Scanning {stock['watchlist_name']} -> {stock['symbol']} ...")
                 result = scan_stock(client, stock, daily_cache)
                 print_result(result)
 
@@ -1474,42 +1197,28 @@ def main():
             except HistoricalRateLimitError as e:
                 print("-" * 78)
                 print(f"HISTORICAL API RATE LIMIT: {e}")
-                print(
-                    f"Pausing this scan pass for {HIST_RATE_COOLDOWN_SECONDS:.0f}s. "
-                    "No retry of the blocked request."
-                )
+                print("Pausing this scan pass. No retry of the blocked request.")
                 print("-" * 78)
-                time.sleep(HIST_RATE_COOLDOWN_SECONDS)
                 break
-
             except Exception as e:
                 print("-" * 78)
                 print(f"{stock['symbol']} ERROR: {e}")
                 print("-" * 78)
-                time.sleep(1.0)
 
         print("\n" + "=" * 78)
-        print("NSE SCAN PASS COMPLETE")
-        print(f"Stocks in universe : {len(stocks)}")
-        print(f"Entry signals      : {signal_count}")
-        print("RATE-LIMITED MODE: 15M cache + lazy Daily MACD + no rate-limit retries.")
+        print("NSE WATCHLIST SCAN PASS COMPLETE")
+        print(f"Stocks in watchlist : {len(stocks)}")
+        print(f"Entry signals       : {signal_count}")
         print("=" * 78)
 
-        # Never start another full 860-stock pass immediately.
-        # Wait for the next 15-minute candle boundary.
-        if is_scan_window(datetime.now(IST)):
-            wait_seconds = seconds_until_next_15m_scan(datetime.now(IST))
-            print(
-                f"Next 15M scan in about {wait_seconds}s "
-                f"({datetime.now(IST) + timedelta(seconds=wait_seconds):%H:%M:%S IST})."
-            )
-            try:
-                time.sleep(wait_seconds)
-            except KeyboardInterrupt:
-                print("\nScanner stopped by user.")
-                break
-
-
+        # Wait for the next 15-minute boundary.
+        now = datetime.now(IST)
+        next_minute = ((now.minute // SCAN_INTERVAL_MINUTES) + 1) * SCAN_INTERVAL_MINUTES
+        if next_minute >= 60:
+            next_run = (now.replace(second=0, microsecond=0, minute=0) + timedelta(hours=1))
+        else:
+            next_run = now.replace(second=0, microsecond=0, minute=next_minute)
+        time.sleep(max(5, (next_run - now).total_seconds()))
 
 
 if __name__ == "__main__":
