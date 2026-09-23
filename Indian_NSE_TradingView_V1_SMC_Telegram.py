@@ -113,8 +113,8 @@ def build_telegram_message(result):
 # ============================================================
 SCAN_START_HOUR = 9
 SCAN_START_MINUTE = 15
-SCAN_END_HOUR = 23
-SCAN_END_MINUTE = 59
+SCAN_END_HOUR = 14
+SCAN_END_MINUTE = 30
 
 # Scan once per 15-minute candle. Live candles are built locally from Angel WebSocket ticks.
 API_DELAY_SECONDS = 0.05
