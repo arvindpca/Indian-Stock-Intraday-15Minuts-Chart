@@ -107,9 +107,9 @@ def build_telegram_message(result):
 # SETTINGS
 # ============================================================
 SCAN_START_HOUR = 9
-SCAN_START_MINUTE = 0
-SCAN_END_HOUR = 15
-SCAN_END_MINUTE = 20
+SCAN_START_MINUTE = 15
+SCAN_END_HOUR = 23
+SCAN_END_MINUTE = 59
 
 # Scan only once per 15-minute candle. Do not start another full pass
 # immediately after the previous pass; that would hammer the Historical API.
