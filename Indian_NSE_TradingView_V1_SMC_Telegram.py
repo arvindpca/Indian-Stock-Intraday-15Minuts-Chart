@@ -1508,14 +1508,28 @@ def main():
         print(f"Entry signals       : {signal_count}")
         print("=" * 78)
 
-        # Wait for the next 15-minute boundary.
+        # Wait until the NEXT CLOSED 15-minute candle is available.
+        # Example: pass finishes at 13:02 -> next scan starts at 13:15:05.
+        # Sleep in short chunks so the process remains responsive.
         now = datetime.now(IST)
         next_minute = ((now.minute // SCAN_INTERVAL_MINUTES) + 1) * SCAN_INTERVAL_MINUTES
         if next_minute >= 60:
-            next_run = (now.replace(second=0, microsecond=0, minute=0) + timedelta(hours=1))
+            next_run = (now.replace(second=5, microsecond=0, minute=0) + timedelta(hours=1))
         else:
-            next_run = now.replace(second=0, microsecond=0, minute=next_minute)
-        time.sleep(max(5, (next_run - now).total_seconds()))
+            next_run = now.replace(second=5, microsecond=0, minute=next_minute)
+
+        wait_seconds = max(1.0, (next_run - now).total_seconds())
+        print(
+            f"NEXT SCAN : {next_run.strftime('%Y-%m-%d %H:%M:%S IST')} "
+            f"(waiting {int(wait_seconds)} seconds)"
+        )
+
+        while wait_seconds > 0:
+            if not is_scan_window(datetime.now(IST)):
+                break
+            sleep_for = min(30.0, wait_seconds)
+            time.sleep(sleep_for)
+            wait_seconds = (next_run - datetime.now(IST)).total_seconds()
 
 
 if __name__ == "__main__":
