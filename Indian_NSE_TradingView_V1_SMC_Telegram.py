@@ -41,6 +41,15 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 SENT_SIGNALS = set()
 
+# Active signal lifecycle:
+# Entry alert -> monitor live price -> TP1 / TP2 / SL alert.
+ACTIVE_TRADES = {}
+TRADE_LOCK = threading.Lock()
+
+STOP_LOSS_PERCENT = 1.0
+TP1_PERCENT = 1.0
+TP2_PERCENT = 2.0
+
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram: NOT CONFIGURED")
@@ -75,37 +84,207 @@ def signal_key(result):
 
 
 def build_telegram_message(result):
+    """Detailed LONG/SHORT entry alert with 1% SL, 1% TP1 and 2% TP2."""
     direction = result["signal"]
     emoji = "🟢" if direction == "LONG" else "🔴"
+    symbol = result["symbol"].replace("-EQ", "")
+    entry = float(result.get("entry", 0))
+
+    if direction == "LONG":
+        sl = entry * (1.0 - STOP_LOSS_PERCENT / 100.0)
+        tp1 = entry * (1.0 + TP1_PERCENT / 100.0)
+        tp2 = entry * (1.0 + TP2_PERCENT / 100.0)
+    else:
+        sl = entry * (1.0 + STOP_LOSS_PERCENT / 100.0)
+        tp1 = entry * (1.0 - TP1_PERCENT / 100.0)
+        tp2 = entry * (1.0 - TP2_PERCENT / 100.0)
+
+    risk = abs(entry - sl)
+    reward1 = abs(tp1 - entry)
+    reward2 = abs(tp2 - entry)
+    stages = result.get("stage_times", {}) or {}
+
+    def tm(key):
+        x = stages.get(key, "—")
+        return x[11:19] if isinstance(x, str) and len(x) >= 19 else "—"
+
+    zone = result.get("zone_type", "—")
+    disclaimer = (
+        "⚠️ <b>Educational Purpose Only</b>\n"
+        "Not financial/trading advice. Trading involves risk. "
+        "Do your own analysis and risk management. "
+        "Signal only — no automatic order placement."
+    )
 
     return (
-        f"{emoji} <b>{direction} ENTRY SIGNAL</b>\n\n"
-        f"<b>Symbol:</b> {result['symbol']}\n"
-        f"<b>Exchange:</b> NSE\n"
-        f"<b>Timeframe:</b> 15M\n"
-        f"<b>Signal Candle:</b> {result['candle_time']}\n"
-        f"<b>Message Time:</b> {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')}\n\n"
-        f"<b>Entry:</b> ₹{result['entry']:.2f}\n"
-        f"<b>SL:</b> ₹{result['sl']:.2f} ({STOP_LOSS_PERCENT:.1f}%)\n"
-        f"<b>TP:</b> ₹{result['tp']:.2f} ({TAKE_PROFIT_PERCENT:.1f}%)\n"
-        f"<b>RR:</b> 1:{result['rr']:.2f}\n\n"
-        f"<b>SMC V1 CONDITIONS</b>\n"
-        f"✓ Liquidity: ₹{result['liquidity_level']:.2f}\n"
-        f"✓ Sweep: {result['sweep_type']}\n"
-        f"✓ Displacement: {result['displacement_atr']:.2f} ATR\n"
-        f"✓ MSS: ₹{result['mss_level']:.2f}\n"
-        f"✓ Zone: {result['zone_type']}\n"
-        f"✓ Retest: PASS\n"
-        f"✓ Confirmation: PASS\n"
-        f"✓ Volume: {result['volume']:.0f} > SMA {result['volume_sma']:.0f}\n"
-        f"✓ RSI(14): {result['rsi_15m']:.2f} {result['rsi_condition']}\n"
-        f"✓ Daily MACD: {result['daily_macd']:.4f} vs Signal {result['daily_macd_signal']:.4f}\n"
-        f"✓ Watchlist: USER STOCK NAME LIST\n"
-        f"✓ HTF Filter: {result['htf_status']}\n"
-        f"✓ Trading Time: ALL TIME / 24x7\n\n"
-        f"<b>Reason:</b> Complete TradingView V1 sequential setup\n\n"
-        f"⚠️ Signal only — no automatic order placed."
+        f"{emoji} <b>NEW TRADE ALERT — {direction}</b>\n\n"
+        f"<b>Setup ID:</b>\n"
+        f"<code>SETUP-{symbol}-{result.get('candle_time','').replace(' ','_').replace(':','')}</code>\n\n"
+        f"<b>Instrument:</b> {symbol}\n"
+        f"<b>Direction:</b> {direction}\n"
+        f"<b>Timeframe:</b> 15m\n"
+        f"<b>{'Bullish' if direction == 'LONG' else 'Bearish'} • {zone}</b>\n\n"
+
+        f"<b>SMC CONFIRMATION</b>\n"
+        f"✅ Liquidity Sweep — {result.get('sweep_type', '—')}\n"
+        f"✅ Displacement — {float(result.get('displacement_atr', 0)):.2f} ATR\n"
+        f"✅ MSS — {float(result.get('mss_level', 0)):.2f}\n"
+        f"✅ Zone — {zone}\n"
+        f"✅ Retest — PASS\n"
+        f"✅ Confirmation — PASS\n"
+        f"✅ Volume — {float(result.get('volume', 0)):.0f} > SMA {float(result.get('volume_sma', 0)):.0f}\n"
+        f"✅ RSI(14) — {float(result.get('rsi_15m', 0)):.2f} {result.get('rsi_condition', '')}\n"
+        f"✅ Daily MACD — {float(result.get('daily_macd', 0)):.4f} vs Signal {float(result.get('daily_macd_signal', 0)):.4f}\n\n"
+
+        f"<b>TRADE PLAN</b>\n"
+        f"Entry: ₹{entry:.2f}\n"
+        f"🛑 SL: ₹{sl:.2f} (-{STOP_LOSS_PERCENT:.2f}%)\n"
+        f"🎯 TP1: ₹{tp1:.2f} (+{TP1_PERCENT:.2f}%)\n"
+        f"🚀 TP2: ₹{tp2:.2f} (+{TP2_PERCENT:.2f}%)\n\n"
+        f"Risk: ₹{risk:.2f}\n"
+        f"Reward TP1: ₹{reward1:.2f}\n"
+        f"Reward TP2: ₹{reward2:.2f}\n"
+        f"R:R TP1: 1:1\n"
+        f"R:R TP2: 1:2\n"
+        f"Current Price: ₹{entry:.2f}\n"
+        f"Status: <b>OPEN — Monitoring SL / TP1 / TP2</b>\n\n"
+
+        f"<b>TIMELINE</b>\n"
+        f"Detection: {result.get('candle_time', '—')}\n"
+        f"MSS: {tm('MSS')}\n"
+        f"Liquidity Sweep: {tm('SWEEP')}\n"
+        f"Order Block: {tm('OB')}\n"
+        f"FVG: {tm('FVG')}\n"
+        f"Retest: {tm('RETEST')}\n"
+        f"Confirmation: {tm('CONFIRMATION')}\n"
+        f"TP1: ⬜\n"
+        f"TP2: ⬜\n"
+        f"SL: ⬜\n\n"
+
+        f"<b>Strategy:</b> TradingView V1 SMC Mirror • 15m\n"
+        f"<b>Mode:</b> Signal Only — No Automatic Order\n\n"
+        f"{disclaimer}"
     )
+
+
+def build_exit_message(trade, event, price):
+    """Short TP/SL lifecycle alert. No disclaimer by design."""
+    direction = trade["signal"]
+    symbol = trade["symbol"].replace("-EQ", "")
+    entry = trade["entry"]
+
+    if event == "TP1":
+        emoji = "🎯"
+        title = "TP1 HIT"
+        level = trade["tp1"]
+        move = "+1.00%" if direction == "LONG" else "+1.00%"
+        status = "TP1 HIT — Monitoring TP2"
+    elif event == "TP2":
+        emoji = "🚀"
+        title = "TP2 HIT"
+        level = trade["tp2"]
+        move = "+2.00%"
+        status = "TP2 HIT — Trade Closed"
+    else:
+        emoji = "🛑"
+        title = "SL HIT"
+        level = trade["sl"]
+        move = "-1.00%"
+        status = "SL HIT — Trade Closed"
+
+    return (
+        f"{emoji} <b>{title} — {direction}</b>\n\n"
+        f"<b>Instrument:</b> {symbol}\n"
+        f"<b>Entry:</b> ₹{entry:.2f}\n"
+        f"<b>{title.split(' ')[0]}:</b> ₹{level:.2f}\n"
+        f"<b>Hit Price:</b> ₹{price:.2f}\n"
+        f"<b>Move:</b> {move}\n\n"
+        f"<b>Status:</b> {status}"
+    )
+
+
+def register_active_trade(result):
+    """Register a newly alerted signal for live TP/SL monitoring."""
+    token = str(result["token"])
+    entry = float(result["entry"])
+    direction = result["signal"]
+
+    if direction == "LONG":
+        sl = entry * (1.0 - STOP_LOSS_PERCENT / 100.0)
+        tp1 = entry * (1.0 + TP1_PERCENT / 100.0)
+        tp2 = entry * (1.0 + TP2_PERCENT / 100.0)
+    else:
+        sl = entry * (1.0 + STOP_LOSS_PERCENT / 100.0)
+        tp1 = entry * (1.0 - TP1_PERCENT / 100.0)
+        tp2 = entry * (1.0 - TP2_PERCENT / 100.0)
+
+    with TRADE_LOCK:
+        ACTIVE_TRADES[token] = {
+            "token": token,
+            "symbol": result["symbol"],
+            "signal": direction,
+            "entry": entry,
+            "sl": sl,
+            "tp1": tp1,
+            "tp2": tp2,
+            "tp1_hit": False,
+            "candle_time": result.get("candle_time", ""),
+        }
+
+
+def get_live_price_for_token(token):
+    with LIVE_LOCK:
+        state = LIVE_CANDLE_STATE.get(str(token))
+        if state is None:
+            return None
+        try:
+            return float(state["close"])
+        except Exception:
+            return None
+
+
+def monitor_active_trades():
+    """Check live WebSocket prices and send separate TP1/TP2/SL alerts."""
+    with TRADE_LOCK:
+        trades = list(ACTIVE_TRADES.items())
+
+    for token, trade in trades:
+        price = get_live_price_for_token(token)
+        if price is None:
+            continue
+
+        direction = trade["signal"]
+        event = None
+
+        with TRADE_LOCK:
+            current = ACTIVE_TRADES.get(token)
+            if current is None:
+                continue
+
+            if direction == "LONG":
+                if price <= current["sl"]:
+                    event = "SL"
+                elif not current["tp1_hit"] and price >= current["tp1"]:
+                    event = "TP1"
+                elif current["tp1_hit"] and price >= current["tp2"]:
+                    event = "TP2"
+            else:
+                if price >= current["sl"]:
+                    event = "SL"
+                elif not current["tp1_hit"] and price <= current["tp1"]:
+                    event = "TP1"
+                elif current["tp1_hit"] and price <= current["tp2"]:
+                    event = "TP2"
+
+            if event == "TP1":
+                current["tp1_hit"] = True
+            elif event in ("TP2", "SL"):
+                ACTIVE_TRADES.pop(token, None)
+
+        if event:
+            msg = build_exit_message(trade, event, price)
+            send_telegram_message(msg)
+            print(f"TRADE ALERT: {trade['symbol']} {direction} {event} @ {price:.2f}")
 
 
 # ============================================================
@@ -113,8 +292,8 @@ def build_telegram_message(result):
 # ============================================================
 SCAN_START_HOUR = 9
 SCAN_START_MINUTE = 15
-SCAN_END_HOUR = 14
-SCAN_END_MINUTE = 30
+SCAN_END_HOUR = 23
+SCAN_END_MINUTE = 59
 
 # Scan once per 15-minute candle. Live candles are built locally from Angel WebSocket ticks.
 API_DELAY_SECONDS = 0.05
@@ -159,8 +338,6 @@ USE_HTF_FILTER = False
 HIGHER_TIMEFRAME = "ONE_HOUR"
 HIGHER_TF_EMA_LENGTH = 50
 
-STOP_LOSS_PERCENT = 1.0
-TAKE_PROFIT_PERCENT = 2.0
 
 SETUP_EXPIRY_BARS = 12
 
@@ -1244,13 +1421,13 @@ def scan_stock(client, stock, daily_cache):
             if direction == 1:
                 signal = "LONG"
                 sl = entry * (1.0 - STOP_LOSS_PERCENT / 100.0)
-                tp = entry * (1.0 + TAKE_PROFIT_PERCENT / 100.0)
+                tp = entry * (1.0 + TP1_PERCENT / 100.0)
                 sweep_type = "SSL SWEEP"
                 mss_level = mss_high
             else:
                 signal = "SHORT"
                 sl = entry * (1.0 + STOP_LOSS_PERCENT / 100.0)
-                tp = entry * (1.0 - TAKE_PROFIT_PERCENT / 100.0)
+                tp = entry * (1.0 - TP1_PERCENT / 100.0)
                 sweep_type = "BSL SWEEP"
                 mss_level = mss_low
 
@@ -1263,7 +1440,7 @@ def scan_stock(client, stock, daily_cache):
                 "entry": entry,
                 "sl": sl,
                 "tp": tp,
-                "rr": TAKE_PROFIT_PERCENT / STOP_LOSS_PERCENT,
+                "rr": TP1_PERCENT / STOP_LOSS_PERCENT,
                 "liquidity_level": (
                     previous_swing_low
                     if direction == 1
@@ -1486,8 +1663,17 @@ def main():
                     if key not in SENT_SIGNALS:
                         if send_telegram_message(build_telegram_message(result)):
                             SENT_SIGNALS.add(key)
+                            register_active_trade(result)
+                            print(
+                                f"TRADE MONITORING STARTED: "
+                                f"{result['symbol']} {result['signal']} "
+                                f"SL=1% TP1=1% TP2=2%"
+                            )
                     else:
                         print("Telegram: DUPLICATE SIGNAL SKIPPED")
+
+                # Check already-open trades while the stock scan continues.
+                monitor_active_trades()
 
                 time.sleep(API_DELAY_SECONDS)
 
@@ -1527,8 +1713,12 @@ def main():
         while wait_seconds > 0:
             if not is_scan_window(datetime.now(IST)):
                 break
-            sleep_for = min(30.0, wait_seconds)
+            # Live WebSocket keeps updating prices while we wait.
+            # Check active trades frequently so TP/SL alerts are separate
+            # from the next 15M scanner pass.
+            sleep_for = min(2.0, wait_seconds)
             time.sleep(sleep_for)
+            monitor_active_trades()
             wait_seconds = (next_run - datetime.now(IST)).total_seconds()
 
 
