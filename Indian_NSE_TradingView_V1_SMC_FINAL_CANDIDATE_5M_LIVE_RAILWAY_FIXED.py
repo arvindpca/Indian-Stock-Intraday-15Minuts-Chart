@@ -283,7 +283,7 @@ def monitor_active_trades():
 # ============================================================
 # SETTINGS
 # ============================================================
-SCAN_START_HOUR = 9
+SCAN_START_HOUR = 2
 SCAN_START_MINUTE = 15
 SCAN_END_HOUR = 15
 SCAN_END_MINUTE = 10
