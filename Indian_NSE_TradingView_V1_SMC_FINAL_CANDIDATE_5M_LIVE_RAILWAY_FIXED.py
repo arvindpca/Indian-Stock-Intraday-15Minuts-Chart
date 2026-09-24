@@ -42,7 +42,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 SENT_SIGNALS = set()
 
 # Active signal lifecycle:
-# Entry alert -> monitor live price -> TP / SL alert.
+# Entry alert -> monitor live price -> TP1 / TP2 / SL alert.
 ACTIVE_TRADES = {}
 TRADE_LOCK = threading.Lock()
 
@@ -84,7 +84,7 @@ def signal_key(result):
 
 
 def build_telegram_message(result):
-    """Final Candidate live alert with 1% SL and 2% TP."""
+    """Detailed LONG/SHORT entry alert with 1% SL and 2% TP."""
     direction = result["signal"]
     emoji = "🟢" if direction == "LONG" else "🔴"
     symbol = result["symbol"].replace("-EQ", "")
@@ -134,20 +134,17 @@ def build_telegram_message(result):
         f"✅ Confirmation — PASS\n"
         f"✅ Volume — {float(result.get('volume', 0)):.0f} > SMA {float(result.get('volume_sma', 0)):.0f}\n"
         f"✅ RSI(14) — {float(result.get('rsi_5m', 0)):.2f} {result.get('rsi_condition', '')}\n"
-        f"✅ Daily MACD — {float(result.get('daily_macd', 0)):.4f} vs Signal {float(result.get('daily_macd_signal', 0)):.4f}\n\n"
+        f"⏸ Daily MACD Filter — OFF\n\n"
 
         f"<b>TRADE PLAN</b>\n"
         f"Entry: ₹{entry:.2f}\n"
         f"🛑 SL: ₹{sl:.2f} (-{STOP_LOSS_PERCENT:.2f}%)\n"
-        f"🎯 TP1: ₹{tp1:.2f} (+{TP1_PERCENT:.2f}%)\n"
-        f"🚀 TP2: ₹{tp2:.2f} (+{TP2_PERCENT:.2f}%)\n\n"
+        f"🎯 TP: ₹{tp2:.2f} (+{TP2_PERCENT:.2f}%)\n\n"
         f"Risk: ₹{risk:.2f}\n"
-        f"Reward TP1: ₹{reward1:.2f}\n"
-        f"Reward TP2: ₹{reward2:.2f}\n"
-        f"R:R TP1: 1:1\n"
-        f"R:R TP2: 1:2\n"
+        f"Reward TP: ₹{reward2:.2f}\n"
+        f"R:R: 1:2\n"
         f"Current Price: ₹{entry:.2f}\n"
-        f"Status: <b>OPEN — Monitoring SL / TP</b>\n\n"
+        f"Status: <b>OPEN — Monitoring SL / TP1 / TP2</b>\n\n"
 
         f"<b>TIMELINE</b>\n"
         f"Detection: {result.get('candle_time', '—')}\n"
@@ -161,7 +158,7 @@ def build_telegram_message(result):
         f"TP2: ⬜\n"
         f"SL: ⬜\n\n"
 
-        f"<b>Strategy:</b> TradingView V1 SMC Final Candidate • 5m\n"
+        f"<b>Strategy:</b> TradingView V1 SMC Mirror • 5m\n"
         f"<b>Mode:</b> Signal Only — No Automatic Order\n\n"
         f"{disclaimer}"
     )
@@ -244,7 +241,7 @@ def get_live_price_for_token(token):
 
 
 def monitor_active_trades():
-    """Check live WebSocket prices and send final 2% TP / 1% SL alerts."""
+    """Check live WebSocket prices and send separate TP1/TP2/SL alerts."""
     with TRADE_LOCK:
         trades = list(ACTIVE_TRADES.items())
 
@@ -272,7 +269,9 @@ def monitor_active_trades():
                 elif price <= current["tp2"]:
                     event = "TP2"
 
-            if event in ("TP2", "SL"):
+            if event == "TP1":
+                current["tp1_hit"] = True
+            elif event in ("TP2", "SL"):
                 ACTIVE_TRADES.pop(token, None)
 
         if event:
@@ -286,10 +285,10 @@ def monitor_active_trades():
 # ============================================================
 SCAN_START_HOUR = 9
 SCAN_START_MINUTE = 15
-SCAN_END_HOUR = 23
-SCAN_END_MINUTE = 59
+SCAN_END_HOUR = 15
+SCAN_END_MINUTE = 10
 
-# Scan once per 5-minute candle. Live candles are built locally from Angel WebSocket ticks.
+# Scan once per 15-minute candle. Live candles are built locally from Angel WebSocket ticks.
 API_DELAY_SECONDS = 0.05
 SCAN_INTERVAL_MINUTES = 5
 HIST_RATE_COOLDOWN_SECONDS = 90.0  # retained only for legacy helper; scanner does not call Angel historical API
@@ -323,7 +322,6 @@ RSI_LONG_MIN = 50.0
 RSI_SHORT_MAX = 50.0
 
 USE_DAILY_MACD_FILTER = False
-# Final Candidate: daily MACD and HTF filters are OFF, matching the validated backtest.
 DAILY_MACD_FAST = 12
 DAILY_MACD_SLOW = 26
 DAILY_MACD_SIGNAL = 9
@@ -344,7 +342,7 @@ INSTRUMENT_URL = (
 
 # ============================================================
 # LIVE MARKET DATA ENGINE
-# Angel WebSocket -> local 5-minute OHLCV candles
+# Angel WebSocket -> local 15-minute OHLCV candles
 # ============================================================
 LOCAL_5M_CACHE = {}
 LIVE_CANDLE_STATE = {}
@@ -688,7 +686,7 @@ def _yahoo_chart(symbol, interval, period1, period2=None):
 
 
 def yahoo_5m_warmup(stock):
-    # Yahoo permits recent intraday history; 30 days gives ample warm-up for
+    # Yahoo permits recent 5-minute intraday history; 30 days gives ample warm-up for
     # the 14 ATR/RSI, 20 volume SMA and the V1 state machine.
     now = int(time.time())
     period1 = now - (30 * 24 * 60 * 60)
@@ -1017,7 +1015,7 @@ def ist_time(timestamp):
 
 
 # 5M CANDLE CACHE
-# Reuse downloaded 5M history until the next 5-minute bucket.
+# Reuse downloaded 5M history until the next 15-minute bucket.
 INTRADAY_CACHE = {}
 
 def get_cached_5m(client, stock):
@@ -1138,7 +1136,7 @@ def scan_stock(client, stock, daily_cache):
             not USE_VOLUME_FILTER
             or (
                 not pd.isna(volume_sma)
-                and row["volume"] > volume_sma
+                and row["volume"] >= volume_sma
             )
         )
 
@@ -1402,24 +1400,25 @@ def scan_stock(client, stock, daily_cache):
                     or (direction == -1 and daily_macd_short)
                 )
 
-        # FINAL CANDIDATE LIVE RULES (validated in 5M full replay):
-        # LONG only before 12:00 IST; BULL FVG LONG is disabled.
-        # SHORT remains allowed through the normal 14:00 entry cutoff.
-        candle_ist = ist_time(row["time"])
-        before_noon = candle_ist.hour < 12
-        before_cutoff = (candle_ist.hour < 14) or (candle_ist.hour == 14 and candle_ist.minute == 0)
-        long_time_pass = before_noon and before_cutoff
-        short_time_pass = before_cutoff
-        bull_fvg_long_block = direction == 1 and zone_type == "BULL FVG"
+        # FINAL CANDIDATE ENTRY FILTERS (from the validated 5M backtest):
+        # LONG  : entry candle must be BEFORE 12:00 IST, and BULL FVG LONG is blocked.
+        # SHORT : entry candle allowed through 14:00 IST.
+        entry_ist = ist_time(row["time"])
+        entry_minutes = entry_ist.hour * 60 + entry_ist.minute
+        time_pass = (
+            (direction == 1 and entry_minutes < (12 * 60))
+            or (direction == -1 and entry_minutes <= (14 * 60))
+        )
+        zone_pass = not (direction == 1 and zone_type == "BULL FVG")
 
         entry_allowed = (
             setup_state == 6
+            and time_pass
+            and zone_pass
             and volume_pass
             and rsi_pass
             and macd_pass
             and htf_pass
-            and ((direction == 1 and long_time_pass and not bull_fvg_long_block)
-                 or (direction == -1 and short_time_pass))
         )
 
         if entry_allowed:
@@ -1428,13 +1427,13 @@ def scan_stock(client, stock, daily_cache):
             if direction == 1:
                 signal = "LONG"
                 sl = entry * (1.0 - STOP_LOSS_PERCENT / 100.0)
-                tp = entry * (1.0 + TP1_PERCENT / 100.0)
+                tp = entry * (1.0 + TP2_PERCENT / 100.0)
                 sweep_type = "SSL SWEEP"
                 mss_level = mss_high
             else:
                 signal = "SHORT"
                 sl = entry * (1.0 + STOP_LOSS_PERCENT / 100.0)
-                tp = entry * (1.0 - TP1_PERCENT / 100.0)
+                tp = entry * (1.0 - TP2_PERCENT / 100.0)
                 sweep_type = "BSL SWEEP"
                 mss_level = mss_low
 
@@ -1446,7 +1445,7 @@ def scan_stock(client, stock, daily_cache):
                 ).strftime("%Y-%m-%d %H:%M:%S IST"),
                 "entry": entry,
                 "sl": sl,
-                "tp": entry * (1.0 + TP2_PERCENT / 100.0) if signal == "LONG" else entry * (1.0 - TP2_PERCENT / 100.0),
+                "tp": tp,
                 "rr": TP2_PERCENT / STOP_LOSS_PERCENT,
                 "liquidity_level": (
                     previous_swing_low
@@ -1503,13 +1502,13 @@ def print_result(result):
         print(f" SIGNAL        : {result['signal']}")
         print(f" ENTRY         : ₹{result['entry']:.2f}")
         print(f" SL            : ₹{result['sl']:.2f}")
-        print(f" TP 1:2        : ₹{result['tp']:.2f}")
+        print(f" TP 2%         : ₹{result['tp']:.2f}")
         print(f" Zone          : {result['zone_type']}")
         print(f" Sweep         : {result['sweep_type']}")
         print(f" Displacement  : {result['displacement_atr']:.2f} ATR")
         print(f" Volume        : {result['volume']:.0f} / {result['volume_sma']:.0f}")
         print(f" RSI(14)       : {result['rsi_5m']:.2f}")
-        print(f" Daily MACD    : {result['daily_macd']:.4f} / {result['daily_macd_signal']:.4f}")
+        print(" Daily MACD    : OFF (not used as entry filter)")
         print(" Watchlist      : USER STOCK NAME LIST")
         print(f" HTF           : {result['htf_status']}")
         print(f" Candle Time   : {result['candle_time']}")
@@ -1525,7 +1524,7 @@ def print_result(result):
 # MAIN
 # ============================================================
 def is_scan_window(now=None):
-    """Indian NSE scan window: weekdays, 09:15 through 23:59 IST."""
+    """Indian NSE scan window: weekdays, 09:15 through 15:10 IST."""
     now = now or datetime.now(IST)
 
     if now.weekday() >= 5:
@@ -1573,7 +1572,7 @@ def seconds_until_next_start(now=None):
 
 
 def seconds_until_next_5m_scan(now=None):
-    """Wait until the next 5-minute candle boundary."""
+    """Wait until the next 15-minute candle boundary."""
     now = now or datetime.now(IST)
     minute = ((now.minute // SCAN_INTERVAL_MINUTES) + 1) * SCAN_INTERVAL_MINUTES
 
@@ -1596,10 +1595,10 @@ def send_morning_welcome(stock_count):
         "🇮🇳 <b>Indian NSE SMC Scanner</b>\n"
         f"📅 Date: {today}\n"
         "📊 Universe: USER STOCK NAME LIST\n"
-        f"📈 Timeframe: 5 Minutes\n"
+        f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
         "⏰ Scan Mode: ALL TIME / 24x7\n"
-        "📌 RSI ON | Daily MACD OFF | HTF OFF\n"
+        "📌 RSI: ON | Daily MACD Filter: OFF\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
     )
@@ -1611,9 +1610,11 @@ def main():
     print("=" * 78)
     print(" INDIAN NSE - TRADINGVIEW V1 SMC WATCHLIST SCANNER")
     print(" Angel One WebSocket + Yahoo warm-up + USER STOCK NAME LIST + Telegram")
-    print(" Universe: ONLY stock_names.txt | 5M | RSI + Daily MACD | Historical API OFF")
+    print(" Universe: ONLY stock_names.txt | 5M | RSI | Daily MACD OFF | Historical API OFF")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
-    print(" -> Retest -> Confirmation -> Volume -> RSI -> MACD -> ENTRY")
+    print(" -> Retest -> Confirmation -> Volume -> RSI -> Time/Zone Filter -> ENTRY")
+    print(" FINAL RULES   : LONG <12:00 | BULL FVG LONG OFF | SHORT <=14:00")
+    print(" RISK          : SL 1% | TP 2% | Signal Only")
     print("=" * 78)
 
     client = None
@@ -1701,7 +1702,7 @@ def main():
         print(f"Entry signals       : {signal_count}")
         print("=" * 78)
 
-        # Wait until the NEXT CLOSED 5-minute candle is available.
+        # Wait until the NEXT CLOSED 15-minute candle is available.
         # Example: pass finishes at 13:02 -> next scan starts at 13:15:05.
         # Sleep in short chunks so the process remains responsive.
         now = datetime.now(IST)
