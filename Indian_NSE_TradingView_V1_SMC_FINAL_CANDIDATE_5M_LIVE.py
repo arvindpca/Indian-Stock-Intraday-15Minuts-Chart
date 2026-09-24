@@ -100,6 +100,7 @@ def build_telegram_message(result):
         tp2 = entry * (1.0 - TP2_PERCENT / 100.0)
 
     risk = abs(entry - sl)
+    reward1 = abs(tp1 - entry)
     reward2 = abs(tp2 - entry)
     stages = result.get("stage_times", {}) or {}
 
@@ -1598,7 +1599,7 @@ def send_morning_welcome(stock_count):
         f"📈 Timeframe: 5 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
         "⏰ Scan Mode: ALL TIME / 24x7\n"
-        "📌 RSI + Daily MACD: ON\n"
+        "📌 RSI ON | Daily MACD OFF | HTF OFF\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
     )
