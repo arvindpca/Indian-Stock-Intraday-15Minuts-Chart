@@ -22,11 +22,9 @@ import requests
 # ============================================================
 
 IST = ZoneInfo("Asia/Kolkata")
-YAHOO_BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
-YAHOO_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/130 Safari/537.36"
-}
+DHAN_BASE_URL = "https://api.dhan.co/v2"
+DHAN_INSTRUMENT_MASTER = "https://images.dhan.co/api-data/api-scrip-master.csv"
+DHAN_ACCESS_TOKEN = os.getenv("DHAN_ACCESS_TOKEN", "").strip()
 
 # -------------------- BACKTEST SETTINGS ---------------------
 ENTRY_CUTOFF = dtime(14, 45)
@@ -34,13 +32,14 @@ FORCE_EXIT_TIME = dtime(15, 10)
 TP_PERCENT = 2.0
 SL_PERCENT = 1.0
 
-LOOKBACK_DAYS_15M = 365      # Requested 12-month test window
+LOOKBACK_DAYS_15M = 365
 DAILY_LOOKBACK_DAYS = 450
-LOOKBACK_DAYS_5M = 365       # Requested 12-month exit window
-
-MAX_WORKERS = 12
-REQUEST_TIMEOUT = 20
-RETRIES = 3
+LOOKBACK_DAYS_5M = 365
+INTRADAY_CHUNK_DAYS = 90
+MAX_WORKERS = 8
+REQUEST_TIMEOUT = 30
+RETRIES = 4
+REQUESTS_PER_SECOND = 4.0
 
 SWING_LEFT = 2
 SWING_RIGHT = 2
@@ -104,79 +103,142 @@ def load_watchlist():
     return symbols
 
 
-def yahoo_chart(symbol, interval, period1, period2):
-    ticker = clean_symbol(symbol) + ".NS"
-    url = YAHOO_BASE_URL + ticker
-    params = {
-        "interval": interval,
-        "period1": int(period1),
-        "period2": int(period2),
-        "events": "history",
-        "includePrePost": "false",
-    }
+_REQUEST_LOCK = threading.Lock()
+_LAST_REQUEST_TS = 0.0
 
+
+def dhan_request(path, payload):
+    global _LAST_REQUEST_TS
+    if not DHAN_ACCESS_TOKEN:
+        raise RuntimeError("DHAN_ACCESS_TOKEN is missing. Add it to Railway Variables / .env.")
+
+    url = DHAN_BASE_URL + path
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "access-token": DHAN_ACCESS_TOKEN,
+    }
     last_error = None
     for attempt in range(1, RETRIES + 1):
         try:
-            r = requests.get(
-                url, params=params, headers=YAHOO_HEADERS,
-                timeout=REQUEST_TIMEOUT
-            )
-            r.raise_for_status()
-            payload = r.json()
-            results = (payload.get("chart") or {}).get("result") or []
-            if not results:
-                raise RuntimeError(f"Yahoo returned no data for {ticker}")
+            with _REQUEST_LOCK:
+                wait = (1.0 / REQUESTS_PER_SECOND) - (time.time() - _LAST_REQUEST_TS)
+                if wait > 0:
+                    time.sleep(wait)
+                _LAST_REQUEST_TS = time.time()
 
-            result = results[0]
-            timestamps = result.get("timestamp") or []
-            quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
-
-            rows = []
-            opens = quote.get("open") or []
-            highs = quote.get("high") or []
-            lows = quote.get("low") or []
-            closes = quote.get("close") or []
-            volumes = quote.get("volume") or []
-
-            for i, ts in enumerate(timestamps):
+            r = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT)
+            if r.status_code != 200:
                 try:
-                    o, h, l, c, v = opens[i], highs[i], lows[i], closes[i], volumes[i]
-                    if None in (o, h, l, c, v):
-                        continue
-                    rows.append({
-                        "time": pd.to_datetime(int(ts), unit="s", utc=True),
-                        "open": float(o),
-                        "high": float(h),
-                        "low": float(l),
-                        "close": float(c),
-                        "volume": float(v),
-                    })
-                except (IndexError, TypeError, ValueError):
-                    continue
-
-            df = pd.DataFrame(rows)
-            if df.empty:
-                raise RuntimeError(f"Yahoo returned empty candles for {ticker}")
-
-            return (
-                df.sort_values("time")
-                .drop_duplicates("time")
-                .reset_index(drop=True)
-            )
-
+                    detail = r.json()
+                except Exception:
+                    detail = r.text[:500]
+                raise RuntimeError(f"Dhan HTTP {r.status_code}: {detail}")
+            data = r.json()
+            if not isinstance(data, dict) or "timestamp" not in data:
+                raise RuntimeError(f"Dhan returned no candle data: {data}")
+            return data
         except Exception as e:
             last_error = e
             if attempt < RETRIES:
-                time.sleep(0.7 * attempt)
-
+                time.sleep(min(2.0 * attempt, 8.0))
     raise RuntimeError(str(last_error))
 
 
-def cached_chart(symbol, interval, days, cache_tag):
-    today = datetime.now(IST).date().isoformat()
-    cache_file = CACHE_DIR / f"{clean_symbol(symbol)}_{cache_tag}_{today}.pkl.gz"
+def load_dhan_instrument_map():
+    cache_file = CACHE_DIR / "dhan_scrip_master.csv"
+    if cache_file.exists():
+        try:
+            return pd.read_csv(cache_file, low_memory=False)
+        except Exception:
+            pass
 
+    r = requests.get(DHAN_INSTRUMENT_MASTER, timeout=60)
+    r.raise_for_status()
+    cache_file.write_bytes(r.content)
+    return pd.read_csv(cache_file, low_memory=False)
+
+
+def build_security_map(symbols):
+    master = load_dhan_instrument_map()
+    # Dhan compact master uses SEM_* names. Prefer NSE cash equity rows.
+    required = {"SEM_EXM_EXCH_ID", "SEM_SEGMENT", "SEM_SYMBOL_NAME", "SEM_SMST_SECURITY_ID"}
+    missing = required - set(master.columns)
+    if missing:
+        raise RuntimeError(f"Dhan scrip master missing columns: {sorted(missing)}")
+
+    m = master[
+        (master["SEM_EXM_EXCH_ID"].astype(str).str.upper() == "NSE")
+        & (master["SEM_SEGMENT"].astype(str).str.upper() == "E")
+    ].copy()
+    m["symbol_clean"] = m["SEM_SYMBOL_NAME"].astype(str).str.upper().str.strip()
+    m = m.drop_duplicates("symbol_clean", keep="first")
+
+    result = {}
+    for s in symbols:
+        row = m[m["symbol_clean"] == clean_symbol(s)]
+        if row.empty:
+            continue
+        result[clean_symbol(s)] = str(row.iloc[0]["SEM_SMST_SECURITY_ID"])
+    return result
+
+
+def _dhan_to_df(payload):
+    timestamps = payload.get("timestamp") or []
+    opens = payload.get("open") or []
+    highs = payload.get("high") or []
+    lows = payload.get("low") or []
+    closes = payload.get("close") or []
+    volumes = payload.get("volume") or []
+
+    n = min(len(timestamps), len(opens), len(highs), len(lows), len(closes), len(volumes))
+    rows = []
+    for i in range(n):
+        try:
+            if any(x is None for x in (timestamps[i], opens[i], highs[i], lows[i], closes[i], volumes[i])):
+                continue
+            rows.append({
+                "time": pd.to_datetime(int(timestamps[i]), unit="s", utc=True),
+                "open": float(opens[i]),
+                "high": float(highs[i]),
+                "low": float(lows[i]),
+                "close": float(closes[i]),
+                "volume": float(volumes[i]),
+            })
+        except (TypeError, ValueError, OverflowError):
+            continue
+    if not rows:
+        return pd.DataFrame(columns=["time", "open", "high", "low", "close", "volume"])
+    return pd.DataFrame(rows).sort_values("time").drop_duplicates("time").reset_index(drop=True)
+
+
+def dhan_candles(security_id, interval, start_dt, end_dt):
+    if interval == "1d":
+        payload = {
+            "securityId": str(security_id),
+            "exchangeSegment": "NSE_EQ",
+            "instrument": "EQUITY",
+            "expiryCode": 0,
+            "oi": False,
+            "fromDate": start_dt.strftime("%Y-%m-%d"),
+            "toDate": end_dt.strftime("%Y-%m-%d"),
+        }
+        return _dhan_to_df(dhan_request("/charts/historical", payload))
+
+    payload = {
+        "securityId": str(security_id),
+        "exchangeSegment": "NSE_EQ",
+        "instrument": "EQUITY",
+        "interval": str(interval),
+        "oi": False,
+        "fromDate": start_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "toDate": end_dt.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    return _dhan_to_df(dhan_request("/charts/intraday", payload))
+
+
+def cached_chart(symbol, interval, days, cache_tag, security_id):
+    cache_file = CACHE_DIR / f"{clean_symbol(symbol)}_{cache_tag}_12m.pkl.gz"
     if cache_file.exists():
         try:
             return pd.read_pickle(cache_file, compression="gzip")
@@ -186,25 +248,43 @@ def cached_chart(symbol, interval, days, cache_tag):
             except Exception:
                 pass
 
-    now = int(time.time())
-    start = now - days * 86400
-    df = yahoo_chart(symbol, interval, start, now)
+    end_dt = datetime.now(IST).replace(tzinfo=IST)
+    start_dt = end_dt - timedelta(days=days)
+    chunks = []
 
-    # Never use the currently forming 15m/5m candle.
-    if interval in ("15m", "5m"):
-        now_bucket = pd.Timestamp(datetime.now(IST)).tz_convert("UTC")
-        if interval == "15m":
-            minute = (now_bucket.minute // 15) * 15
-        else:
-            minute = (now_bucket.minute // 5) * 5
-        current_bucket = now_bucket.replace(
-            minute=minute, second=0, microsecond=0
-        )
-        df = df[df["time"] < current_bucket]
+    if interval == "1d":
+        chunks.append((start_dt, end_dt))
+    else:
+        cur = start_dt
+        while cur < end_dt:
+            nxt = min(cur + timedelta(days=INTRADAY_CHUNK_DAYS), end_dt)
+            chunks.append((cur, nxt))
+            cur = nxt
 
-    df.to_pickle(cache_file, compression="gzip")
-    return df.reset_index(drop=True)
+    for a, b in chunks:
+        df = dhan_candles(security_id, interval, a, b)
+        if not df.empty:
+            chunks_data = df
+            if "_frames" not in locals():
+                _frames = []
+            _frames.append(chunks_data)
 
+    frames = locals().get("_frames", [])
+    if not frames:
+        raise RuntimeError(f"Dhan returned no {interval} data for {symbol} ({security_id})")
+    out = pd.concat(frames, ignore_index=True)
+    out = out.sort_values("time").drop_duplicates("time").reset_index(drop=True)
+
+    # Exclude currently forming candle.
+    if interval in (5, 15):
+        now_utc = pd.Timestamp.now(tz="UTC")
+        minutes = 15 if interval == 15 else 5
+        bucket_minute = (now_utc.minute // minutes) * minutes
+        current_bucket = now_utc.replace(minute=bucket_minute, second=0, microsecond=0)
+        out = out[out["time"] < current_bucket]
+
+    out.to_pickle(cache_file, compression="gzip")
+    return out.reset_index(drop=True)
 
 def add_indicators(df):
     d = df.copy()
@@ -648,9 +728,9 @@ def evaluate_trade_5m(candidate, raw5):
     return None
 
 
-def process_symbol(symbol, index, total):
+def process_symbol(symbol, security_id, index, total):
     try:
-        raw15 = cached_chart(symbol, "15m", LOOKBACK_DAYS_15M, "15m")
+        raw15 = cached_chart(symbol, 15, LOOKBACK_DAYS_15M, "15m", security_id)
         candidates = detect_entries(symbol, raw15)
 
         if not candidates:
@@ -658,7 +738,7 @@ def process_symbol(symbol, index, total):
             return [], None
 
         # Only stocks with SMC candidates need daily MACD data.
-        daily = cached_chart(symbol, "1d", DAILY_LOOKBACK_DAYS, "1d")
+        daily = cached_chart(symbol, "1d", DAILY_LOOKBACK_DAYS, "1d", security_id)
         filtered = []
         for c in candidates:
             if USE_DAILY_MACD_FILTER:
@@ -682,7 +762,7 @@ def process_symbol(symbol, index, total):
             return [], None
 
         # Only stocks with final entry candidates need 5m data.
-        raw5 = cached_chart(symbol, "5m", LOOKBACK_DAYS_5M, "5m_365d")
+        raw5 = cached_chart(symbol, 5, LOOKBACK_DAYS_5M, "5m", security_id)
 
         rows = []
         for candidate in filtered:
@@ -706,6 +786,12 @@ def main():
     symbols = load_watchlist()
     total = len(symbols)
 
+    if not DHAN_ACCESS_TOKEN:
+        raise RuntimeError("DHAN_ACCESS_TOKEN is required. Add it in Railway Variables.")
+
+    security_map = build_security_map(symbols)
+    missing_symbols = [s for s in symbols if s not in security_map]
+
     print("=" * 90)
     print("FAST NSE SMC V1 BACKTEST")
     print("=" * 90)
@@ -717,6 +803,8 @@ def main():
     print(f"Stop loss              : -{SL_PERCENT:.2f}%")
     print(f"Force exit              : {FORCE_EXIT_TIME.strftime('%H:%M')} IST")
     print(f"Workers                : {MAX_WORKERS}")
+    print(f"Data source             : DhanHQ Historical API")
+    print(f"Mapped securities       : {len(security_map)}/{total}")
     print(f"Cache                  : {CACHE_DIR}")
     print("=" * 90)
 
@@ -727,8 +815,8 @@ def main():
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {
-            executor.submit(process_symbol, symbol, i, total): symbol
-            for i, symbol in enumerate(symbols, 1)
+            executor.submit(process_symbol, symbol, security_map[symbol], i, total): symbol
+            for i, symbol in enumerate(symbols, 1) if symbol in security_map
         }
 
         for future in as_completed(futures):
@@ -736,6 +824,9 @@ def main():
             all_trades.extend(trades)
             if error:
                 errors.append(error)
+
+    for symbol in missing_symbols:
+        errors.append({"symbol": symbol, "error": "No NSE_EQ security ID found in Dhan scrip master"})
 
     elapsed = time.time() - started
 
@@ -786,7 +877,7 @@ def main():
     wins = int((trades_df["pnl_pct"] > 0).sum())
     losses = int((trades_df["pnl_pct"] < 0).sum())
     force = int(trades_df["exit_reason"].eq("FORCE_EXIT_15:10").sum())
-    tp = int(trades_df["exit_reason"].eq("TP_1%").sum())
+    tp = int(trades_df["exit_reason"].eq("TP_2%").sum())
     sl = int(trades_df["pnl_pct"].lt(0).sum())
 
     net_pnl = float(trades_df["pnl_pct"].sum())
@@ -837,6 +928,8 @@ def main():
         f.write("Stop Loss: -1%\n")
         f.write("Force exit: 15:10 IST\n")
         f.write("Same 5m bar TP+SL: SL first\n")
+        f.write("Historical data source: DhanHQ Intraday Historical API (15m/5m) + Daily Historical API.\n")
+        f.write("Dhan intraday data is requested in 90-day chunks and cached locally.\n")
         f.write("\nNOTE\n")
         f.write(
             "Entry is generated from the 15m SMC candle. TP/SL/force-exit "
