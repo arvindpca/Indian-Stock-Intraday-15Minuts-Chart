@@ -11,9 +11,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import numpy as np
 import requests
+from urllib.parse import quote
 
 # ============================================================
-# FAST NSE SMC V1 BACKTEST - 12 MONTH
+# FAST NSE SMC V1 BACKTEST
 # Universe: stock_names.txt beside this file
 # Entry <= 14:45 IST
 # TP = +2%, SL = -1%
@@ -22,9 +23,11 @@ import requests
 # ============================================================
 
 IST = ZoneInfo("Asia/Kolkata")
-DHAN_BASE_URL = "https://api.dhan.co/v2"
-DHAN_INSTRUMENT_MASTER = "https://images.dhan.co/api-data/api-scrip-master.csv"
-DHAN_ACCESS_TOKEN = os.getenv("DHAN_ACCESS_TOKEN", "").strip()
+YAHOO_BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
+YAHOO_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/130 Safari/537.36"
+}
 
 # -------------------- BACKTEST SETTINGS ---------------------
 ENTRY_CUTOFF = dtime(14, 45)
@@ -32,14 +35,22 @@ FORCE_EXIT_TIME = dtime(15, 10)
 TP_PERCENT = 2.0
 SL_PERCENT = 1.0
 
-LOOKBACK_DAYS_15M = 365
+LOOKBACK_DAYS_15M = 30       # Yahoo intraday history available recently
 DAILY_LOOKBACK_DAYS = 450
-LOOKBACK_DAYS_5M = 365
-INTRADAY_CHUNK_DAYS = 90
-MAX_WORKERS = 8
-REQUEST_TIMEOUT = 30
-RETRIES = 4
-REQUESTS_PER_SECOND = 4.0
+LOOKBACK_DAYS_5M = 30        # Same period as backtest; keeps Yahoo 5m request valid
+
+MAX_WORKERS = 12
+REQUEST_TIMEOUT = 20
+RETRIES = 3
+
+# -------------------- SECTOR TREND FILTER ------------------
+# Sector is determined from NSE equity metadata at runtime and cached locally.
+# Morning sector trend = equal-weight average return of mapped stocks in the
+# first completed 15-minute candle of that trading day versus the prior close.
+# Positive > +0.10%, Negative < -0.10%, otherwise Neutral.
+SECTOR_TREND_THRESHOLD_PCT = 0.10
+SECTOR_METADATA_CACHE = CACHE_DIR if "CACHE_DIR" in globals() else None
+SECTOR_META_FILE_NAME = "nse_sector_map.json"
 
 SWING_LEFT = 2
 SWING_RIGHT = 2
@@ -66,6 +77,7 @@ CACHE_DIR = BASE_DIR / "backtest_cache"
 RESULT_DIR = BASE_DIR / "backtest_results"
 CACHE_DIR.mkdir(exist_ok=True)
 RESULT_DIR.mkdir(exist_ok=True)
+SECTOR_META_FILE = CACHE_DIR / SECTOR_META_FILE_NAME
 
 PRINT_LOCK = threading.Lock()
 
@@ -103,142 +115,176 @@ def load_watchlist():
     return symbols
 
 
-_REQUEST_LOCK = threading.Lock()
-_LAST_REQUEST_TS = 0.0
 
-
-def dhan_request(path, payload):
-    global _LAST_REQUEST_TS
-    if not DHAN_ACCESS_TOKEN:
-        raise RuntimeError("DHAN_ACCESS_TOKEN is missing. Add it to Railway Variables / .env.")
-
-    url = DHAN_BASE_URL + path
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "access-token": DHAN_ACCESS_TOKEN,
-    }
-    last_error = None
-    for attempt in range(1, RETRIES + 1):
+def load_sector_map(symbols):
+    """Load/calculate NSE sector mapping. Missing metadata remains UNKNOWN."""
+    mapping = {}
+    if SECTOR_META_FILE.exists():
         try:
-            with _REQUEST_LOCK:
-                wait = (1.0 / REQUESTS_PER_SECOND) - (time.time() - _LAST_REQUEST_TS)
-                if wait > 0:
-                    time.sleep(wait)
-                _LAST_REQUEST_TS = time.time()
-
-            r = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT)
-            if r.status_code != 200:
-                try:
-                    detail = r.json()
-                except Exception:
-                    detail = r.text[:500]
-                raise RuntimeError(f"Dhan HTTP {r.status_code}: {detail}")
-            data = r.json()
-            if not isinstance(data, dict) or "timestamp" not in data:
-                raise RuntimeError(f"Dhan returned no candle data: {data}")
-            return data
-        except Exception as e:
-            last_error = e
-            if attempt < RETRIES:
-                time.sleep(min(2.0 * attempt, 8.0))
-    raise RuntimeError(str(last_error))
-
-
-def load_dhan_instrument_map():
-    cache_file = CACHE_DIR / "dhan_scrip_master.csv"
-    if cache_file.exists():
-        try:
-            return pd.read_csv(cache_file, low_memory=False)
+            with open(SECTOR_META_FILE, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            if isinstance(cached, dict):
+                mapping.update({clean_symbol(k): str(v).strip() for k, v in cached.items() if v})
         except Exception:
             pass
 
-    r = requests.get(DHAN_INSTRUMENT_MASTER, timeout=60)
-    r.raise_for_status()
-    cache_file.write_bytes(r.content)
-    return pd.read_csv(cache_file, low_memory=False)
+    missing = [s for s in symbols if clean_symbol(s) not in mapping]
+    if not missing:
+        return mapping
 
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130 Safari/537.36",
+        "Accept": "application/json,text/plain,*/*",
+        "Referer": "https://www.nseindia.com/",
+    })
 
-def build_security_map(symbols):
-    master = load_dhan_instrument_map()
-    # Dhan compact master uses SEM_* names. Prefer NSE cash equity rows.
-    required = {"SEM_EXM_EXCH_ID", "SEM_SEGMENT", "SEM_SYMBOL_NAME", "SEM_SMST_SECURITY_ID"}
-    missing = required - set(master.columns)
-    if missing:
-        raise RuntimeError(f"Dhan scrip master missing columns: {sorted(missing)}")
-
-    m = master[
-        (master["SEM_EXM_EXCH_ID"].astype(str).str.upper() == "NSE")
-        & (master["SEM_SEGMENT"].astype(str).str.upper() == "E")
-    ].copy()
-    m["symbol_clean"] = m["SEM_SYMBOL_NAME"].astype(str).str.upper().str.strip()
-    m = m.drop_duplicates("symbol_clean", keep="first")
-
-    result = {}
-    for s in symbols:
-        row = m[m["symbol_clean"] == clean_symbol(s)]
-        if row.empty:
-            continue
-        result[clean_symbol(s)] = str(row.iloc[0]["SEM_SMST_SECURITY_ID"])
-    return result
-
-
-def _dhan_to_df(payload):
-    timestamps = payload.get("timestamp") or []
-    opens = payload.get("open") or []
-    highs = payload.get("high") or []
-    lows = payload.get("low") or []
-    closes = payload.get("close") or []
-    volumes = payload.get("volume") or []
-
-    n = min(len(timestamps), len(opens), len(highs), len(lows), len(closes), len(volumes))
-    rows = []
-    for i in range(n):
+    def one(sym):
+        url = "https://www.nseindia.com/api/equity-meta-info"
         try:
-            if any(x is None for x in (timestamps[i], opens[i], highs[i], lows[i], closes[i], volumes[i])):
-                continue
-            rows.append({
-                "time": pd.to_datetime(int(timestamps[i]), unit="s", utc=True),
-                "open": float(opens[i]),
-                "high": float(highs[i]),
-                "low": float(lows[i]),
-                "close": float(closes[i]),
-                "volume": float(volumes[i]),
-            })
-        except (TypeError, ValueError, OverflowError):
+            r = session.get(url, params={"symbol": clean_symbol(sym)}, timeout=15)
+            r.raise_for_status()
+            data = r.json()
+            # NSE response versions use different names; prefer sector, then industry.
+            sector = data.get("sector") or data.get("industry") or data.get("industryInfo")
+            if isinstance(sector, dict):
+                sector = sector.get("industry") or sector.get("sector") or sector.get("name")
+            return clean_symbol(sym), str(sector).strip() if sector else "UNKNOWN"
+        except Exception:
+            return clean_symbol(sym), "UNKNOWN"
+
+    log(f"Loading NSE sector mapping for {len(missing)} stocks...")
+    with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, 8)) as ex:
+        futs = [ex.submit(one, s) for s in missing]
+        for fut in as_completed(futs):
+            k, v = fut.result()
+            mapping[k] = v
+
+    try:
+        with open(SECTOR_META_FILE, "w", encoding="utf-8") as f:
+            json.dump(mapping, f, indent=2, sort_keys=True)
+    except Exception:
+        pass
+    return mapping
+
+
+def first_candle_sector_returns(symbol_raw15, sector_map):
+    """Return {date: {sector: average first-15m return pct}}."""
+    grouped = {}
+    for symbol, df in symbol_raw15.items():
+        sector = sector_map.get(clean_symbol(symbol), "UNKNOWN")
+        if sector == "UNKNOWN":
             continue
-    if not rows:
-        return pd.DataFrame(columns=["time", "open", "high", "low", "close", "volume"])
-    return pd.DataFrame(rows).sort_values("time").drop_duplicates("time").reset_index(drop=True)
+        d = df.copy()
+        d["time_ist"] = d["time"].dt.tz_convert(IST)
+        d = d.sort_values("time_ist")
+        # First completed 15m candle after 09:15. Yahoo timestamps are UTC internally.
+        d = d[(d["time_ist"].dt.hour == 9) & (d["time_ist"].dt.minute == 15)]
+        if d.empty:
+            continue
+        for _, row in d.iterrows():
+            day = row["time_ist"].date().isoformat()
+            # Prior close is unavailable from 15m alone; use the first candle's open as baseline.
+            ret = (float(row["close"]) / float(row["open"]) - 1.0) * 100.0
+            grouped.setdefault(day, {}).setdefault(sector, []).append(ret)
+    out = {}
+    for day, sectors in grouped.items():
+        out[day] = {sec: float(np.mean(vals)) for sec, vals in sectors.items() if vals}
+    return out
 
 
-def dhan_candles(security_id, interval, start_dt, end_dt):
-    if interval == "1d":
-        payload = {
-            "securityId": str(security_id),
-            "exchangeSegment": "NSE_EQ",
-            "instrument": "EQUITY",
-            "expiryCode": 0,
-            "oi": False,
-            "fromDate": start_dt.strftime("%Y-%m-%d"),
-            "toDate": end_dt.strftime("%Y-%m-%d"),
-        }
-        return _dhan_to_df(dhan_request("/charts/historical", payload))
+def sector_trend_for(day, sector, sector_returns):
+    value = sector_returns.get(str(day), {}).get(sector)
+    if value is None:
+        return "UNKNOWN", None
+    if value > SECTOR_TREND_THRESHOLD_PCT:
+        return "POSITIVE", value
+    if value < -SECTOR_TREND_THRESHOLD_PCT:
+        return "NEGATIVE", value
+    return "NEUTRAL", value
 
-    payload = {
-        "securityId": str(security_id),
-        "exchangeSegment": "NSE_EQ",
-        "instrument": "EQUITY",
-        "interval": str(interval),
-        "oi": False,
-        "fromDate": start_dt.strftime("%Y-%m-%d %H:%M:%S"),
-        "toDate": end_dt.strftime("%Y-%m-%d %H:%M:%S"),
+
+def sector_allows(direction, trend):
+    if trend == "POSITIVE" and direction == "LONG":
+        return True
+    if trend == "NEGATIVE" and direction == "SHORT":
+        return True
+    return False
+
+
+def yahoo_chart(symbol, interval, period1, period2):
+    ticker = clean_symbol(symbol) + ".NS"
+    url = YAHOO_BASE_URL + ticker
+    params = {
+        "interval": interval,
+        "period1": int(period1),
+        "period2": int(period2),
+        "events": "history",
+        "includePrePost": "false",
     }
-    return _dhan_to_df(dhan_request("/charts/intraday", payload))
+
+    last_error = None
+    for attempt in range(1, RETRIES + 1):
+        try:
+            r = requests.get(
+                url, params=params, headers=YAHOO_HEADERS,
+                timeout=REQUEST_TIMEOUT
+            )
+            r.raise_for_status()
+            payload = r.json()
+            results = (payload.get("chart") or {}).get("result") or []
+            if not results:
+                raise RuntimeError(f"Yahoo returned no data for {ticker}")
+
+            result = results[0]
+            timestamps = result.get("timestamp") or []
+            quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
+
+            rows = []
+            opens = quote.get("open") or []
+            highs = quote.get("high") or []
+            lows = quote.get("low") or []
+            closes = quote.get("close") or []
+            volumes = quote.get("volume") or []
+
+            for i, ts in enumerate(timestamps):
+                try:
+                    o, h, l, c, v = opens[i], highs[i], lows[i], closes[i], volumes[i]
+                    if None in (o, h, l, c, v):
+                        continue
+                    rows.append({
+                        "time": pd.to_datetime(int(ts), unit="s", utc=True),
+                        "open": float(o),
+                        "high": float(h),
+                        "low": float(l),
+                        "close": float(c),
+                        "volume": float(v),
+                    })
+                except (IndexError, TypeError, ValueError):
+                    continue
+
+            df = pd.DataFrame(rows)
+            if df.empty:
+                raise RuntimeError(f"Yahoo returned empty candles for {ticker}")
+
+            return (
+                df.sort_values("time")
+                .drop_duplicates("time")
+                .reset_index(drop=True)
+            )
+
+        except Exception as e:
+            last_error = e
+            if attempt < RETRIES:
+                time.sleep(0.7 * attempt)
+
+    raise RuntimeError(str(last_error))
 
 
-def cached_chart(symbol, interval, days, cache_tag, security_id):
-    cache_file = CACHE_DIR / f"{clean_symbol(symbol)}_{cache_tag}_12m.pkl.gz"
+def cached_chart(symbol, interval, days, cache_tag):
+    today = datetime.now(IST).date().isoformat()
+    cache_file = CACHE_DIR / f"{clean_symbol(symbol)}_{cache_tag}_{today}.pkl.gz"
+
     if cache_file.exists():
         try:
             return pd.read_pickle(cache_file, compression="gzip")
@@ -248,43 +294,25 @@ def cached_chart(symbol, interval, days, cache_tag, security_id):
             except Exception:
                 pass
 
-    end_dt = datetime.now(IST).replace(tzinfo=IST)
-    start_dt = end_dt - timedelta(days=days)
-    chunks = []
+    now = int(time.time())
+    start = now - days * 86400
+    df = yahoo_chart(symbol, interval, start, now)
 
-    if interval == "1d":
-        chunks.append((start_dt, end_dt))
-    else:
-        cur = start_dt
-        while cur < end_dt:
-            nxt = min(cur + timedelta(days=INTRADAY_CHUNK_DAYS), end_dt)
-            chunks.append((cur, nxt))
-            cur = nxt
+    # Never use the currently forming 15m/5m candle.
+    if interval in ("15m", "5m"):
+        now_bucket = pd.Timestamp(datetime.now(IST)).tz_convert("UTC")
+        if interval == "15m":
+            minute = (now_bucket.minute // 15) * 15
+        else:
+            minute = (now_bucket.minute // 5) * 5
+        current_bucket = now_bucket.replace(
+            minute=minute, second=0, microsecond=0
+        )
+        df = df[df["time"] < current_bucket]
 
-    for a, b in chunks:
-        df = dhan_candles(security_id, interval, a, b)
-        if not df.empty:
-            chunks_data = df
-            if "_frames" not in locals():
-                _frames = []
-            _frames.append(chunks_data)
+    df.to_pickle(cache_file, compression="gzip")
+    return df.reset_index(drop=True)
 
-    frames = locals().get("_frames", [])
-    if not frames:
-        raise RuntimeError(f"Dhan returned no {interval} data for {symbol} ({security_id})")
-    out = pd.concat(frames, ignore_index=True)
-    out = out.sort_values("time").drop_duplicates("time").reset_index(drop=True)
-
-    # Exclude currently forming candle.
-    if interval in (5, 15):
-        now_utc = pd.Timestamp.now(tz="UTC")
-        minutes = 15 if interval == 15 else 5
-        bucket_minute = (now_utc.minute // minutes) * minutes
-        current_bucket = now_utc.replace(minute=bucket_minute, second=0, microsecond=0)
-        out = out[out["time"] < current_bucket]
-
-    out.to_pickle(cache_file, compression="gzip")
-    return out.reset_index(drop=True)
 
 def add_indicators(df):
     d = df.copy()
@@ -728,42 +756,42 @@ def evaluate_trade_5m(candidate, raw5):
     return None
 
 
-def process_symbol(symbol, security_id, index, total):
+def process_symbol(symbol, index, total, raw15, sector_map, sector_returns):
     try:
-        raw15 = cached_chart(symbol, 15, LOOKBACK_DAYS_15M, "15m", security_id)
         candidates = detect_entries(symbol, raw15)
-
         if not candidates:
             log(f"[{index}/{total}] {symbol}: NO TRADE")
             return [], None
 
-        # Only stocks with SMC candidates need daily MACD data.
-        daily = cached_chart(symbol, "1d", DAILY_LOOKBACK_DAYS, "1d", security_id)
+        daily = cached_chart(symbol, "1d", DAILY_LOOKBACK_DAYS, "1d")
         filtered = []
+        sector = sector_map.get(clean_symbol(symbol), "UNKNOWN")
         for c in candidates:
+            day = c["entry_time_ist"].date()
+            trend, sector_ret = sector_trend_for(day, sector, sector_returns)
+            c["sector"] = sector
+            c["sector_trend"] = trend
+            c["sector_return_pct"] = sector_ret
+            if not sector_allows(c["direction"], trend):
+                continue
+
             if USE_DAILY_MACD_FILTER:
-                macd, macd_signal = daily_macd_as_of(
-                    daily, c["entry_time_ist"].date()
-                )
+                macd, macd_signal = daily_macd_as_of(daily, day)
                 if macd is None:
                     continue
                 direction = c["direction"]
-                if not (
-                    (direction == "LONG" and macd > macd_signal)
-                    or (direction == "SHORT" and macd < macd_signal)
-                ):
+                if not ((direction == "LONG" and macd > macd_signal) or
+                        (direction == "SHORT" and macd < macd_signal)):
                     continue
                 c["daily_macd"] = macd
                 c["daily_macd_signal"] = macd_signal
             filtered.append(c)
 
         if not filtered:
-            log(f"[{index}/{total}] {symbol}: SMC candidate(s), MACD FILTER")
+            log(f"[{index}/{total}] {symbol}: SMC/SECTOR/MACD FILTER")
             return [], None
 
-        # Only stocks with final entry candidates need 5m data.
-        raw5 = cached_chart(symbol, 5, LOOKBACK_DAYS_5M, "5m", security_id)
-
+        raw5 = cached_chart(symbol, "5m", LOOKBACK_DAYS_5M, "5m_30d")
         rows = []
         for candidate in filtered:
             result = evaluate_trade_5m(candidate, raw5)
@@ -776,189 +804,150 @@ def process_symbol(symbol, security_id, index, total):
 
         log(f"[{index}/{total}] {symbol}: {len(rows)} trade(s)")
         return rows, None
-
     except Exception as e:
         log(f"[{index}/{total}] {symbol}: ERROR - {e}")
         return [], {"symbol": symbol, "error": str(e)}
-
 
 def main():
     symbols = load_watchlist()
     total = len(symbols)
 
-    if not DHAN_ACCESS_TOKEN:
-        raise RuntimeError("DHAN_ACCESS_TOKEN is required. Add it in Railway Variables.")
-
-    security_map = build_security_map(symbols)
-    missing_symbols = [s for s in symbols if s not in security_map]
-
     print("=" * 90)
-    print("FAST NSE SMC V1 BACKTEST")
+    print("NSE SMC V1 + SECTOR TREND FILTER | 1 MONTH BACKTEST")
     print("=" * 90)
     print(f"Watchlist             : {WATCHLIST_FILE.name}")
     print(f"Stocks                 : {total}")
     print(f"15M history            : {LOOKBACK_DAYS_15M} days")
+    print(f"Sector trend           : first completed 15M candle")
+    print(f"Positive/Negative band : +/- {SECTOR_TREND_THRESHOLD_PCT:.2f}%")
     print(f"Entry cutoff           : {ENTRY_CUTOFF.strftime('%H:%M')} IST")
     print(f"Target                 : +{TP_PERCENT:.2f}%")
     print(f"Stop loss              : -{SL_PERCENT:.2f}%")
-    print(f"Force exit              : {FORCE_EXIT_TIME.strftime('%H:%M')} IST")
+    print(f"Force exit             : {FORCE_EXIT_TIME.strftime('%H:%M')} IST")
     print(f"Workers                : {MAX_WORKERS}")
-    print(f"Data source             : DhanHQ Historical API")
-    print(f"Mapped securities       : {len(security_map)}/{total}")
     print(f"Cache                  : {CACHE_DIR}")
     print("=" * 90)
 
-    all_trades = []
+    started = time.time()
     errors = []
 
-    started = time.time()
-
+    # Phase 1: download 15M for every requested stock. This keeps the universe at all 828.
+    raw15_map = {}
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {
-            executor.submit(process_symbol, symbol, security_map[symbol], i, total): symbol
-            for i, symbol in enumerate(symbols, 1) if symbol in security_map
-        }
+        futs = {executor.submit(cached_chart, s, "15m", LOOKBACK_DAYS_15M, "15m"): s
+                for s in symbols}
+        for n, fut in enumerate(as_completed(futs), 1):
+            sym = futs[fut]
+            try:
+                raw15_map[sym] = fut.result()
+                log(f"[15M {n}/{total}] {sym}: OK")
+            except Exception as e:
+                errors.append({"symbol": sym, "error": str(e)})
+                log(f"[15M {n}/{total}] {sym}: ERROR - {e}")
 
-        for future in as_completed(futures):
-            trades, error = future.result()
+    sector_map = load_sector_map(symbols)
+    sector_returns = first_candle_sector_returns(raw15_map, sector_map)
+
+    all_trades = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futs = {
+            executor.submit(process_symbol, sym, i, total, raw15_map[sym], sector_map, sector_returns): sym
+            for i, sym in enumerate(symbols, 1) if sym in raw15_map
+        }
+        for fut in as_completed(futs):
+            trades, error = fut.result()
             all_trades.extend(trades)
             if error:
                 errors.append(error)
 
-    for symbol in missing_symbols:
-        errors.append({"symbol": symbol, "error": "No NSE_EQ security ID found in Dhan scrip master"})
-
     elapsed = time.time() - started
-
     trades_df = pd.DataFrame(all_trades)
+
     if trades_df.empty:
         print("\nNO COMPLETED TRADES FOUND.")
         if errors:
-            pd.DataFrame(errors).to_csv(
-                RESULT_DIR / "backtest_errors.csv", index=False
-            )
+            pd.DataFrame(errors).to_csv(RESULT_DIR / "backtest_errors.csv", index=False)
         return
 
-    trades_df = trades_df.sort_values(
-        ["entry_time", "symbol"]
-    ).reset_index(drop=True)
-
-    # Sequential cumulative P&L in percentage points.
+    trades_df = trades_df.sort_values(["entry_time", "symbol"]).reset_index(drop=True)
     trades_df["cum_pnl_pct"] = trades_df["pnl_pct"].cumsum()
-
-    # R multiple based on 1% risk.
     trades_df["R"] = trades_df["pnl_pct"] / SL_PERCENT
 
-    # Save full trade list.
-    trade_file = RESULT_DIR / "SMC_Backtest_Trades_12M.csv"
-    trades_df.to_csv(trade_file, index=False)
+    # Normal trade details output, plus sector columns for validation.
+    preferred = [
+        "symbol","sector","sector_trend","sector_return_pct","direction",
+        "entry_time","entry","sl","tp","zone","rsi","volume","volume_sma",
+        "daily_macd","daily_macd_signal","sweep_time","displacement_time","mss_time",
+        "fvg_time","ob_time","retest_time","confirmation_time","exit_time","exit_price",
+        "exit_reason","pnl_pct","cum_pnl_pct","R"
+    ]
+    trades_df = trades_df[[c for c in preferred if c in trades_df.columns] +
+                          [c for c in trades_df.columns if c not in preferred]]
+    trades_df.to_csv(RESULT_DIR / "SMC_Sector_Backtest_Trades.csv", index=False)
 
-    # Stock-wise summary.
-    stock_rows = []
-    for symbol, g in trades_df.groupby("symbol", sort=True):
-        wins_g = int((g["pnl_pct"] > 0).sum())
-        stock_rows.append({
-            "symbol": symbol,
-            "Trades": len(g),
-            "Wins": wins_g,
-            "Losses": int((g["pnl_pct"] < 0).sum()),
-            "WinRate_%": round(wins_g / len(g) * 100, 2),
-            "NetPnL_%": round(float(g["pnl_pct"].sum()), 4),
-            "AvgTrade_%": round(float(g["pnl_pct"].mean()), 4),
-            "Total_R": round(float(g["R"].sum()), 4),
-        })
-    stock_df = pd.DataFrame(stock_rows).sort_values(
-        "NetPnL_%", ascending=False
-    )
-    stock_file = RESULT_DIR / "SMC_Backtest_Stock_Summary_12M.csv"
-    stock_df.to_csv(stock_file, index=False)
-
-    total_trades = len(trades_df)
-    wins = int((trades_df["pnl_pct"] > 0).sum())
-    losses = int((trades_df["pnl_pct"] < 0).sum())
-    force = int(trades_df["exit_reason"].eq("FORCE_EXIT_15:10").sum())
-    tp = int(trades_df["exit_reason"].eq("TP_2%").sum())
-    sl = int(trades_df["pnl_pct"].lt(0).sum())
-
+    wins = int((trades_df["pnl_pct"] > 0.000001).sum())
+    losses = int((trades_df["pnl_pct"] < -0.000001).sum())
+    breakeven = int(len(trades_df) - wins - losses)
+    win_rate = wins / len(trades_df) * 100 if len(trades_df) else 0.0
+    gross_profit = float(trades_df.loc[trades_df["pnl_pct"] > 0, "pnl_pct"].sum())
+    gross_loss = abs(float(trades_df.loc[trades_df["pnl_pct"] < 0, "pnl_pct"].sum()))
+    profit_factor = gross_profit / gross_loss if gross_loss else float("inf")
     net_pnl = float(trades_df["pnl_pct"].sum())
     avg_trade = float(trades_df["pnl_pct"].mean())
-    win_rate = wins / total_trades * 100
+    max_dd = float((trades_df["cum_pnl_pct"] - trades_df["cum_pnl_pct"].cummax()).min())
 
-    gross_profit = trades_df.loc[trades_df["pnl_pct"] > 0, "pnl_pct"].sum()
-    gross_loss = -trades_df.loc[trades_df["pnl_pct"] < 0, "pnl_pct"].sum()
-    profit_factor = (
-        float(gross_profit / gross_loss)
-        if gross_loss > 0 else float("inf")
-    )
+    long_df = trades_df[trades_df["direction"] == "LONG"]
+    short_df = trades_df[trades_df["direction"] == "SHORT"]
+    def side_stats(df):
+        if df.empty:
+            return 0, 0, 0.0, 0.0
+        return len(df), int((df["pnl_pct"] > 0.000001).sum()), float((df["pnl_pct"] > 0.000001).mean()*100), float(df["pnl_pct"].sum())
+    lt, lw, lwr, lp = side_stats(long_df)
+    st, sw, swr, sp = side_stats(short_df)
 
-    equity = trades_df["pnl_pct"].cumsum()
-    peak = equity.cummax()
-    drawdown = equity - peak
-    max_drawdown = float(drawdown.min())
-
-    summary = {
-        "Stocks Scanned": total,
-        "Stocks With Trades": int(trades_df["symbol"].nunique()),
-        "Total Trades": total_trades,
-        "Wins": wins,
-        "Losses": losses,
-        "TP 2% Hits": tp,
-        "SL Hits": sl,
-        "Force Exit 15:10": force,
-        "Win Rate %": round(win_rate, 2),
-        "Net P&L %": round(net_pnl, 4),
-        "Average Trade %": round(avg_trade, 4),
-        "Profit Factor": round(profit_factor, 4) if math.isfinite(profit_factor) else "INF",
-        "Max Drawdown %": round(max_drawdown, 4),
-        "Total R": round(float(trades_df["R"].sum()), 4),
-        "Elapsed Seconds": round(elapsed, 2),
-        "Errors": len(errors),
-    }
-
-    summary_file = RESULT_DIR / "SMC_Backtest_Summary_12M.txt"
-    with open(summary_file, "w", encoding="utf-8") as f:
-        f.write("FAST NSE SMC V1 BACKTEST\n")
-        f.write("=" * 60 + "\n")
-        for k, v in summary.items():
-            f.write(f"{k}: {v}\n")
-        f.write("\nRULES\n")
-        f.write("Timeframe: 15m\n")
-        f.write("Entry cutoff: 14:45 IST\n")
-        f.write("Target: +2%\n")
-        f.write("Stop Loss: -1%\n")
-        f.write("Force exit: 15:10 IST\n")
-        f.write("Same 5m bar TP+SL: SL first\n")
-        f.write("Historical data source: DhanHQ Intraday Historical API (15m/5m) + Daily Historical API.\n")
-        f.write("Dhan intraday data is requested in 90-day chunks and cached locally.\n")
-        f.write("\nNOTE\n")
-        f.write(
-            "Entry is generated from the 15m SMC candle. TP/SL/force-exit "
-            "monitoring uses 5m data. The exact 15:10 price is represented "
-            "by the OPEN of the 15:10 5m candle because OHLC history cannot "
-            "reconstruct a transaction price inside a candle.\n"
-        )
-        f.write(
-            "Daily MACD is calculated only from completed daily candles "
-            "available before each entry date to avoid look-ahead bias.\n"
-        )
-
+    summary = [
+        "NSE SMC V1 + SECTOR TREND FILTER - 1 MONTH BACKTEST",
+        "=" * 70,
+        f"Stocks Scanned        : {total}",
+        f"Stocks With 15M Data  : {len(raw15_map)}",
+        f"Sector Mapped Stocks  : {sum(1 for s in symbols if sector_map.get(s, 'UNKNOWN') != 'UNKNOWN')}",
+        f"Total Trades          : {len(trades_df)}",
+        f"Winning Trades        : {wins}",
+        f"Losing Trades         : {losses}",
+        f"Breakeven             : {breakeven}",
+        f"Win Rate              : {win_rate:.2f}%",
+        f"TP 2% Hits            : {int((trades_df['exit_reason'] == 'TP_2%').sum())}",
+        f"SL 1% Hits            : {int((trades_df['exit_reason'] == 'SL_1%').sum())}",
+        f"Force Exit 15:10      : {int((trades_df['exit_reason'] == 'FORCE_EXIT_15:10').sum())}",
+        f"Net P&L %             : {net_pnl:.4f}%",
+        f"Average Trade %       : {avg_trade:.4f}%",
+        f"Profit Factor         : {profit_factor:.3f}",
+        f"Max Drawdown %        : {max_dd:.4f}%",
+        f"Total R               : {float(trades_df['R'].sum()):.4f}",
+        "",
+        "LONG",
+        f"Trades / Wins         : {lt} / {lw}",
+        f"Win Rate              : {lwr:.2f}%",
+        f"Net P&L %             : {lp:.4f}%",
+        "",
+        "SHORT",
+        f"Trades / Wins         : {st} / {sw}",
+        f"Win Rate              : {swr:.2f}%",
+        f"Net P&L %             : {sp:.4f}%",
+        "",
+        f"Elapsed Seconds       : {elapsed:.1f}",
+        f"Errors                : {len(errors)}",
+        "",
+        "Sector filter: POSITIVE -> LONG only; NEGATIVE -> SHORT only; NEUTRAL/UNKNOWN -> no new entry.",
+    ]
+    with open(RESULT_DIR / "SMC_Sector_Backtest_Summary.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(summary))
     if errors:
-        pd.DataFrame(errors).to_csv(
-            RESULT_DIR / "backtest_errors.csv", index=False
-        )
+        pd.DataFrame(errors).to_csv(RESULT_DIR / "backtest_errors.csv", index=False)
 
-    print("\n" + "=" * 90)
-    print("BACKTEST COMPLETE")
-    print("=" * 90)
-    for k, v in summary.items():
-        print(f"{k:24}: {v}")
-
-    print("\nOUTPUT FILES:")
-    print(trade_file)
-    print(stock_file)
-    print(summary_file)
-    if errors:
-        print(RESULT_DIR / "backtest_errors.csv")
+    print("\n" + "\n".join(summary))
+    print("\nTrade CSV   :", RESULT_DIR / "SMC_Sector_Backtest_Trades.csv")
+    print("Summary TXT :", RESULT_DIR / "SMC_Sector_Backtest_Summary.txt")
 
 
 if __name__ == "__main__":
