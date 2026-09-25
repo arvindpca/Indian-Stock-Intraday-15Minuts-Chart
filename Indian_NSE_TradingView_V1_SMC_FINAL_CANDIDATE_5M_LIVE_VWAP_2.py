@@ -57,13 +57,19 @@ def send_telegram_message(message):
         return False
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+    # Use plain text for maximum reliability. The signal message builder
+    # contains human-readable HTML tags, but dynamic market values can contain
+    # characters such as < or > that Telegram's HTML parser may reject.
+    plain_message = re.sub(r"<[^>]+>", "", str(message))
+    plain_message = html.unescape(plain_message)
+
     try:
         response = requests.post(
             url,
             data={
                 "chat_id": TELEGRAM_CHAT_ID,
-                "text": message,
-                "parse_mode": "HTML",
+                "text": plain_message,
                 "disable_web_page_preview": True,
             },
             timeout=15,
@@ -73,6 +79,11 @@ def send_telegram_message(message):
         return True
     except Exception as e:
         print(f"Telegram ERROR: {e}")
+        try:
+            detail = response.text[:500]
+            print(f"Telegram API RESPONSE: {detail}")
+        except Exception:
+            pass
         return False
 
 
