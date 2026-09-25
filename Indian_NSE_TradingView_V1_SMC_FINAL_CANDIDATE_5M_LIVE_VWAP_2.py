@@ -2,6 +2,7 @@ import os
 import time
 import json
 import math
+import html
 import re
 import difflib
 import threading
@@ -85,6 +86,8 @@ def signal_key(result):
 
 def build_telegram_message(result):
     """Detailed LONG/SHORT entry alert with 1% SL and 2% TP."""
+    def h(value):
+        return html.escape(str(value), quote=False)
     direction = result["signal"]
     emoji = "🟢" if direction == "LONG" else "🔴"
     symbol = result["symbol"].replace("-EQ", "")
@@ -117,7 +120,7 @@ def build_telegram_message(result):
     )
 
     return (
-        f"{emoji} <b>NEW TRADE ALERT — {direction}</b>\n\n"
+        f"{emoji} <b>NEW TRADE ALERT — {h(direction)}</b>\n\n"
         f"<b>Setup ID:</b>\n"
         f"<code>SETUP-{symbol}-{result.get('candle_time','').replace(' ','_').replace(':','')}</code>\n\n"
         f"<b>Instrument:</b> {symbol}\n"
@@ -148,7 +151,7 @@ def build_telegram_message(result):
         f"Status: <b>OPEN — Monitoring SL / TP1 / TP2</b>\n\n"
 
         f"<b>TIMELINE</b>\n"
-        f"Detection: {result.get('candle_time', '—')}\n"
+        f"Detection: {h(result.get('candle_time', '—'))}\n"
         f"MSS: {tm('MSS')}\n"
         f"Liquidity Sweep: {tm('SWEEP')}\n"
         f"Order Block: {tm('OB')}\n"
