@@ -1,0 +1,49 @@
+name: Download NSE 5m Historical Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Yahoo 5-minute history days (maximum 59)"
+        required: true
+        default: "55"
+        type: choice
+        options:
+          - "10"
+          - "20"
+          - "30"
+          - "45"
+          - "55"
+      max_symbols:
+        description: "Limit symbols for a test (0 = all symbols)"
+        required: true
+        default: "0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download historical 5-minute OHLCV
+        env:
+          BACKTEST_DAYS: ${{ inputs.days }}
+          MAX_SYMBOLS: ${{ inputs.max_symbols }}
+        run: python download_historical_5m.py
+      - name: Upload historical data artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nse-5m-historical-data
+          path: data/
+          if-no-files-found: warn
+          retention-days: 14
