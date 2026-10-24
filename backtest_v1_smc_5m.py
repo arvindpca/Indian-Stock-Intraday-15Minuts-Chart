@@ -58,6 +58,7 @@ VOLUME_MULT = 1.0          # volume >= VOLUME_MULT x SMA20
 USE_EMA_TREND = False      # SHORT only below EMA, LONG only above EMA
 EMA_TREND_LEN = 50
 USE_DISPLACEMENT = True
+USE_NIFTY_FILTER = False   # needs boolean columns nifty_up / nifty_dn on the frame
 ENTRY_START_MIN = 9 * 60 + 30
 LONG_END_MIN = 12 * 60          # LONG entry candle must start before 12:00
 SHORT_END_MIN = 14 * 60         # SHORT entry candle start <= 14:00
@@ -122,6 +123,8 @@ def find_signals(d):
     ATR, VSMA, VWAP, RSI, EMA = (d[c].to_numpy(float) for c in ("atr", "volume_sma", "vwap", "rsi", "ema_trend"))
     PH, PL = d["pivot_high"].to_numpy(), d["pivot_low"].to_numpy()
     MIN, DATE = d["minute"].to_numpy(), d["date"].to_numpy()
+    if USE_NIFTY_FILTER:
+        NUP, NDN = d["nifty_up"].to_numpy(bool), d["nifty_dn"].to_numpy(bool)
 
     out = []
     state = direction = 0
@@ -213,7 +216,8 @@ def find_signals(d):
         zone_pass = not (direction == 1 and zone_type == "BULL FVG")
         ema_pass = (not USE_EMA_TREND) or (direction == 1 and C[i] > EMA[i]) or (direction == -1 and C[i] < EMA[i])
 
-        if state == 6 and time_pass and zone_pass and vol_pass and rsi_pass and vwap_pass and ema_pass:
+        nifty_pass = (not USE_NIFTY_FILTER) or (direction == 1 and NUP[i]) or (direction == -1 and NDN[i])
+        if state == 6 and time_pass and zone_pass and vol_pass and rsi_pass and vwap_pass and ema_pass and nifty_pass:
             out.append({"i": i, "direction": direction, "zone_type": zone_type,
                         "disp_atr": stage.get("disp_atr", float("nan")), "rsi": rsi})
             state = 7
