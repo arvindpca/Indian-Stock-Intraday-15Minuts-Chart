@@ -1,0 +1,37 @@
+name: Publish backtest report
+
+on:
+  push:
+    branches: [backtest-report]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas numpy
+      - name: Reuse candles from the 180-day run
+        uses: actions/download-artifact@v4
+        with:
+          name: v1-smc-5m-backtest-180d
+          path: data/
+          run-id: 40114904404
+          github-token: ${{ github.token }}
+      - name: Run backtest
+        run: python backtest_v1_smc_5m.py
+      - name: Push report to backtest-results branch
+        run: |
+          mkdir -p /tmp/out && cp data/backtest/* /tmp/out/
+          cp data/angel_5m_download_summary.json data/angel_5m_download_report.csv /tmp/out/ 2>/dev/null || true
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git checkout --orphan backtest-results && git rm -rqf . && rm -rf data
+          cp /tmp/out/* . && git add -A && git commit -qm "180-day backtest report"
+          git push -f origin backtest-results
