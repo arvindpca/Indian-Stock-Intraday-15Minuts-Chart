@@ -1,0 +1,64 @@
+name: Backtest V1 SMC 5m (180 days, Angel One)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Backtest window (days)"
+        required: true
+        default: "180"
+        type: choice
+        options: ["90", "120", "150", "180"]
+      max_symbols:
+        description: "Limit symbols for a quick test (0 = all)"
+        required: true
+        default: "0"
+        type: string
+      cost_pct:
+        description: "Round-trip cost % deducted per trade"
+        required: true
+        default: "0.10"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      BACKTEST_DAYS: ${{ inputs.days }}
+      MAX_SYMBOLS: ${{ inputs.max_symbols }}
+      ROUND_TRIP_COST_PCT: ${{ inputs.cost_pct }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Download 5-minute candles (Angel One)
+        run: python download_angel_5m_6m.py
+      - name: Run backtest
+        if: always()
+        run: python backtest_v1_smc_5m.py
+      - name: Write job summary
+        if: always()
+        run: |
+          if [ -f data/backtest/summary.json ]; then
+            { echo '## V1 SMC 5m backtest'; echo '```json'; cat data/backtest/summary.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload candles and backtest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-smc-5m-backtest-${{ inputs.days }}d
+          path: data/
+          if-no-files-found: warn
+          retention-days: 14
