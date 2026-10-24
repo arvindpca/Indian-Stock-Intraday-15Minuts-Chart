@@ -1,0 +1,83 @@
+name: Final Intraday Strategy Backtest (180d, Angel One, Nifty 500)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Kitne din ka data (default 180)"
+        default: "180"
+      max_symbols:
+        description: "Test ke liye symbols limit (0 = poora Nifty 500)"
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: final-strategy-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      BACKTEST_DAYS: ${{ inputs.days }}
+      MAX_SYMBOLS: ${{ inputs.max_symbols }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt yfinance
+
+      - name: Restore today's data cache
+        uses: actions/cache@v4
+        with:
+          path: data/nifty500_5m
+          key: nifty500-5m-${{ inputs.days }}d-${{ github.run_id }}
+          restore-keys: |
+            nifty500-5m-${{ inputs.days }}d-
+
+      - name: Clear stale cache (sirf aaj ka data rakho)
+        run: |
+          if [ -f data/nifty500_5m/.stamp ] && [ "$(cat data/nifty500_5m/.stamp)" != "$(TZ=Asia/Kolkata date +%F)" ]; then
+            rm -f data/nifty500_5m/*.csv
+          fi
+          mkdir -p data/nifty500_5m && TZ=Asia/Kolkata date +%F > data/nifty500_5m/.stamp
+
+      - name: Download 5-min data (Angel One)
+        run: python final_strategy/download_nifty500_5m.py
+
+      - name: Run final backtest
+        run: |
+          export OUT_DIR="final_strategy/results/$(TZ=Asia/Kolkata date +%Y-%m-%d_%H%M)"
+          echo "OUT_DIR=$OUT_DIR" >> "$GITHUB_ENV"
+          python final_strategy/final_backtest.py
+
+      - name: Save results to repo
+        run: |
+          cp "$OUT_DIR/REPORT.txt" final_strategy/results/LATEST_REPORT.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add final_strategy/results
+          git commit -m "Final strategy 180d backtest results"
+          git pull --rebase origin main
+          git push
+
+      - name: Show summary
+        if: always()
+        run: |
+          if [ -f final_strategy/results/LATEST_REPORT.txt ]; then
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat final_strategy/results/LATEST_REPORT.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
