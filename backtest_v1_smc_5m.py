@@ -51,6 +51,13 @@ RSI_LENGTH = 14
 RSI_LONG_MIN = 50.0
 RSI_SHORT_MAX = 50.0
 SETUP_EXPIRY_BARS = 12
+# extra switches for condition testing (defaults = live behaviour)
+USE_RETEST = True
+USE_CONFIRMATION = True
+VOLUME_MULT = 1.0          # volume >= VOLUME_MULT x SMA20
+USE_EMA_TREND = False      # SHORT only below EMA, LONG only above EMA
+EMA_TREND_LEN = 50
+USE_DISPLACEMENT = True
 ENTRY_START_MIN = 9 * 60 + 30
 LONG_END_MIN = 12 * 60          # LONG entry candle must start before 12:00
 SHORT_END_MIN = 14 * 60         # SHORT entry candle start <= 14:00
@@ -85,6 +92,7 @@ def add_indicators(d):
     tr = pd.concat([d["high"] - d["low"], (d["high"] - pc).abs(), (d["low"] - pc).abs()], axis=1).max(axis=1)
     d["atr"] = tr.ewm(alpha=1.0 / ATR_LENGTH, adjust=False, min_periods=ATR_LENGTH).mean()
     d["volume_sma"] = d["volume"].rolling(VOLUME_LENGTH).mean()
+    d["ema_trend"] = d["close"].ewm(span=EMA_TREND_LEN, adjust=False).mean()
     day = d["time"].dt.date
     tp = (d["high"] + d["low"] + d["close"]) / 3.0
     den = d["volume"].groupby(day).cumsum()
@@ -111,7 +119,7 @@ def add_indicators(d):
 def find_signals(d):
     """Bar-by-bar copy of scan_stock(); returns every entry, not just the last bar."""
     O, H, L, C, V = (d[c].to_numpy(float) for c in ("open", "high", "low", "close", "volume"))
-    ATR, VSMA, VWAP, RSI = (d[c].to_numpy(float) for c in ("atr", "volume_sma", "vwap", "rsi"))
+    ATR, VSMA, VWAP, RSI, EMA = (d[c].to_numpy(float) for c in ("atr", "volume_sma", "vwap", "rsi", "ema_trend"))
     PH, PL = d["pivot_high"].to_numpy(), d["pivot_low"].to_numpy()
     MIN, DATE = d["minute"].to_numpy(), d["date"].to_numpy()
 
@@ -143,7 +151,7 @@ def find_signals(d):
         body = abs(C[i] - O[i])
         bull_disp = C[i] > O[i] and body >= atr * MINIMUM_DISPLACEMENT_ATR
         bear_disp = C[i] < O[i] and body >= atr * MINIMUM_DISPLACEMENT_ATR
-        vol_pass = (not USE_VOLUME_FILTER) or (not math.isnan(VSMA[i]) and V[i] >= VSMA[i])
+        vol_pass = (not USE_VOLUME_FILTER) or (not math.isnan(VSMA[i]) and V[i] >= VSMA[i] * VOLUME_MULT)
         bull_sweep = psl is not None and L[i] < psl and C[i] > psl
         bear_sweep = psh is not None and H[i] > psh and C[i] < psh
 
@@ -160,7 +168,7 @@ def find_signals(d):
         if 0 < state < 7 and start is not None and i - start > SETUP_EXPIRY_BARS:
             reset()
 
-        if state == 1 and ((direction == 1 and bull_disp) or (direction == -1 and bear_disp)):
+        if state == 1 and (not USE_DISPLACEMENT or (direction == 1 and bull_disp) or (direction == -1 and bear_disp)):
             state = 2
             stage["disp"] = i
             stage["disp_atr"] = body / atr
@@ -189,11 +197,11 @@ def find_signals(d):
                     break
 
         touched = zone_high is not None and zone_low is not None and H[i] >= zone_low and L[i] <= zone_high
-        if state == 4 and start is not None and i > start and touched:
+        if state == 4 and start is not None and i > start and (touched or not USE_RETEST):
             state = 5
 
         if state == 5 and i >= 1:
-            if (direction == 1 and C[i] > O[i] and C[i] > H[i - 1]) or \
+            if (not USE_CONFIRMATION) or (direction == 1 and C[i] > O[i] and C[i] > H[i - 1]) or \
                (direction == -1 and C[i] < O[i] and C[i] < L[i - 1]):
                 state = 6
 
@@ -203,8 +211,9 @@ def find_signals(d):
         m = MIN[i]
         time_pass = m >= ENTRY_START_MIN and ((direction == 1 and m < LONG_END_MIN) or (direction == -1 and m <= SHORT_END_MIN))
         zone_pass = not (direction == 1 and zone_type == "BULL FVG")
+        ema_pass = (not USE_EMA_TREND) or (direction == 1 and C[i] > EMA[i]) or (direction == -1 and C[i] < EMA[i])
 
-        if state == 6 and time_pass and zone_pass and vol_pass and rsi_pass and vwap_pass:
+        if state == 6 and time_pass and zone_pass and vol_pass and rsi_pass and vwap_pass and ema_pass:
             out.append({"i": i, "direction": direction, "zone_type": zone_type,
                         "disp_atr": stage.get("disp_atr", float("nan")), "rsi": rsi})
             state = 7
