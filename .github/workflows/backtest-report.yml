@@ -31,6 +31,8 @@ jobs:
         run: python backtest_variants.py
       - name: Condition on/off tests
         run: python backtest_conditions.py
+      - name: Best setup month-wise
+        run: python backtest_best.py
       - name: Push report to backtest-results branch
         run: |
           mkdir -p /tmp/out && cp data/backtest/* /tmp/out/
