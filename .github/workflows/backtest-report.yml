@@ -33,6 +33,8 @@ jobs:
         run: python backtest_conditions.py
       - name: Best setup month-wise
         run: python backtest_best.py
+      - name: SL / TP / trailing grid
+        run: python backtest_sl_tp.py
       - name: Push report to backtest-results branch
         run: |
           mkdir -p /tmp/out && cp data/backtest/* /tmp/out/
