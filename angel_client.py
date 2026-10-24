@@ -13,6 +13,7 @@ The module:
 
 import os
 import time
+import unicodedata
 
 import pyotp
 from SmartApi import SmartConnect
@@ -25,10 +26,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEY = os.getenv("ANGEL_API_KEY")
-CLIENT_ID = os.getenv("ANGEL_CLIENT_ID")
-PASSWORD = os.getenv("ANGEL_PASSWORD")
-TOTP_SECRET = os.getenv("ANGEL_TOTP_SECRET")
+
+def _clean_credential(value):
+    """Remove invisible Unicode format marks accidentally copied into secrets.
+
+    SmartAPI sends API key/client ID in HTTP headers; characters such as U+200E
+    (LEFT-TO-RIGHT MARK) cannot be encoded in Latin-1 HTTP headers and crash
+    the request before it reaches Angel One. Do not log the credential values.
+    """
+    if value is None:
+        return None
+    return "".join(ch for ch in value.strip() if unicodedata.category(ch) != "Cf")
+
+
+API_KEY = _clean_credential(os.getenv("ANGEL_API_KEY"))
+CLIENT_ID = _clean_credential(os.getenv("ANGEL_CLIENT_ID"))
+PASSWORD = _clean_credential(os.getenv("ANGEL_PASSWORD"))
+TOTP_SECRET = _clean_credential(os.getenv("ANGEL_TOTP_SECRET"))
 
 
 # ---------------------------------------------------------
