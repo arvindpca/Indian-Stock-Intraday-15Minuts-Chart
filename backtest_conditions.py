@@ -15,7 +15,7 @@ DEFAULTS = {k: getattr(bt, k) for k in (
     "USE_VWAP_FILTER", "USE_FVG", "USE_OB", "USE_DISPLACEMENT", "MINIMUM_DISPLACEMENT_ATR",
     "USE_RETEST", "USE_CONFIRMATION", "USE_EMA_TREND", "SETUP_EXPIRY_BARS")}
 
-TESTS = [
+TESTS_SINGLE = [
     ("00 BASE (sab conditions ON)", {}),
     ("01 Volume filter OFF", {"USE_VOLUME_FILTER": False}),
     ("02 Volume >= 1.5x avg", {"VOLUME_MULT": 1.5}),
@@ -32,6 +32,13 @@ TESTS = [
     ("13 EMA50 trend filter ON", {"USE_EMA_TREND": True}),
     ("14 Setup expiry 6 bars", {"SETUP_EXPIRY_BARS": 6}),
     ("15 Setup expiry 24 bars", {"SETUP_EXPIRY_BARS": 24}),
+]
+
+TESTS = TESTS_SINGLE + [
+    ("C1 FVG OFF + RSI OFF", {"USE_FVG": False, "USE_RSI_FILTER": False}),
+    ("C2 FVG OFF + expiry 24", {"USE_FVG": False, "SETUP_EXPIRY_BARS": 24}),
+    ("C3 FVG OFF + RSI OFF + expiry 24", {"USE_FVG": False, "USE_RSI_FILTER": False, "SETUP_EXPIRY_BARS": 24}),
+    ("C4 RSI OFF + expiry 24", {"USE_RSI_FILTER": False, "SETUP_EXPIRY_BARS": 24}),
 ]
 
 files = sorted(glob.glob(str(ROOT / "data" / "angel_5m" / "*_5m.csv")))
