@@ -1,0 +1,55 @@
+name: Download 6 Months NSE 5m Data (Angel One)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Historical window"
+        required: true
+        default: "180"
+        type: choice
+        options:
+          - "90"
+          - "120"
+          - "150"
+          - "180"
+      max_symbols:
+        description: "Limit symbols for a test (0 = all)"
+        required: true
+        default: "0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      BACKTEST_DAYS: ${{ inputs.days }}
+      MAX_SYMBOLS: ${{ inputs.max_symbols }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Download six-month 5-minute candles
+        run: python download_angel_5m_6m.py
+      - name: Upload historical candles and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: angel-nse-5m-6-month-data
+          path: data/
+          if-no-files-found: warn
+          retention-days: 14
