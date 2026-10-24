@@ -1,0 +1,229 @@
+Stocks: 3 | Data: 2026-04-28 se 2026-10-23 | Test: 2026-05-13 se (113 trading din)
+Rs 50,000/trade | max 5 khule | capital Rs 250,000 | cost 0.1%
+
+========================= PART 1: FINAL STRATEGIES (pehle se tay rules) =========================
+
+---------------- ORB Short (subah)  (akeli, Rs 2.5 lakh capital) ----------------
+Trades 33 | Win 39.4% | Kul profit Rs -2,541 (-1.0% on Rs 250,000) | Avg/trade Rs -77 | PF 0.61 | Max drawdown Rs -4,248
+>> NAYA DATA (12 Aug se pehle, rules banane me nahi dekha): Rs -2,409
+>> Design period (12 Aug ke baad):                          Rs -132
+
+Mahine ke hisaab se:
+         trades     pnl    avg  win_pct
+month                                  
+2026-05       3 -1287.0 -429.0      0.0
+2026-06       4   -84.0  -21.0     50.0
+2026-07       4 -1184.0 -296.0      0.0
+2026-08       8   -72.0   -9.0     62.0
+2026-09       9 -1924.0 -214.0     22.0
+2026-10       5  2010.0  402.0     80.0
+
+Entry time ke hisaab se:
+       trades     pnl    avg  win_pct
+hour                                 
+09:00      16 -3183.0 -199.0     25.0
+10:00      12   -44.0   -4.0     50.0
+11:00       5   685.0  137.0     60.0
+
+Din ke hisaab se:
+      trades     pnl    avg  win_pct
+wday                                
+Fri        6  -475.0  -79.0     50.0
+Mon        6   181.0   30.0     50.0
+Thu        4  -443.0 -111.0     25.0
+Tue       11 -2530.0 -230.0     27.0
+Wed        6   725.0  121.0     50.0
+
+Exit reason:
+            trades     pnl    avg  win_pct
+reason                                    
+Day end          1  -519.0 -519.0      0.0
+SL              14 -5435.0 -388.0      0.0
+Square-off       9   -18.0   -2.0     44.0
+TP               9  3430.0  381.0    100.0
+
+Din-wise: 30 trading din | profit wale din 12 | loss wale 18 | best din Rs 1,001 | worst din Rs -1,001
+
+---------------- Strong Market Buy  (akeli, Rs 2.5 lakh capital) ----------------
+Trades 19 | Win 42.1% | Kul profit Rs -943 (-0.4% on Rs 250,000) | Avg/trade Rs -50 | PF 0.75 | Max drawdown Rs -1,964
+>> NAYA DATA (12 Aug se pehle, rules banane me nahi dekha): Rs -986
+>> Design period (12 Aug ke baad):                          Rs 43
+
+Mahine ke hisaab se:
+         trades     pnl    avg  win_pct
+month                                  
+2026-05       5    27.0    5.0     40.0
+2026-06       3 -1037.0 -346.0      0.0
+2026-07       5   -24.0   -5.0     60.0
+2026-08       5    48.0   10.0     40.0
+2026-10       1    43.0   43.0    100.0
+
+Entry time ke hisaab se:
+       trades    pnl    avg  win_pct
+hour                                
+09:00       7 -378.0  -54.0     43.0
+10:00       5  196.0   39.0     60.0
+11:00       5 -802.0 -160.0     20.0
+12:00       1 -226.0 -226.0      0.0
+14:00       1  268.0  268.0    100.0
+
+Din ke hisaab se:
+      trades    pnl    avg  win_pct
+wday                               
+Fri        2 -115.0  -58.0     50.0
+Mon        6  961.0  160.0     67.0
+Thu        2 -631.0 -315.0     50.0
+Tue        4 -610.0 -152.0     25.0
+Wed        5 -548.0 -110.0     20.0
+
+Exit reason:
+            trades     pnl    avg  win_pct
+reason                                    
+SL              10 -3152.0 -315.0      0.0
+Square-off       9  2209.0  245.0     89.0
+
+Din-wise: 14 trading din | profit wale din 7 | loss wale 7 | best din Rs 488 | worst din Rs -673
+
+---------------- DONO SAATH (ek hi Rs 2.5 lakh, max 5 khule) ----------------
+Trades 52 | Win 40.4% | Kul profit Rs -3,484 (-1.4% on Rs 250,000) | Avg/trade Rs -67 | PF 0.66 | Max drawdown Rs -5,234
+>> NAYA DATA (12 Aug se pehle, rules banane me nahi dekha): Rs -3,395
+>> Design period (12 Aug ke baad):                          Rs -90
+
+Mahine ke hisaab se:
+         trades     pnl    avg  win_pct
+month                                  
+2026-05       8 -1260.0 -158.0     25.0
+2026-06       7 -1121.0 -160.0     29.0
+2026-07       9 -1208.0 -134.0     33.0
+2026-08      13   -24.0   -2.0     54.0
+2026-09       9 -1924.0 -214.0     22.0
+2026-10       6  2053.0  342.0     83.0
+
+Entry time ke hisaab se:
+       trades     pnl    avg  win_pct
+hour                                 
+09:00      23 -3561.0 -155.0     30.0
+10:00      17   152.0    9.0     53.0
+11:00      10  -117.0  -12.0     40.0
+12:00       1  -226.0 -226.0      0.0
+14:00       1   268.0  268.0    100.0
+
+Din ke hisaab se:
+      trades     pnl    avg  win_pct
+wday                                
+Fri        8  -590.0  -74.0     50.0
+Mon       12  1142.0   95.0     58.0
+Thu        6 -1073.0 -179.0     33.0
+Tue       15 -3140.0 -209.0     27.0
+Wed       11   177.0   16.0     36.0
+
+Exit reason:
+            trades     pnl    avg  win_pct
+reason                                    
+Day end          1  -519.0 -519.0      0.0
+SL              24 -8587.0 -358.0      0.0
+Square-off      18  2191.0  122.0     67.0
+TP               9  3430.0  381.0    100.0
+
+Strategy ke hisaab se:
+                   trades     pnl
+strategy                         
+ORB Short (subah)      33 -2541.0
+Strong Market Buy      19  -943.0
+
+Din-wise: 41 trading din | profit wale din 17 | loss wale 24 | best din Rs 1,001 | worst din Rs -1,001
+
+========================= PART 2: POORA GRID (short/buy/time ka analysis) =========================
+  grid 20/192
+  grid 40/192
+  grid 60/192
+  grid 80/192
+  grid 100/192
+  grid 120/192
+  grid 140/192
+  grid 160/192
+  grid 180/192
+
+Short vs Buy:
+       combos  profit_combos  naya_data_profit  median_pnl  best_pnl
+side                                                                
+Buy       151              4                20     -2968.0       687
+Short     184             12                17     -3619.0      1111
+
+Setup x Side:
+                     combos  profit_combos  naya_data_profit  median_pnl  best_pnl
+strategy      side                                                                
+ORB           Buy        40              0                 7     -2726.0      -113
+              Short      24              1                 3     -2868.0       782
+SMC_FVG       Buy        16              4                 9      -225.0       687
+              Short      16              8                12      -114.0      1111
+SMC_SWEEP     Buy        12              0                 1     -4216.0     -1835
+              Short      12              1                 2     -2914.0       290
+VWAP_PULLBACK Buy        83              0                 3     -4495.0      -602
+              Short     132              2                 0     -4050.0       565
+
+Timeframe x Side:
+           combos  profit_combos  naya_data_profit  median_pnl  best_pnl
+tf  side                                                                
+15m Buy        57              0                 7     -2864.0      -113
+    Short      73              1                 3     -4231.0       782
+5m  Buy        94              4                13     -2986.0       687
+    Short     111             11                14     -3057.0      1111
+
+Nifty filter x Side:
+              combos  profit_combos  naya_data_profit  median_pnl  best_pnl
+filter side                                                                
+OFF    Buy       116              4                17     -3968.0       687
+       Short     100             10                17     -3548.0      1111
+ON     Buy        35              0                 3     -1895.0      -602
+       Short      48              0                 0     -3900.0      -663
+STRICT Short      36              2                 0     -3006.0       565
+
+Last entry time x Side (time base):
+                  combos  profit_combos  naya_data_profit  median_pnl  best_pnl
+last_entry side                                                                
+11:00      Buy        29              0                 1     -4259.0      -602
+           Short      42              2                 0     -3818.0       565
+12:00      Buy        58              2                 8     -2536.0       687
+           Short      62              2                 8     -3118.0       290
+14:30      Buy        64              2                11     -2984.0       440
+           Short      80              8                 9     -3548.0      1111
+
+TP x Side:
+                 combos  profit_combos  naya_data_profit  median_pnl  best_pnl
+TP        side                                                                
+1.5R      Buy        39              3                 4     -2714.0       687
+          Short      48              2                 3     -4212.0       782
+2R        Buy        38              1                 3     -3026.0       111
+          Short      46              3                 4     -3090.0       993
+3:15 exit Buy        37              0                 9     -2952.0      -191
+          Short      45              5                 7     -3362.0      1111
+3R        Buy        37              0                 4     -3359.0      -113
+          Short      45              2                 3     -3173.0       705
+
+Dono hisson (naya data + design period) me profit wale combos: 6 / 335
+ strategy  tf filter  side        SL        TP last_entry  trades  win_rate  total_pnl  return_pct  avg_pnl  profit_factor  max_dd  naya_data_pnl  design_period_pnl  trade_days
+  SMC_FVG  5m    OFF Short Structure 3:15 exit      14:30      68      44.1       1111         0.4     16.0           1.12 -2057.0           85.0             1026.0        58.0
+      ORB 15m    OFF Short    1x ATR      1.5R      14:30      34      50.0        782         0.3     23.0           1.18 -1143.0          333.0              449.0        31.0
+  SMC_FVG  5m    OFF Short    1x ATR        3R      14:30      61      37.7        702         0.3     12.0           1.10 -1200.0          290.0              412.0        51.0
+  SMC_FVG  5m    OFF   Buy Structure      1.5R      12:00      32      46.9        687         0.3     21.0           1.16 -1930.0          420.0              266.0        29.0
+  SMC_FVG  5m    OFF   Buy Structure      1.5R      14:30      69      44.9        440         0.2      6.0           1.05 -2394.0          123.0              317.0        55.0
+SMC_SWEEP  5m    OFF Short    1x ATR 3:15 exit      12:00      34      26.5        290         0.1      9.0           1.06 -1297.0          189.0              101.0        29.0
+
+Top 15 (sirf total profit se - inpe akele bharosa mat karo):
+     strategy  tf filter  side        SL        TP last_entry  trades  win_rate  total_pnl  return_pct  avg_pnl  profit_factor  max_dd  naya_data_pnl  design_period_pnl  trade_days
+      SMC_FVG  5m    OFF Short Structure 3:15 exit      14:30      68      44.1       1111         0.4     16.0           1.12 -2057.0           85.0             1026.0        58.0
+      SMC_FVG  5m    OFF Short Structure        2R      14:30      69      49.3        993         0.4     14.0           1.11 -1427.0         -101.0             1094.0        58.0
+          ORB 15m    OFF Short    1x ATR      1.5R      14:30      34      50.0        782         0.3     23.0           1.18 -1143.0          333.0              449.0        31.0
+      SMC_FVG  5m    OFF Short Structure        3R      14:30      69      44.9        705         0.3     10.0           1.07 -1652.0         -178.0              883.0        58.0
+      SMC_FVG  5m    OFF Short    1x ATR        3R      14:30      61      37.7        702         0.3     12.0           1.10 -1200.0          290.0              412.0        51.0
+      SMC_FVG  5m    OFF   Buy Structure      1.5R      12:00      32      46.9        687         0.3     21.0           1.16 -1930.0          420.0              266.0        29.0
+VWAP_PULLBACK  5m STRICT Short    1x ATR 3:15 exit      11:00      33      24.2        565         0.2     17.0           1.11 -1967.0         -605.0             1170.0        25.0
+      SMC_FVG  5m    OFF   Buy Structure      1.5R      14:30      69      44.9        440         0.2      6.0           1.05 -2394.0          123.0              317.0        55.0
+      SMC_FVG  5m    OFF Short    1x ATR      1.5R      14:30      67      56.7        336         0.1      5.0           1.06 -1155.0          780.0             -444.0        52.0
+      SMC_FVG  5m    OFF Short    1x ATR        2R      14:30      65      47.7        324         0.1      5.0           1.05 -1275.0          957.0             -633.0        51.0
+    SMC_SWEEP  5m    OFF Short    1x ATR 3:15 exit      12:00      34      26.5        290         0.1      9.0           1.06 -1297.0          189.0              101.0        29.0
+      SMC_FVG  5m    OFF   Buy    1x ATR      1.5R      12:00      34      52.9        255         0.1      7.0           1.09 -1049.0         -362.0              617.0        31.0
+      SMC_FVG  5m    OFF Short    1x ATR 3:15 exit      14:30      59      32.2        198         0.1      3.0           1.03 -1916.0          506.0             -308.0        49.0
+      SMC_FVG  5m    OFF Short Structure 3:15 exit      12:00      44      38.6        189         0.1      4.0           1.03 -2179.0          398.0             -209.0        41.0
+      SMC_FVG  5m    OFF   Buy Structure        2R      14:30      67      41.8        111         0.0      2.0           1.01 -3117.0         1111.0            -1000.0        55.0
