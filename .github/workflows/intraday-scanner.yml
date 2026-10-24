@@ -1,0 +1,54 @@
+name: Indian Intraday Scanner
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs every 15 minutes during the Indian market session (UTC schedule).
+    # GitHub Actions scheduled runs are best-effort and may be delayed.
+    - cron: "*/15 3-10 * * 1-5"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indian-intraday-scanner
+  cancel-in-progress: true
+
+jobs:
+  scanner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Validate required secrets
+        run: |
+          python - <<'PY'
+          import os, sys
+          names = [
+              "ANGEL_API_KEY", "ANGEL_CLIENT_ID", "ANGEL_PASSWORD",
+              "ANGEL_TOTP_SECRET", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"
+          ]
+          missing = [name for name in names if not os.getenv(name)]
+          if missing:
+              print("Missing GitHub Actions secrets: " + ", ".join(missing))
+              sys.exit(1)
+          print("Required environment variables are configured.")
+          PY
+      - name: Run scanner
+        run: python "python3 Indian_NSE_TradingView_V1_SMC_FINAL_CANDIDATE_5M_LIVE_VWAP_2.py"
