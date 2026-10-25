@@ -1,0 +1,128 @@
+[
+ {
+  "event": "VOL_SPIKE_RED",
+  "side": "short",
+  "rule": "n_ret_15m <= -0.21 AND n_day_ret <= -0.422",
+  "conds": [
+   [
+    "n_ret_15m",
+    "<=",
+    -0.21040362119674683
+   ],
+   [
+    "n_day_ret",
+    "<=",
+    -0.42173323035240173
+   ]
+  ]
+ },
+ {
+  "event": "VOL_SPIKE_GREEN",
+  "side": "long",
+  "rule": "n_ret_15m > 0.343",
+  "conds": [
+   [
+    "n_ret_15m",
+    ">",
+    0.34284035861492157
+   ]
+  ]
+ },
+ {
+  "event": "NEW_LOW_AFTER_11",
+  "side": "short",
+  "rule": "n_day_ret > 0.537 AND rsi > 31.2",
+  "conds": [
+   [
+    "n_day_ret",
+    ">",
+    0.5373613834381104
+   ],
+   [
+    "rsi",
+    ">",
+    31.158069610595703
+   ]
+  ]
+ },
+ {
+  "event": "PULLBACK_DNTREND",
+  "side": "short",
+  "rule": "n_vs_ema20 <= -0.416 AND n_ret_15m > -0.0576",
+  "conds": [
+   [
+    "n_vs_ema20",
+    "<=",
+    -0.416085347533226
+   ],
+   [
+    "n_ret_15m",
+    ">",
+    -0.05758350528776646
+   ]
+  ]
+ },
+ {
+  "event": "PULLBACK_UPTREND",
+  "side": "short",
+  "rule": "n_ret_15m > 0.139 AND rel_strength > 1.2",
+  "conds": [
+   [
+    "n_ret_15m",
+    ">",
+    0.13932599872350693
+   ],
+   [
+    "rel_strength",
+    ">",
+    1.196856439113617
+   ]
+  ]
+ },
+ {
+  "event": "RSI_LOW",
+  "side": "short",
+  "rule": "n_ret_15m <= -0.266 AND atr_pct <= 0.389",
+  "conds": [
+   [
+    "n_ret_15m",
+    "<=",
+    -0.265848770737648
+   ],
+   [
+    "atr_pct",
+    "<=",
+    0.38884349167346954
+   ]
+  ]
+ },
+ {
+  "event": "ORB_DN",
+  "side": "long",
+  "rule": "rsi > 49.9 AND n_ret_15m <= -0.069",
+  "conds": [
+   [
+    "rsi",
+    ">",
+    49.88056755065918
+   ],
+   [
+    "n_ret_15m",
+    "<=",
+    -0.06901950761675835
+   ]
+  ]
+ },
+ {
+  "event": "GAPUP_ORB_FAIL",
+  "side": "long",
+  "rule": "weekday > 3.5",
+  "conds": [
+   [
+    "weekday",
+    ">",
+    3.5
+   ]
+  ]
+ }
+]

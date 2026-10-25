@@ -1,0 +1,49 @@
+event,side,rule,month,trades,rs
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-04,4,-550.0
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-05,25,17723.0
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-06,35,15721.0
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-07,73,74447.0
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-08,13,-2161.0
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-09,36,-1073.0
+VOL_SPIKE_RED,short,n_ret_15m <= -0.21 AND n_day_ret <= -0.422,2026-10,162,-29179.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-04,39,2543.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-05,55,44832.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-06,29,3774.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-07,63,43612.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-08,8,2148.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-09,50,-390.0
+NEW_LOW_AFTER_11,short,gap_pct <= -0.371 AND n_vs_ema20 <= -0.179,2026-10,85,-18378.0
+VOL_SPIKE_GREEN,long,n_ret_15m > 0.343,2026-05,67,20024.0
+VOL_SPIKE_GREEN,long,n_ret_15m > 0.343,2026-06,74,57624.0
+VOL_SPIKE_GREEN,long,n_ret_15m > 0.343,2026-07,16,861.0
+VOL_SPIKE_GREEN,long,n_ret_15m > 0.343,2026-09,33,-2151.0
+VOL_SPIKE_GREEN,long,n_ret_15m > 0.343,2026-10,56,-21977.0
+RSI_LOW,short,n_ret_15m <= -0.266 AND n_day_ret <= -0.515,2026-04,4,-41.0
+RSI_LOW,short,n_ret_15m <= -0.266 AND n_day_ret <= -0.515,2026-05,10,5161.0
+RSI_LOW,short,n_ret_15m <= -0.266 AND n_day_ret <= -0.515,2026-06,9,4746.0
+RSI_LOW,short,n_ret_15m <= -0.266 AND n_day_ret <= -0.515,2026-07,138,68866.0
+RSI_LOW,short,n_ret_15m <= -0.266 AND n_day_ret <= -0.515,2026-09,39,-9673.0
+RSI_LOW,short,n_ret_15m <= -0.266 AND n_day_ret <= -0.515,2026-10,121,-49274.0
+VWAP_X_UP,long,n_ret_15m > 0.344,2026-05,100,41692.0
+VWAP_X_UP,long,n_ret_15m > 0.344,2026-06,52,14345.0
+VWAP_X_UP,long,n_ret_15m > 0.344,2026-09,16,4574.0
+VWAP_X_UP,long,n_ret_15m > 0.344,2026-10,137,-48909.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-04,5,85.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-05,43,13632.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-06,49,25262.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-07,26,8372.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-08,33,6979.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-09,17,1177.0
+ORB_DN,long,rsi > 49.9 AND vs_prev_high <= -0.992,2026-10,22,-13403.0
+NEW_HIGH_AFTER_11,long,n_vs_ema20 > 0.341,2026-04,9,-1432.0
+NEW_HIGH_AFTER_11,long,n_vs_ema20 > 0.341,2026-05,50,13010.0
+NEW_HIGH_AFTER_11,long,n_vs_ema20 > 0.341,2026-06,85,40892.0
+NEW_HIGH_AFTER_11,long,n_vs_ema20 > 0.341,2026-07,16,1091.0
+NEW_HIGH_AFTER_11,long,n_vs_ema20 > 0.341,2026-09,12,-2288.0
+NEW_HIGH_AFTER_11,long,n_vs_ema20 > 0.341,2026-10,14,-7084.0
+VWAP_X_DN,long,n_ret_15m <= -0.0752 AND rsi > 66.1,2026-05,67,20383.0
+VWAP_X_DN,long,n_ret_15m <= -0.0752 AND rsi > 66.1,2026-06,49,28507.0
+VWAP_X_DN,long,n_ret_15m <= -0.0752 AND rsi > 66.1,2026-07,37,4571.0
+VWAP_X_DN,long,n_ret_15m <= -0.0752 AND rsi > 66.1,2026-08,26,4668.0
+VWAP_X_DN,long,n_ret_15m <= -0.0752 AND rsi > 66.1,2026-09,22,-7881.0
+VWAP_X_DN,long,n_ret_15m <= -0.0752 AND rsi > 66.1,2026-10,20,-8655.0

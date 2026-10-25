@@ -1,0 +1,37 @@
+{
+  "one_for_all": {
+    "combo": "GAPUP_ORB_FAIL|long|tr4",
+    "train_trades": 740,
+    "train_avg": -0.004,
+    "test_trades": 177,
+    "test_avg": -0.248,
+    "test_rs": -43822
+  },
+  "per_stock_min5": {
+    "stocks": 171,
+    "train_avg_of_picks": 0.513,
+    "train_rs_of_picks": 1299544,
+    "test_trades": 1159,
+    "test_avg": -0.017,
+    "test_rs": -20265,
+    "test_stocks_profitable": 74
+  },
+  "per_stock_min8": {
+    "stocks": 171,
+    "train_avg_of_picks": 0.449,
+    "train_rs_of_picks": 1425864,
+    "test_trades": 1394,
+    "test_avg": -0.032,
+    "test_rs": -44325,
+    "test_stocks_profitable": 80
+  },
+  "per_stock_min12": {
+    "stocks": 171,
+    "train_avg_of_picks": 0.414,
+    "train_rs_of_picks": 1488011,
+    "test_trades": 1508,
+    "test_avg": -0.047,
+    "test_rs": -71156,
+    "test_stocks_profitable": 76
+  }
+}

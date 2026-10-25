@@ -1,0 +1,6 @@
+side,rule,candle_avg_train,TRAIN_trades,TRAIN_days,TRAIN_avg_0.75,TRAIN_win_0.75,TRAIN_rs_0.75,TRAIN_avg_1.0,TRAIN_win_1.0,TRAIN_rs_1.0,TRAIN_avg_1.5,TRAIN_win_1.5,TRAIN_rs_1.5,robust_train
+long,n_day_ret > -0.0486 AND n_vs_ema20 > 0.322 AND nifty_daily_up <= 0.5,0.123,2488,15,-0.022,52.3,-53534.0,0.029,52.6,71086.0,0.095,52.5,235622.0,False
+long,n_day_ret > -0.0486 AND n_vs_ema20 > 0.322,0.009,4670,28,-0.063,50.0,-294517.0,-0.032,49.9,-149688.0,0.003,48.9,13870.0,False
+long,n_day_ret <= -0.0486 AND n_vs_ema20 > 0.0703 AND time > 11:42,0.069,3554,22,-0.076,45.6,-269329.0,-0.047,45.0,-167734.0,-0.009,44.9,-31266.0,False
+short,n_day_ret > -0.0486 AND n_vs_ema20 <= 0.322 AND prev_day_ret <= -15.2,0.215,171,4,-0.122,48.0,-20813.0,-0.078,50.3,-13332.0,0.023,53.8,3933.0,False
+short,n_day_ret > -0.0486 AND n_vs_ema20 <= 0.322 AND prev_day_ret <= -8.55,0.185,190,20,-0.131,47.4,-24963.0,-0.106,48.9,-20232.0,-0.003,52.6,-510.0,False

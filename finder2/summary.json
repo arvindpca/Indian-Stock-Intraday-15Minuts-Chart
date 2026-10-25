@@ -1,0 +1,12 @@
+{
+  "events_train": 89493,
+  "events_test": 36966,
+  "FIXED": {
+    "candidates_tested": 139,
+    "robust_on_train": 16
+  },
+  "TRAIL": {
+    "candidates_tested": 142,
+    "robust_on_train": 26
+  }
+}

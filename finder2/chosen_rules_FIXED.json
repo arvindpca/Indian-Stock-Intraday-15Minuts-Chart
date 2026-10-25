@@ -1,0 +1,123 @@
+[
+ {
+  "event": "VOL_SPIKE_RED",
+  "side": "short",
+  "rule": "n_ret_15m <= -0.21 AND n_day_ret <= -0.422",
+  "conds": [
+   [
+    "n_ret_15m",
+    "<=",
+    -0.21040362119674683
+   ],
+   [
+    "n_day_ret",
+    "<=",
+    -0.42173323035240173
+   ]
+  ]
+ },
+ {
+  "event": "NEW_LOW_AFTER_11",
+  "side": "short",
+  "rule": "gap_pct <= -0.371 AND n_vs_ema20 <= -0.179",
+  "conds": [
+   [
+    "gap_pct",
+    "<=",
+    -0.37061719596385956
+   ],
+   [
+    "n_vs_ema20",
+    "<=",
+    -0.1787116751074791
+   ]
+  ]
+ },
+ {
+  "event": "VOL_SPIKE_GREEN",
+  "side": "long",
+  "rule": "n_ret_15m > 0.343",
+  "conds": [
+   [
+    "n_ret_15m",
+    ">",
+    0.34284035861492157
+   ]
+  ]
+ },
+ {
+  "event": "RSI_LOW",
+  "side": "short",
+  "rule": "n_ret_15m <= -0.266 AND n_day_ret <= -0.515",
+  "conds": [
+   [
+    "n_ret_15m",
+    "<=",
+    -0.265848770737648
+   ],
+   [
+    "n_day_ret",
+    "<=",
+    -0.515123188495636
+   ]
+  ]
+ },
+ {
+  "event": "VWAP_X_UP",
+  "side": "long",
+  "rule": "n_ret_15m > 0.344",
+  "conds": [
+   [
+    "n_ret_15m",
+    ">",
+    0.34401778876781464
+   ]
+  ]
+ },
+ {
+  "event": "ORB_DN",
+  "side": "long",
+  "rule": "rsi > 49.9 AND vs_prev_high <= -0.992",
+  "conds": [
+   [
+    "rsi",
+    ">",
+    49.85253143310547
+   ],
+   [
+    "vs_prev_high",
+    "<=",
+    -0.9916059672832489
+   ]
+  ]
+ },
+ {
+  "event": "NEW_HIGH_AFTER_11",
+  "side": "long",
+  "rule": "n_vs_ema20 > 0.341",
+  "conds": [
+   [
+    "n_vs_ema20",
+    ">",
+    0.3408789783716202
+   ]
+  ]
+ },
+ {
+  "event": "VWAP_X_DN",
+  "side": "long",
+  "rule": "n_ret_15m <= -0.0752 AND rsi > 66.1",
+  "conds": [
+   [
+    "n_ret_15m",
+    "<=",
+    -0.07523188367486
+   ],
+   [
+    "rsi",
+    ">",
+    66.0776138305664
+   ]
+  ]
+ }
+]

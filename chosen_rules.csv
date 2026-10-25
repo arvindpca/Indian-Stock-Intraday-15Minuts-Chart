@@ -1,0 +1,1 @@
+side,rule,candle_avg_train,TRAIN_trades,TRAIN_days,TRAIN_avg_0.75,TRAIN_win_0.75,TRAIN_rs_0.75,TRAIN_avg_1.0,TRAIN_win_1.0,TRAIN_rs_1.0,TRAIN_avg_1.5,TRAIN_win_1.5,TRAIN_rs_1.5,robust_train
