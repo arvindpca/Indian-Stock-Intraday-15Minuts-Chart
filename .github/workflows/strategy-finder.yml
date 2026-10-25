@@ -1,0 +1,46 @@
+name: Strategy Finder
+
+on:
+  push:
+    branches: [strategy-finder]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt scikit-learn
+      - name: Reuse 180-day candles
+        uses: actions/download-artifact@v4
+        with:
+          name: v1-smc-5m-backtest-180d
+          path: data/
+          run-id: 40114904404
+          github-token: ${{ github.token }}
+      - name: Download NIFTY 50 candles
+        run: python download_nifty.py
+      - name: Run strategy finder
+        run: python strategy_finder/finder.py
+      - name: Push results to finder-results branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out && cp -r data/finder/* /tmp/out/ 2>/dev/null || true
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git checkout --orphan finder-results && git rm -rqf . && rm -rf data strategy_finder
+          cp -r /tmp/out/* . 2>/dev/null || echo "no output" > EMPTY.txt
+          git add -A && git commit -qm "strategy finder results" && git push -f origin finder-results
