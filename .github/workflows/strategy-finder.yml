@@ -36,10 +36,12 @@ jobs:
         run: python download_nifty.py
       - name: Run strategy finder
         run: python strategy_finder/finder.py
+      - name: Run strategy finder round 2 (events)
+        run: python strategy_finder/finder2.py
       - name: Push results to finder-results branch
         if: always()
         run: |
-          mkdir -p /tmp/out && cp -r data/finder/* /tmp/out/ 2>/dev/null || true
+          mkdir -p /tmp/out/finder2 && cp -r data/finder/* /tmp/out/ 2>/dev/null; cp -r data/finder2/* /tmp/out/finder2/ 2>/dev/null || true
           git config user.name "github-actions" && git config user.email "actions@github.com"
           git checkout --orphan finder-results && git rm -rqf . && rm -rf data strategy_finder
           cp -r /tmp/out/* . 2>/dev/null || echo "no output" > EMPTY.txt
