@@ -37,4 +37,4 @@ Badlav karna ho to naya version (v2) banega, aur v1 ka paper result alag rakha j
 ## Files
 - Rules code: `paper_trader.py` + `strategy_core.py` | 3 PM alert: `preclose_alert.py`
 - Live hisaab: `state/STATUS.md`, `state/closed_trades.csv`, `state/daily_log.csv`
-- Git tag: `swing-v1-locked`
+- Locked version: commit `fea80be` (26 Oct 2026). Rules files isi commit jaise rehni chahiye.
