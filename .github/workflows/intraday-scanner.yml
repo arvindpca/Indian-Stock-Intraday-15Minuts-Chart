@@ -27,6 +27,8 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       PYTHONUNBUFFERED: "1"
     steps:
+      - name: Record run start time (duplicate-alert guard)
+        run: echo "SCAN_RUN_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Python

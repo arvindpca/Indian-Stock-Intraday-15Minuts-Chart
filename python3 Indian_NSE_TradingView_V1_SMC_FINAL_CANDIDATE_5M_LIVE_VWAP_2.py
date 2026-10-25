@@ -42,6 +42,22 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 SENT_SIGNALS = set()
 
+# GitHub Actions starts a fresh process every 15 minutes, so SENT_SIGNALS is empty
+# in each new run. A signal candle that closed BEFORE this run started was already
+# handled by the previous run -> skip it here, otherwise the same alert is sent twice.
+try:
+    RUN_START_EPOCH = float(os.getenv("SCAN_RUN_START_EPOCH", "") or time.time())
+except ValueError:
+    RUN_START_EPOCH = time.time()
+
+
+def candle_closed_before_run_start(result):
+    try:
+        start = datetime.strptime(result["candle_time"][:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=IST)
+    except (KeyError, ValueError, TypeError):
+        return False
+    return (start + timedelta(minutes=5)).timestamp() < RUN_START_EPOCH
+
 # Active signal lifecycle:
 # Entry alert -> monitor live price -> TP1 / TP2 / SL alert.
 ACTIVE_TRADES = {}
@@ -1790,14 +1806,17 @@ def main():
                 if result.get("signal") in ("LONG", "SHORT"):
                     signal_count += 1
                     key = signal_key(result)
-                    if key not in SENT_SIGNALS:
+                    if candle_closed_before_run_start(result):
+                        SENT_SIGNALS.add(key)
+                        print("Telegram: SKIPPED - candle closed before this run started (previous run handled it)")
+                    elif key not in SENT_SIGNALS:
                         if send_telegram_message(build_telegram_message(result)):
                             SENT_SIGNALS.add(key)
                             register_active_trade(result)
                             print(
                                 f"TRADE MONITORING STARTED: "
                                 f"{result['symbol']} {result['signal']} "
-                                f"SL=1% TP=2%"
+                                f"SL={STOP_LOSS_PERCENT:g}% TP={TP2_PERCENT:g}%"
                             )
                     else:
                         print("Telegram: DUPLICATE SIGNAL SKIPPED")
