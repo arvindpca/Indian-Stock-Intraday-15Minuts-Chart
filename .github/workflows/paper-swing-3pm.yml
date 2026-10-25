@@ -1,0 +1,50 @@
+name: Paper Swing 3PM Alert (pre-close signals)
+
+on:
+  schedule:
+    # 2:48 PM IST start -> ~3:00 PM tak Telegram. Mon-Fri. (GitHub schedule kabhi 5-15 min late hota hai)
+    - cron: "18 9 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Test message (market band ho tab) - 1 = test"
+        default: "1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-swing
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PRECLOSE_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test || '0' }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -r requirements.txt yfinance
+      - name: Run 3PM alert
+        shell: bash
+        run: python paper_swing/preclose_alert.py 2>&1 | grep -v "^  downloading"
+      - name: Save log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add paper_swing/state
+          if git diff --cached --quiet; then echo "No change"; exit 0; fi
+          git commit -m "3PM alert log $(TZ=Asia/Kolkata date +%F)"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done

@@ -9,7 +9,7 @@ Roz market band hone ke baad (GitHub Actions) chalta hai, bilkul backtest wale r
   Market   : Nifty 50 close > Nifty 50 EMA(50), warna naya trade nahi
   Signal   : MACD aaj upar cross, RSI 50-70, AccDist badha, green candle,
              Volume > 2x SMA20 aur > pichhle 10 din ka max, Close > VWAP, EMA8 > EMA21
-  Entry    : signal wale din ke CLOSE pe (paper), Rs 50,000 / trade, max 5 khule,
+  Entry    : signal wale din ke CLOSE pe (paper), Rs 20,000 / trade, max 5 khule,
              ek stock me ek hi trade, zyada signal -> sabse zyada volume uchhal pehle
   SL       : entry se 5% neeche. Gap down SL ke neeche khule -> open pe exit
   Exit     : koi target nahi; 20 trading din pure -> us din ke close pe
@@ -52,7 +52,7 @@ SYMS_F = STATE / "nifty500_symbols.csv"
 STATUS_F = STATE / "STATUS.md"
 
 IST = ZoneInfo("Asia/Kolkata")
-PER_TRADE = 50_000
+PER_TRADE = 20_000
 MAX_POS = 5
 CAPITAL = PER_TRADE * MAX_POS
 SL_PCT = 0.05
@@ -273,7 +273,7 @@ def main():
             lines.append(f"• {p['symbol']}: {(p['last_close']/p['entry']-1)*100:+.1f}% ({inr(u, True)}) | "
                          f"din {p['bars_held']}/20 | SL {p['sl']:.0f}")
     lines += ["", f"Realized: <b>{inr(realized, True)}</b> ({len(closed)} trades, {wins} profit)",
-              f"Open P&L: {inr(unreal, True)} | Kul: <b>{inr(realized + unreal, True)}</b> on Rs 2.5L",
+              f"Open P&L: {inr(unreal, True)} | Kul: <b>{inr(realized + unreal, True)}</b> on {inr(CAPITAL)}",
               "<i>Paper trade - koi asli order nahi</i>"]
     telegram("\n".join(lines))
     write_status(D, market_ok, nifty, nifty_ema, positions, closed, realized, unreal, meta)
@@ -281,7 +281,7 @@ def main():
 
 def write_status(D, market_ok, nifty, ema, positions, closed, realized, unreal, meta):
     md = [f"# Paper Swing - Live Status\n",
-          f"**Last update:** {D:%d %b %Y} | **Started:** {meta['started']} | Capital Rs 2,50,000 (Rs 50k × 5)\n",
+          f"**Last update:** {D:%d %b %Y} | **Started:** {meta['started']} | Capital {inr(CAPITAL)} ({inr(PER_TRADE)} × {MAX_POS})\n",
           f"**Nifty:** {nifty.iloc[-1]:,.0f} vs 50 EMA {ema.iloc[-1]:,.0f} → "
           f"{'trade allowed' if market_ok else 'naya trade nahi'}\n",
           f"| Realized | Open P&L | Kul | Closed trades | Win |",
