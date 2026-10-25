@@ -30,6 +30,7 @@ jobs:
       - name: Install
         run: pip install yfinance pandas numpy requests
       - name: Run paper trader
+        shell: bash
         run: python paper_swing/paper_trader.py 2>&1 | grep -v "^  downloading"
       - name: Save state
         run: |
