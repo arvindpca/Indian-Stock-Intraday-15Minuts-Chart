@@ -16,6 +16,7 @@ import requests
 from dotenv import load_dotenv
 
 from angel_client import get_client, get_feed_token, get_auth_token
+import paper_trade
 
 # ============================================================
 # INDIAN NSE - TRADINGVIEW V1 SMC MIRROR
@@ -42,12 +43,32 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 SENT_SIGNALS = set()
 
+# GitHub Actions starts a fresh process every 15 minutes, so SENT_SIGNALS is empty
+# in each new run. A signal candle that closed BEFORE this run started was already
+# handled by the previous run -> skip it here, otherwise the same alert is sent twice.
+try:
+    RUN_START_EPOCH = float(os.getenv("SCAN_RUN_START_EPOCH", "") or time.time())
+except ValueError:
+    RUN_START_EPOCH = time.time()
+
+
+def candle_closed_before_run_start(result):
+    try:
+        start = datetime.strptime(result["candle_time"][:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=IST)
+    except (KeyError, ValueError, TypeError):
+        return False
+    return (start + timedelta(minutes=5)).timestamp() < RUN_START_EPOCH
+
 # Active signal lifecycle:
 # Entry alert -> monitor live price -> TP1 / TP2 / SL alert.
 ACTIVE_TRADES = {}
 TRADE_LOCK = threading.Lock()
 
-STOP_LOSS_PERCENT = 1.0
+# Paper trading: every SHORT alert becomes a virtual Rs 1 lakh trade; exits are
+# tracked on closed 5m candles with the backtest rule (see paper_trade.py).
+PAPER_TRADE_SHORT = True
+
+STOP_LOSS_PERCENT = 1.5   # backtest 180d: SL 1.5% beat 1%
 TP1_PERCENT = 2.0
 TP2_PERCENT = 2.0
 
@@ -136,7 +157,8 @@ def build_telegram_message(result):
         f"✅ Retest — PASS\n"
         f"✅ Confirmation — PASS\n"
         f"✅ Volume — {float(result.get('volume', 0)):.0f} > SMA {float(result.get('volume_sma', 0)):.0f}\n"
-        f"✅ RSI(14) — {float(result.get('rsi_5m', 0)):.2f} {result.get('rsi_condition', '')}\n"
+        f"{'✅' if USE_RSI_FILTER else 'ℹ️'} RSI(14) — {float(result.get('rsi_5m', 0)):.2f}{' ' + result.get('rsi_condition', '') if USE_RSI_FILTER else ' (filter OFF)'}\n"
+        f"{'✅ Nifty Daily Trend — UP' if direction == 'LONG' and USE_NIFTY_TREND_LONG else '⏸ Nifty Trend Filter — not used for SHORT' if USE_NIFTY_TREND_LONG else '⏸ Nifty Trend Filter — OFF'}\n"
         f"✅ VWAP — ₹{float(result.get('vwap', 0)):.2f} ({result.get('vwap_condition', '')})\n"
         f"⏸ Daily MACD Filter — OFF\n\n"
 
@@ -146,7 +168,7 @@ def build_telegram_message(result):
         f"🎯 TP: ₹{tp2:.2f} (+{TP2_PERCENT:.2f}%)\n\n"
         f"Risk: ₹{risk:.2f}\n"
         f"Reward TP: ₹{reward2:.2f}\n"
-        f"R:R: 1:2\n"
+        f"R:R: 1:{TP2_PERCENT / STOP_LOSS_PERCENT:.2f}\n"
         f"Current Price: ₹{entry:.2f}\n"
         f"Status: <b>OPEN — Monitoring SL / TP1 / TP2</b>\n\n"
 
@@ -162,6 +184,7 @@ def build_telegram_message(result):
         f"TP2: ⬜\n"
         f"SL: ⬜\n\n"
 
+        f"{'📝 <b>PAPER TRADE: ON</b> — virtual ₹1,00,000, exit alert will follow\n' if PAPER_TRADE_SHORT and direction == 'SHORT' else ''}"
         f"<b>Strategy:</b> TradingView V1 SMC Mirror • 5m\n"
         f"<b>Mode:</b> Signal Only — No Automatic Order\n\n"
         f"{disclaimer}"
@@ -178,19 +201,19 @@ def build_exit_message(trade, event, price):
         emoji = "🎯"
         title = "TP1 HIT"
         level = trade["tp1"]
-        move = "+1.00%" if direction == "LONG" else "+1.00%"
+        move = f"+{TP1_PERCENT:.2f}%"
         status = "TP1 HIT — Monitoring TP2"
     elif event == "TP2":
         emoji = "🚀"
         title = "TP2 HIT"
         level = trade["tp2"]
-        move = "+2.00%"
+        move = f"+{TP2_PERCENT:.2f}%"
         status = "TP2 HIT — Trade Closed"
     else:
         emoji = "🛑"
         title = "SL HIT"
         level = trade["sl"]
-        move = "-1.00%"
+        move = f"-{STOP_LOSS_PERCENT:.2f}%"
         status = "SL HIT — Trade Closed"
 
     return (
@@ -297,8 +320,8 @@ API_DELAY_SECONDS = 0.05
 SCAN_INTERVAL_MINUTES = 5
 QUIET_STOCK_LOGS = True
 PROGRESS_EVERY = 25
-ENTRY_START_HOUR = 9
-ENTRY_START_MINUTE = 30
+ENTRY_START_HOUR = 10    # backtest 180d: 09:30-10:00 entries lost money
+ENTRY_START_MINUTE = 0
 HIST_RATE_COOLDOWN_SECONDS = 90.0  # retained only for legacy helper; scanner does not call Angel historical API
 
 # Universe: ONLY the user-provided stock_names.txt watchlist.
@@ -316,7 +339,7 @@ SWING_RIGHT = 2
 ATR_LENGTH = 14
 MINIMUM_DISPLACEMENT_ATR = 1.0
 
-USE_FVG = True
+USE_FVG = False   # backtest 180d: FVG zone OFF, Order Block only
 USE_OB = True
 OB_LOOKBACK = 5
 
@@ -327,7 +350,7 @@ VOLUME_LENGTH = 20
 USE_VWAP_FILTER = True
 
 # Added from the user's Chartink reference as extra confirmation.
-USE_RSI_FILTER = True
+USE_RSI_FILTER = False   # backtest 180d: RSI filter OFF was better
 RSI_LENGTH = 14
 RSI_LONG_MIN = 50.0
 RSI_SHORT_MAX = 50.0
@@ -344,6 +367,12 @@ HIGHER_TF_EMA_LENGTH = 50
 
 
 SETUP_EXPIRY_BARS = 12
+
+# LONG only when NIFTY 50 daily trend is UP (yesterday's close > daily EMA20).
+# SHORT is not filtered. Backtest 180d: this removed most losing LONGs.
+USE_NIFTY_TREND_LONG = True
+NIFTY_DAILY_EMA = 20
+NIFTY_YAHOO_TICKER = "^NSEI"
 
 NSE_BASE_URL = "https://www.nseindia.com"
 INSTRUMENT_URL = (
@@ -709,6 +738,54 @@ def yahoo_daily_history(symbol):
     now = int(time.time())
     period1 = now - (450 * 24 * 60 * 60)
     return _yahoo_chart(symbol, "1d", period1, now)
+
+
+_NIFTY_TREND_CACHE = {"day": None, "by_date": None}
+
+
+def _nifty_daily_raw():
+    """NIFTY 50 daily candles from Yahoo (^NSEI); _yahoo_chart would append .NS."""
+    now = int(time.time())
+    url = YAHOO_BASE_URL + quote(NIFTY_YAHOO_TICKER, safe="")
+    params = {"interval": "1d", "period1": now - 200 * 86400, "period2": now,
+              "events": "history", "includePrePost": "false"}
+    response = requests.get(url, params=params, headers=YAHOO_HEADERS, timeout=20)
+    response.raise_for_status()
+    r = ((response.json().get("chart") or {}).get("result") or [None])[0]
+    if not r:
+        raise RuntimeError("Yahoo returned no NIFTY daily data")
+    closes = ((r.get("indicators") or {}).get("quote") or [{}])[0].get("close") or []
+    rows = []
+    for ts, c in zip(r.get("timestamp") or [], closes):
+        if c is not None:
+            rows.append((pd.to_datetime(int(ts), unit="s", utc=True).tz_convert(IST).date(), float(c)))
+    return rows
+
+
+def get_nifty_trend_by_date():
+    """{date: True/False} -> NIFTY daily trend UP on that date, using only the
+    PREVIOUS completed day's close vs its EMA20 (no look-ahead). Refreshed once a day.
+    Returns None if the data cannot be loaded."""
+    today = datetime.now(IST).date()
+    if _NIFTY_TREND_CACHE["day"] == today:
+        return _NIFTY_TREND_CACHE["by_date"]
+    by_date = None
+    try:
+        rows = sorted({d: c for d, c in _nifty_daily_raw() if d < today}.items())
+        if len(rows) >= NIFTY_DAILY_EMA:
+            s = pd.Series([c for _, c in rows], index=[d for d, _ in rows])
+            up = (s > s.ewm(span=NIFTY_DAILY_EMA, adjust=False).mean())
+            dates = list(up.index)
+            by_date = {}
+            for k in range(1, len(dates)):
+                by_date[dates[k]] = bool(up.iloc[k - 1])
+            by_date[today] = bool(up.iloc[-1])
+            print(f"NIFTY daily trend today: {'UP - LONG allowed' if by_date[today] else 'NOT UP - LONG blocked'}")
+    except Exception as e:
+        print(f"NIFTY trend ERROR: {e} -> LONG signals blocked until it loads")
+    _NIFTY_TREND_CACHE["day"] = today if by_date is not None else None
+    _NIFTY_TREND_CACHE["by_date"] = by_date
+    return by_date
 
 
 def _current_5m_bucket(ts=None):
@@ -1092,6 +1169,8 @@ def scan_stock(client, stock, daily_cache):
             "reason": "Insufficient closed candles",
         }
 
+    nifty_trend = get_nifty_trend_by_date() if USE_NIFTY_TREND_LONG else None
+
     setup_state = 0
     direction = 0
     setup_start_bar = None
@@ -1462,6 +1541,11 @@ def scan_stock(client, stock, daily_cache):
             )
         )
         zone_pass = not (direction == 1 and zone_type == "BULL FVG")
+        nifty_pass = (
+            not USE_NIFTY_TREND_LONG
+            or direction != 1
+            or (nifty_trend is not None and nifty_trend.get(entry_ist.date(), False))
+        )
 
         entry_allowed = (
             setup_state == 6
@@ -1472,6 +1556,7 @@ def scan_stock(client, stock, daily_cache):
             and vwap_pass
             and macd_pass
             and htf_pass
+            and nifty_pass
         )
 
         if entry_allowed:
@@ -1655,11 +1740,47 @@ def send_morning_welcome(stock_count):
         f"📈 Timeframe: 15 Minutes\n"
         f"🔎 Stocks: {stock_count}\n"
         "⏰ Scan Mode: ALL TIME / 24x7\n"
-        "📌 RSI: ON | Daily MACD Filter: OFF\n"
+        "📌 RSI: OFF | FVG: OFF (OB only) | Nifty trend for LONG: ON\n"
+        "📌 Entry 10:00+ | SL 1.5% | TP 2%\n"
         "🚀 Scanner Status: STARTED\n\n"
         "⚠️ Signal Only — No Automatic Orders"
     )
     return send_telegram_message(message)
+
+
+_PAPER_BOOK = None
+
+
+def _paper_book():
+    global _PAPER_BOOK
+    if _PAPER_BOOK is None:
+        _PAPER_BOOK = paper_trade.PaperBook(send=send_telegram_message)
+    return _PAPER_BOOK
+
+
+def paper_open(result, stock):
+    try:
+        _paper_book().open_trade(result, stock)
+    except Exception as e:
+        print(f"PAPER TRADE open ERROR: {e}")
+
+
+def paper_check_exits(stocks):
+    """Close virtual trades whose SL / TP / 15:15 exit happened on a closed 5m candle."""
+    by_symbol = {s["symbol"]: s for s in stocks}
+    now_bucket = pd.Timestamp(_current_5m_bucket()).tz_convert("UTC")
+
+    def candles(trade):
+        stock = by_symbol.get(trade["symbol"])
+        if stock is None:
+            return None
+        df = get_local_5m(stock)
+        return df[df["time"] < now_bucket]          # closed candles only
+
+    try:
+        _paper_book().check_exits(candles)
+    except Exception as e:
+        print(f"PAPER TRADE exit-check ERROR: {e}")
 
 
 def main():
@@ -1670,8 +1791,8 @@ def main():
     print(" Universe: ONLY stock_names.txt | 5M | RSI + VWAP | Daily MACD OFF | Historical API OFF")
     print(" Liquidity -> Sweep -> Displacement -> MSS -> FVG/OB")
     print(" -> Retest -> Confirmation -> Volume -> RSI -> VWAP -> Time/Zone Filter -> ENTRY")
-    print(" FINAL RULES   : ENTRY 09:30+ | ENTRY 09:30+ | LONG <12:00 | BULL FVG LONG OFF | SHORT <=14:00 | VWAP FILTER ON")
-    print(" RISK          : SL 1% | TP 2% | Signal Only")
+    print(" FINAL RULES   : ENTRY 10:00+ | LONG <12:00 + NIFTY DAILY UP | SHORT <=14:00 | OB ONLY (FVG OFF) | RSI OFF | VWAP ON")
+    print(" RISK          : SL 1.5% | TP 2% | Signal Only")
     print("=" * 78)
 
     client = None
@@ -1726,14 +1847,24 @@ def main():
                 if result.get("signal") in ("LONG", "SHORT"):
                     signal_count += 1
                     key = signal_key(result)
-                    if key not in SENT_SIGNALS:
+                    is_paper = PAPER_TRADE_SHORT and result["signal"] == "SHORT"
+                    if candle_closed_before_run_start(result):
+                        SENT_SIGNALS.add(key)
+                        print("Telegram: SKIPPED - candle closed before this run started (previous run handled it)")
+                        if is_paper:
+                            # previous run may have died between alert and ledger write
+                            paper_open(result, stock)
+                    elif key not in SENT_SIGNALS:
                         if send_telegram_message(build_telegram_message(result)):
                             SENT_SIGNALS.add(key)
-                            register_active_trade(result)
+                            if is_paper:
+                                paper_open(result, stock)   # paper book tracks SL/TP/15:15 exit
+                            else:
+                                register_active_trade(result)
                             print(
                                 f"TRADE MONITORING STARTED: "
                                 f"{result['symbol']} {result['signal']} "
-                                f"SL=1% TP=2%"
+                                f"SL={STOP_LOSS_PERCENT:g}% TP={TP2_PERCENT:g}%"
                             )
                     else:
                         print("Telegram: DUPLICATE SIGNAL SKIPPED")
@@ -1753,6 +1884,9 @@ def main():
                 print("-" * 78)
                 print(f"{stock['symbol']} ERROR: {e}")
                 print("-" * 78)
+
+        if PAPER_TRADE_SHORT:
+            paper_check_exits(stocks)
 
         print("\n" + "=" * 78)
         print("NSE WATCHLIST SCAN PASS COMPLETE")

@@ -1,0 +1,38 @@
+name: Paper Trade Daily Settle (SHORT)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 15:40 IST (10:10 UTC), Monday-Friday: close any open virtual trade at the
+    # 15:15 candle and send the daily paper-trading summary to Telegram.
+    - cron: "10 10 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-trade-settle
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Settle open paper trades and send summary
+        run: python paper_settle.py
