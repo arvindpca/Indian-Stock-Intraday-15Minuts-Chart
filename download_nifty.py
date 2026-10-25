@@ -65,8 +65,12 @@ def main():
     print(f"NIFTY token {token}")
     client = get_client()
     now = datetime.now(IST).replace(second=0, microsecond=0)
-    save(OUT / "NIFTY_5m.csv", fetch(client, token, "FIVE_MINUTE", now - timedelta(days=DAYS), now, 25))
-    save(OUT / "NIFTY_1d.csv", fetch(client, token, "ONE_DAY", now - timedelta(days=400), now, 380))
+    start = now - timedelta(days=DAYS)
+    if os.getenv("RANGE_START"):            # fixed historical window
+        start = datetime.strptime(os.environ["RANGE_START"], "%Y-%m-%d").replace(tzinfo=IST) - timedelta(days=5)
+        now = datetime.strptime(os.environ["RANGE_END"], "%Y-%m-%d").replace(hour=15, minute=30, tzinfo=IST)
+    save(OUT / "NIFTY_5m.csv", fetch(client, token, "FIVE_MINUTE", start, now, 25))
+    save(OUT / "NIFTY_1d.csv", fetch(client, token, "ONE_DAY", start - timedelta(days=120), now, 380))
 
 
 if __name__ == "__main__":

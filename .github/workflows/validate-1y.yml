@@ -1,0 +1,50 @@
+name: Validate on unseen 1 year (Apr 2025 - Apr 2026)
+
+on:
+  push:
+    branches: [validate-1y]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      RANGE_START: "2025-04-28"
+      RANGE_END: "2026-04-27"
+      MAX_SYMBOLS: "3"
+      BACKTEST_DAYS: "1000"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt scikit-learn
+      - name: Download 1 year of 5-minute candles (Angel One)
+        run: python download_angel_range.py
+      - name: Download NIFTY for the same window
+        run: python download_nifty.py
+      - name: Run the 3 strategies with the SAME rules (no tuning)
+        run: python strategy_finder/portfolio.py
+      - name: Upload candles (for later tests)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: angel-5m-2025-04-28-to-2026-04-27
+          path: data/
+          retention-days: 30
+      - name: Push results to validate-results branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out && cp -r data/portfolio/* /tmp/out/ 2>/dev/null; cp data/range_download_summary.json /tmp/out/ 2>/dev/null || true
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git checkout --orphan validate-results && git rm -rqf . && rm -rf data strategy_finder
+          cp -r /tmp/out/* . 2>/dev/null || echo "no output" > EMPTY.txt
+          git add -A && git commit -qm "1-year validation results" && git push -f origin validate-results
