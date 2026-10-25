@@ -46,6 +46,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          [ -d reliance_strategy/paper ] || { echo "Nothing to save"; exit 0; }
           git add -f reliance_strategy/paper
           if git diff --cached --quiet; then echo "No change"; exit 0; fi
           git commit -m "Reliance paper update $(TZ=Asia/Kolkata date '+%F %H:%M') [skip ci]"
