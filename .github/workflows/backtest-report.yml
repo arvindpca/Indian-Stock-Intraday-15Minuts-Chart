@@ -44,6 +44,8 @@ jobs:
         run: python download_nifty.py
       - name: Nifty trend / volume / POC filter test
         run: python backtest_nifty.py
+      - name: LONG + SHORT improvements stacked
+        run: python backtest_both_sides.py
       - name: Push report to backtest-results branch
         run: |
           mkdir -p /tmp/out && cp data/backtest/* /tmp/out/
