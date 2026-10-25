@@ -1,0 +1,33 @@
+name: Telegram Test (Paper Swing)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Check secrets exist
+        run: |
+          [ -n "$TELEGRAM_BOT_TOKEN" ] || { echo "TELEGRAM_BOT_TOKEN missing"; exit 1; }
+          [ -n "$TELEGRAM_CHAT_ID" ] || { echo "TELEGRAM_CHAT_ID missing"; exit 1; }
+          echo "Both secrets present"
+      - name: Check bot token valid
+        run: |
+          code=$(curl -s -o /tmp/me.json -w "%{http_code}" "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe")
+          echo "getMe HTTP $code"; python3 -c "import json;d=json.load(open('/tmp/me.json'));print('ok',d.get('ok'),'bot',d.get('result',{}).get('username'))"
+          [ "$code" = "200" ]
+      - name: Send test message
+        run: |
+          TEXT="✅ <b>Paper Swing - Telegram Test</b>%0A%0AYe test message hai. Paper trading bot chalu hai.%0ARoz Mon-Fri shaam 4:37 baje update aayega.%0A%0ANifty abhi 50 EMA ke neeche hai, isliye trade tab tak nahi aayega.%0A<i>$(TZ=Asia/Kolkata date '+%d %b %Y %H:%M') IST</i>"
+          code=$(curl -s -o /tmp/send.json -w "%{http_code}" -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" -d "parse_mode=HTML" -d "text=${TEXT}")
+          echo "sendMessage HTTP $code"; python3 -c "import json;d=json.load(open('/tmp/send.json'));print('ok',d.get('ok'),d.get('description',''))"
+          [ "$code" = "200" ]
