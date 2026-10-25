@@ -48,7 +48,7 @@ jobs:
           tok = clean(os.environ["TELEGRAM_BOT_TOKEN"]); chat = clean(os.environ["TELEGRAM_CHAT_ID"])
           try:
               d = json.load(urllib.request.urlopen(f"https://api.telegram.org/bot{tok}/getMe", timeout=20))
-              print("getMe ok", d.get("ok"), "bot:", d["result"].get("username"))
+              print("::notice title=Bot OK::bot username @" + str(d["result"].get("username")))
           except Exception as e:
               print("getMe FAILED after cleaning:", e); raise SystemExit(2)
           msg = ("✅ <b>Paper Swing - Telegram Test</b>\n\nYe test message hai. Paper trading bot chalu hai.\n"
@@ -56,7 +56,10 @@ jobs:
           data = urllib.parse.urlencode({"chat_id": chat, "text": msg, "parse_mode": "HTML"}).encode()
           try:
               d = json.load(urllib.request.urlopen(f"https://api.telegram.org/bot{tok}/sendMessage", data=data, timeout=20))
-              print("sendMessage ok", d.get("ok"))
+              print("::notice title=Telegram SENT::message delivered ok=" + str(d.get("ok")))
           except urllib.error.HTTPError as e:
-              print("sendMessage FAILED:", e.code, e.read().decode()[:200]); raise SystemExit(3)
+              body = e.read().decode()[:200]
+              cid = chat
+              print(f"::error title=Telegram sendMessage {e.code}::{body} | chat_id length={len(cid)} starts_minus={cid.startswith('-')} digits_only={cid.lstrip('-').isdigit()}")
+              raise SystemExit(3)
           PY
