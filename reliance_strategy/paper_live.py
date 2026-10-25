@@ -238,8 +238,17 @@ def run(raw, now, dry=False):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--hello", action="store_true", help="Telegram pe 'paper trade active' test message")
     ap.add_argument("--replay", help="YYYY-MM-DD: data/RELIANCE_5m.csv pe ek din har 5 min step karke test")
     args = ap.parse_args()
+    if args.hello:
+        tg("<b>✅ RELIANCE PAPER TRADE ACTIVE</b>\n"
+           "Strategy: 20-min momentum + 2×ATR trailing SL (5-min chart)\n"
+           "BUY: 20 min me move > +1.5×ATR | SELL: < −1.5×ATR\n"
+           "Entry 9:30–14:30, din me 1 trade, koi target nahi, 15:15 pe exit\n"
+           f"Paper qty: {QTY} shares | Har 5 min check (Mon–Fri)\n"
+           "Alerts: Entry, SL update, Exit, aur 'no signal' din")
+        return
     if args.replay:
         global PAPER, STATE, TRADES
         PAPER = os.path.join("/tmp", "reliance_paper_replay")
