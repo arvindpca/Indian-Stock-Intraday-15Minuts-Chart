@@ -30,10 +30,12 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
       - name: Download Reliance + Nifty 5m/15m
         run: python reliance_strategy/download_data.py
+      - name: Run final strategy backtest on fresh data
+        run: pip install tabulate && python reliance_strategy/final_strategy.py && python reliance_strategy/final_strategy.py --signal-today
       - name: Save data to repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add -f reliance_strategy/data
+          git add -f reliance_strategy/data reliance_strategy/results
           git commit -m "Reliance + Nifty candle data [skip ci]" || exit 0
           git pull --rebase origin main && git push
