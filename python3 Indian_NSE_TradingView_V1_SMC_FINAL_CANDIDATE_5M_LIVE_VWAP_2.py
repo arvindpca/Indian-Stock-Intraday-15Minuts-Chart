@@ -16,6 +16,7 @@ import requests
 from dotenv import load_dotenv
 
 from angel_client import get_client, get_feed_token, get_auth_token
+import paper_trade
 
 # ============================================================
 # INDIAN NSE - TRADINGVIEW V1 SMC MIRROR
@@ -62,6 +63,10 @@ def candle_closed_before_run_start(result):
 # Entry alert -> monitor live price -> TP1 / TP2 / SL alert.
 ACTIVE_TRADES = {}
 TRADE_LOCK = threading.Lock()
+
+# Paper trading: every SHORT alert becomes a virtual Rs 1 lakh trade; exits are
+# tracked on closed 5m candles with the backtest rule (see paper_trade.py).
+PAPER_TRADE_SHORT = True
 
 STOP_LOSS_PERCENT = 1.5   # backtest 180d: SL 1.5% beat 1%
 TP1_PERCENT = 2.0
@@ -179,6 +184,7 @@ def build_telegram_message(result):
         f"TP2: ⬜\n"
         f"SL: ⬜\n\n"
 
+        f"{'📝 <b>PAPER TRADE: ON</b> — virtual ₹1,00,000, exit alert will follow\n' if PAPER_TRADE_SHORT and direction == 'SHORT' else ''}"
         f"<b>Strategy:</b> TradingView V1 SMC Mirror • 5m\n"
         f"<b>Mode:</b> Signal Only — No Automatic Order\n\n"
         f"{disclaimer}"
@@ -1742,6 +1748,41 @@ def send_morning_welcome(stock_count):
     return send_telegram_message(message)
 
 
+_PAPER_BOOK = None
+
+
+def _paper_book():
+    global _PAPER_BOOK
+    if _PAPER_BOOK is None:
+        _PAPER_BOOK = paper_trade.PaperBook(send=send_telegram_message)
+    return _PAPER_BOOK
+
+
+def paper_open(result, stock):
+    try:
+        _paper_book().open_trade(result, stock)
+    except Exception as e:
+        print(f"PAPER TRADE open ERROR: {e}")
+
+
+def paper_check_exits(stocks):
+    """Close virtual trades whose SL / TP / 15:15 exit happened on a closed 5m candle."""
+    by_symbol = {s["symbol"]: s for s in stocks}
+    now_bucket = pd.Timestamp(_current_5m_bucket()).tz_convert("UTC")
+
+    def candles(trade):
+        stock = by_symbol.get(trade["symbol"])
+        if stock is None:
+            return None
+        df = get_local_5m(stock)
+        return df[df["time"] < now_bucket]          # closed candles only
+
+    try:
+        _paper_book().check_exits(candles)
+    except Exception as e:
+        print(f"PAPER TRADE exit-check ERROR: {e}")
+
+
 def main():
     print()
     print("=" * 78)
@@ -1806,13 +1847,20 @@ def main():
                 if result.get("signal") in ("LONG", "SHORT"):
                     signal_count += 1
                     key = signal_key(result)
+                    is_paper = PAPER_TRADE_SHORT and result["signal"] == "SHORT"
                     if candle_closed_before_run_start(result):
                         SENT_SIGNALS.add(key)
                         print("Telegram: SKIPPED - candle closed before this run started (previous run handled it)")
+                        if is_paper:
+                            # previous run may have died between alert and ledger write
+                            paper_open(result, stock)
                     elif key not in SENT_SIGNALS:
                         if send_telegram_message(build_telegram_message(result)):
                             SENT_SIGNALS.add(key)
-                            register_active_trade(result)
+                            if is_paper:
+                                paper_open(result, stock)   # paper book tracks SL/TP/15:15 exit
+                            else:
+                                register_active_trade(result)
                             print(
                                 f"TRADE MONITORING STARTED: "
                                 f"{result['symbol']} {result['signal']} "
@@ -1836,6 +1884,9 @@ def main():
                 print("-" * 78)
                 print(f"{stock['symbol']} ERROR: {e}")
                 print("-" * 78)
+
+        if PAPER_TRADE_SHORT:
+            paper_check_exits(stocks)
 
         print("\n" + "=" * 78)
         print("NSE WATCHLIST SCAN PASS COMPLETE")
