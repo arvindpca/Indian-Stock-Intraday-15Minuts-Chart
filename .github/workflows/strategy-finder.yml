@@ -38,6 +38,8 @@ jobs:
         run: python strategy_finder/finder.py
       - name: Run strategy finder round 2 (events)
         run: python strategy_finder/finder2.py
+      - name: Per-stock strategy test
+        run: python strategy_finder/per_stock_test.py
       - name: Push results to finder-results branch
         if: always()
         run: |

@@ -26,7 +26,11 @@ SPLIT, COST, EOD = f1.SPLIT, f1.COST, f1.EOD
 PAIRS = [(1.0, 1.0), (0.5, 1.0), (0.75, 1.5), (1.0, 2.0)]        # (SL %, TP %)
 KEY = "1.0_2.0"                                                  # main score; robustness uses all pairs
 # Trailing SL exits, no fixed target: (initial SL %, activate after +%, trail distance %)
-TRAILS = {"tr1": (0.75, 0.75, 0.75), "tr2": (1.0, 1.0, 1.0), "tr3": (1.0, 1.0, 0.5), "tr4": (1.5, 1.5, 1.0)}
+# 5th value = fixed target % (None = no target, let it run)
+TRAILS = {"tr1": (0.75, 0.75, 0.75, None), "tr2": (1.0, 1.0, 1.0, None), "tr3": (1.0, 1.0, 0.5, None),
+          "tr4": (1.5, 1.5, 1.0, None),
+          "tr5": (1.0, 1.5, 1.0, 3.0),      # bada target 3% + trail 1% after +1.5%
+          "tr6": (1.0, 2.0, 1.0, 4.0)}      # bada target 4% + trail 1% after +2%
 TKEY = "tr2"
 FAMILIES = {"FIXED": ([f"{sl}_{tp}" for sl, tp in PAIRS], KEY), "TRAIL": (list(TRAILS), TKEY)}
 MIN_TRADES = 150
@@ -91,10 +95,20 @@ def trailing(d, rows):
                 last = (1 - C[j - 1] / e) * 100
             best = np.maximum.accumulate(np.maximum(hi, 0))
             bprev = np.concatenate([[0.0], best[:-1]])
-            for k, (sl, act, dist) in TRAILS.items():
+            for k, (sl, act, dist, tgt) in TRAILS.items():
                 stop = np.where(bprev >= act, np.maximum(-sl, bprev - dist), -sl)
                 hit = np.where(lo <= stop)[0]
-                r = min(stop[hit[0]], op[hit[0]]) if len(hit) else last
+                first_sl = hit[0] if len(hit) else 10 ** 6
+                first_tp = 10 ** 6
+                if tgt is not None:
+                    th = np.where(hi >= tgt)[0]
+                    first_tp = th[0] if len(th) else 10 ** 6
+                if first_sl <= first_tp and first_sl < 10 ** 6:      # same candle -> stop first
+                    r = min(stop[first_sl], op[first_sl])
+                elif first_tp < 10 ** 6:
+                    r = max(tgt, op[first_tp])
+                else:
+                    r = last
                 out[f"{side}_{k}"][i] = r - COST
     return pd.DataFrame(out, index=d.index)
 
@@ -253,6 +267,8 @@ def main():
             with open(OUT / f"chosen_rules_{family}.json", "w") as fh:
                 json.dump([{"event": r["event"], "side": r["side"], "rule": r["rule"], "conds": r["conds"]}
                            for _, r in chosen.iterrows()], fh, indent=1)
+    keep = ["symbol", "date", "time", "event", "period"] + FEATS + [f"{s}_{k}" for s in ("long", "short") for k in ALL_EXITS]
+    t[keep].to_csv(OUT / "events.csv.gz", index=False, compression="gzip")
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
 
