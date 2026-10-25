@@ -1,0 +1,435 @@
+base,nifty,side,period,trades,win_rate_pct,tp_hits,sl_hits,eod_exits,avg_gross_pct,avg_net_pct,total_net_pct_sum,total_net_rs,profit_factor,max_drawdown_rs
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,TRAIN,396,36.1,56,181,159,-0.067,-0.167,-66.04,-66046.0,0.71,-69528.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,TEST,166,39.2,27,59,80,0.036,-0.064,-10.58,-10574.0,0.87,-15717.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,FULL,562,37.0,83,240,239,-0.036,-0.136,-76.62,-76621.0,0.75,-79759.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-04,11,36.4,3,7,1,-0.019,-0.119,-1.31,-1305.0,0.83,-5905.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-05,91,34.1,14,39,38,-0.058,-0.158,-14.37,-14371.0,0.72,-19639.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-06,87,32.2,14,45,28,-0.111,-0.211,-18.4,-18397.0,0.67,-22310.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-07,119,39.5,14,49,56,-0.021,-0.121,-14.43,-14436.0,0.77,-16460.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-08,88,37.5,11,41,36,-0.099,-0.199,-17.54,-17537.0,0.66,-20078.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-09,102,34.3,20,37,45,0.012,-0.088,-8.98,-8975.0,0.83,-14534.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,LONG,2026-10,64,46.9,7,22,35,0.075,-0.025,-1.6,-1600.0,0.94,-5660.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,TRAIN,802,47.0,67,228,507,0.09,-0.01,-8.35,-8344.0,0.97,-42486.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,TEST,319,47.3,37,95,187,0.121,0.021,6.75,6754.0,1.05,-17179.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,FULL,1121,47.1,104,323,694,0.099,-0.001,-1.6,-1591.0,1.0,-29864.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-04,28,35.7,2,10,16,0.004,-0.096,-2.68,-2679.0,0.81,-6245.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-05,181,47.5,18,54,109,0.11,0.01,1.73,1731.0,1.02,-12578.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-06,165,49.1,14,49,102,0.142,0.042,6.89,6897.0,1.1,-11271.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-07,202,51.0,16,53,133,0.115,0.015,3.04,3044.0,1.04,-15201.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-08,226,42.9,17,62,147,0.023,-0.077,-17.34,-17338.0,0.81,-27125.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-09,172,46.5,14,52,106,0.064,-0.036,-6.11,-6109.0,0.91,-11143.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,SHORT,2026-10,147,48.3,23,43,81,0.187,0.087,12.86,12863.0,1.2,-10984.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,TRAIN,1198,43.4,123,409,666,0.038,-0.062,-74.39,-74390.0,0.86,-84051.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,TEST,485,44.5,64,154,267,0.092,-0.008,-3.83,-3821.0,0.98,-23915.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,FULL,1683,43.7,187,563,933,0.054,-0.046,-78.22,-78211.0,0.9,-85332.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-04,39,35.9,5,17,17,-0.002,-0.102,-3.98,-3984.0,0.82,-9910.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-05,272,43.0,32,93,147,0.054,-0.046,-12.64,-12641.0,0.9,-23557.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-06,252,43.3,28,94,130,0.054,-0.046,-11.51,-11500.0,0.91,-25834.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-07,321,46.7,30,102,189,0.065,-0.035,-11.39,-11392.0,0.92,-25228.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-08,314,41.4,28,103,183,-0.011,-0.111,-34.87,-34874.0,0.76,-42391.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-09,274,42.0,34,89,151,0.045,-0.055,-15.09,-15084.0,0.88,-17239.0
+A LIVE (koi badlav nahi),N0 Koi extra filter nahi,BOTH,2026-10,211,47.9,30,65,116,0.153,0.053,11.26,11263.0,1.12,-15828.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,TRAIN,229,34.5,30,102,97,-0.086,-0.186,-42.64,-42641.0,0.68,-49640.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,TEST,96,38.5,15,28,53,0.064,-0.036,-3.44,-3442.0,0.92,-6807.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,FULL,325,35.7,45,130,150,-0.042,-0.142,-46.08,-46083.0,0.74,-51509.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-04,6,50.0,3,3,0,0.5,0.4,2.4,2400.0,1.73,-3300.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-05,52,32.7,5,21,26,-0.127,-0.227,-11.81,-11816.0,0.6,-14742.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-06,50,26.0,7,28,15,-0.234,-0.334,-16.68,-16676.0,0.52,-19728.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-07,74,39.2,9,27,38,0.013,-0.087,-6.4,-6405.0,0.83,-12558.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-08,47,36.2,6,23,18,-0.116,-0.216,-10.14,-10145.0,0.64,-15322.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-09,50,30.0,8,16,26,-0.052,-0.152,-7.59,-7586.0,0.71,-10432.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,LONG,2026-10,46,47.8,7,12,27,0.19,0.09,4.14,4144.0,1.25,-2825.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,TRAIN,484,45.0,36,134,314,0.048,-0.052,-25.32,-25321.0,0.87,-36481.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,TEST,234,49.6,27,61,146,0.151,0.051,11.87,11874.0,1.13,-10091.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,FULL,718,46.5,63,195,460,0.081,-0.019,-13.45,-13447.0,0.95,-31183.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-04,15,26.7,1,7,7,-0.321,-0.421,-6.32,-6321.0,0.28,-7283.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-05,113,44.2,8,37,68,0.015,-0.085,-9.57,-9568.0,0.81,-15045.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-06,99,52.5,6,25,68,0.152,0.052,5.18,5180.0,1.15,-9549.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-07,92,48.9,6,21,65,0.104,0.004,0.4,394.0,1.01,-6966.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-08,165,40.6,15,44,106,0.009,-0.091,-15.0,-15006.0,0.79,-20864.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-09,126,45.2,10,35,81,0.047,-0.053,-6.7,-6696.0,0.87,-12373.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,SHORT,2026-10,108,54.6,17,26,65,0.272,0.172,18.57,18570.0,1.45,-6166.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,TRAIN,713,41.7,66,236,411,0.005,-0.095,-67.96,-67962.0,0.79,-83874.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,TEST,330,46.4,42,89,199,0.126,0.026,8.43,8432.0,1.06,-11897.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,FULL,1043,43.1,108,325,610,0.043,-0.057,-59.53,-59530.0,0.87,-73594.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-04,21,33.3,4,10,7,-0.087,-0.187,-3.92,-3921.0,0.67,-6783.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-05,165,40.6,13,58,94,-0.03,-0.13,-21.38,-21384.0,0.73,-27875.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-06,149,43.6,13,53,83,0.023,-0.077,-11.5,-11495.0,0.84,-25878.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-07,166,44.6,15,48,103,0.064,-0.036,-6.01,-6011.0,0.91,-16873.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-08,212,39.6,21,67,124,-0.019,-0.119,-25.15,-25151.0,0.74,-32621.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-09,176,40.9,18,51,107,0.019,-0.081,-14.29,-14282.0,0.81,-17662.0
+A LIVE (koi badlav nahi),N1 Nifty vs 5m EMA20,BOTH,2026-10,154,52.6,24,38,92,0.247,0.147,22.71,22714.0,1.39,-8462.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,TRAIN,218,32.6,26,100,92,-0.127,-0.227,-49.5,-49498.0,0.62,-52708.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,TEST,86,39.5,13,27,46,0.046,-0.054,-4.69,-4687.0,0.88,-6548.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,FULL,304,34.5,39,127,138,-0.078,-0.178,-54.18,-54185.0,0.68,-56295.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-04,6,50.0,3,3,0,0.5,0.4,2.4,2400.0,1.73,-3300.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-05,46,28.3,3,20,23,-0.237,-0.337,-15.49,-15489.0,0.44,-18062.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-06,48,25.0,6,27,15,-0.275,-0.375,-18.0,-18001.0,0.47,-21558.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-07,67,37.3,7,25,35,-0.01,-0.11,-7.36,-7360.0,0.8,-13304.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-08,51,35.3,7,25,19,-0.117,-0.217,-11.05,-11049.0,0.64,-17025.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-09,40,27.5,6,15,19,-0.15,-0.25,-10.01,-10009.0,0.57,-10613.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,LONG,2026-10,46,50.0,7,12,27,0.216,0.116,5.32,5323.0,1.32,-3460.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,TRAIN,430,46.3,35,118,277,0.067,-0.033,-14.11,-14107.0,0.92,-27055.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,TEST,229,48.0,23,64,142,0.11,0.01,2.19,2197.0,1.02,-10878.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,FULL,659,46.9,58,182,419,0.082,-0.018,-11.92,-11910.0,0.95,-29809.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-04,15,26.7,1,7,7,-0.321,-0.421,-6.32,-6321.0,0.28,-7283.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-05,105,44.8,8,34,63,0.028,-0.072,-7.54,-7536.0,0.84,-15969.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-06,85,56.5,6,21,58,0.214,0.114,9.71,9710.0,1.34,-7637.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-07,68,51.5,6,17,45,0.116,0.016,1.1,1101.0,1.05,-4347.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-08,157,41.4,14,39,104,0.03,-0.07,-11.06,-11061.0,0.83,-18629.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-09,130,43.8,9,38,83,0.022,-0.078,-10.16,-10153.0,0.81,-12785.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,SHORT,2026-10,99,53.5,14,26,59,0.225,0.125,12.35,12349.0,1.31,-6347.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,TRAIN,648,41.7,61,218,369,0.002,-0.098,-63.6,-63605.0,0.79,-74491.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,TEST,315,45.7,36,91,188,0.092,-0.008,-2.5,-2490.0,0.98,-13403.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,FULL,963,43.0,97,309,557,0.031,-0.069,-66.1,-66095.0,0.85,-74632.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-04,21,33.3,4,10,7,-0.087,-0.187,-3.92,-3921.0,0.67,-6783.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-05,151,39.7,11,54,86,-0.052,-0.152,-23.03,-23025.0,0.69,-32033.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-06,133,45.1,12,48,73,0.038,-0.062,-8.29,-8290.0,0.87,-22611.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-07,135,44.4,13,42,80,0.054,-0.046,-6.26,-6259.0,0.89,-15259.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-08,208,39.9,21,64,123,-0.006,-0.106,-22.11,-22110.0,0.77,-35233.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-09,170,40.0,15,53,102,-0.019,-0.119,-20.17,-20162.0,0.73,-20183.0
+A LIVE (koi badlav nahi),N2 Nifty vs 5m EMA50,BOTH,2026-10,145,52.4,21,38,86,0.222,0.122,17.67,17672.0,1.31,-9104.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,TRAIN,236,33.5,30,109,97,-0.115,-0.215,-50.77,-50769.0,0.64,-52422.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,TEST,96,37.5,12,32,52,-0.0,-0.1,-9.64,-9635.0,0.79,-12856.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,FULL,332,34.6,42,141,149,-0.082,-0.182,-60.4,-60405.0,0.68,-61633.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-04,6,50.0,3,3,0,0.5,0.4,2.4,2400.0,1.73,-3300.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-05,53,26.4,5,23,25,-0.23,-0.33,-17.48,-17477.0,0.45,-18421.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-06,63,28.6,11,34,18,-0.141,-0.241,-15.21,-15211.0,0.64,-19503.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-07,94,38.3,9,39,46,-0.073,-0.173,-16.23,-16228.0,0.69,-16431.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-08,20,40.0,2,10,8,-0.113,-0.213,-4.25,-4254.0,0.65,-5788.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-09,54,31.5,6,20,28,-0.135,-0.235,-12.68,-12675.0,0.57,-15448.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,LONG,2026-10,42,45.2,6,12,24,0.172,0.072,3.04,3039.0,1.19,-2784.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,TRAIN,468,44.0,32,147,289,0.009,-0.091,-42.59,-42589.0,0.79,-49183.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,TEST,219,50.2,27,58,134,0.178,0.078,17.07,17079.0,1.2,-9655.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,FULL,687,46.0,59,205,423,0.063,-0.037,-25.52,-25510.0,0.91,-40985.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-04,19,21.1,2,9,8,-0.33,-0.43,-8.17,-8165.0,0.34,-10407.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-05,95,48.4,8,33,54,0.068,-0.032,-3.0,-2999.0,0.93,-9088.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-06,83,42.2,3,30,50,-0.089,-0.189,-15.67,-15664.0,0.6,-21140.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-07,75,50.7,4,22,49,0.05,-0.05,-3.74,-3737.0,0.86,-13049.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-08,196,42.3,15,53,128,0.039,-0.061,-12.02,-12023.0,0.85,-22175.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-09,107,47.7,9,30,68,0.094,-0.006,-0.64,-630.0,0.99,-9617.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,SHORT,2026-10,112,52.7,18,28,66,0.258,0.158,17.71,17710.0,1.41,-7831.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,TRAIN,704,40.5,62,256,386,-0.033,-0.133,-93.36,-93358.0,0.73,-100285.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,TEST,315,46.3,39,90,186,0.124,0.024,7.44,7444.0,1.06,-14909.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,FULL,1019,42.3,101,346,572,0.016,-0.084,-85.92,-85914.0,0.82,-96778.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-04,25,28.0,5,12,8,-0.131,-0.231,-5.77,-5765.0,0.63,-9907.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-05,148,40.5,13,56,79,-0.038,-0.138,-20.47,-20476.0,0.72,-21876.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-06,146,36.3,14,64,68,-0.111,-0.211,-30.88,-30875.0,0.62,-38054.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-07,169,43.8,13,61,95,-0.018,-0.118,-19.96,-19965.0,0.75,-28305.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-08,216,42.1,17,63,136,0.025,-0.075,-16.28,-16277.0,0.82,-25052.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-09,161,42.2,15,50,96,0.017,-0.083,-13.31,-13305.0,0.82,-20604.0
+A LIVE (koi badlav nahi),N3 Nifty vs aaj ka open,BOTH,2026-10,154,50.6,24,40,90,0.235,0.135,20.75,20749.0,1.35,-10578.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,TRAIN,202,30.2,24,92,86,-0.16,-0.26,-52.5,-52500.0,0.57,-55146.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,TEST,91,36.3,13,28,50,0.034,-0.066,-6.02,-6022.0,0.86,-6440.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,FULL,293,32.1,37,120,136,-0.1,-0.2,-58.52,-58522.0,0.65,-60368.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-04,6,50.0,3,3,0,0.5,0.4,2.4,2400.0,1.73,-3300.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-05,50,28.0,5,20,25,-0.197,-0.297,-14.85,-14848.0,0.49,-15607.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-06,51,21.6,5,32,14,-0.403,-0.503,-25.68,-25677.0,0.34,-28555.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-07,62,37.1,8,22,32,0.02,-0.08,-4.97,-4966.0,0.85,-12011.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-08,33,30.3,3,15,15,-0.185,-0.285,-9.41,-9408.0,0.52,-9355.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-09,54,27.8,7,20,27,-0.149,-0.249,-13.45,-13452.0,0.57,-14731.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,LONG,2026-10,37,48.6,6,8,23,0.301,0.201,7.43,7430.0,1.62,-2200.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,TRAIN,397,44.1,32,117,248,0.022,-0.078,-31.13,-31121.0,0.81,-40741.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,TEST,218,49.5,23,59,136,0.147,0.047,10.18,10191.0,1.12,-12576.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,FULL,615,46.0,55,176,384,0.066,-0.034,-20.94,-20930.0,0.92,-38401.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-04,16,18.8,1,7,8,-0.392,-0.492,-7.87,-7865.0,0.23,-8207.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-05,78,43.6,7,27,44,0.026,-0.074,-5.75,-5750.0,0.84,-13477.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-06,75,49.3,2,22,51,0.019,-0.081,-6.04,-6042.0,0.8,-11248.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-07,58,50.0,6,16,36,0.083,-0.017,-1.01,-1008.0,0.95,-5361.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-08,170,42.4,16,45,109,0.038,-0.062,-10.46,-10456.0,0.85,-17360.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-09,113,46.9,10,31,72,0.102,0.002,0.28,285.0,1.01,-5816.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,SHORT,2026-10,105,52.4,13,28,64,0.194,0.094,9.9,9906.0,1.23,-8980.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,TRAIN,599,39.4,56,209,334,-0.04,-0.14,-83.63,-83621.0,0.71,-89136.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,TEST,309,45.6,36,87,186,0.113,0.013,4.16,4169.0,1.03,-13302.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,FULL,908,41.5,92,296,520,0.012,-0.088,-79.46,-79452.0,0.81,-84866.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-04,22,27.3,4,10,8,-0.148,-0.248,-5.47,-5465.0,0.6,-7707.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-05,128,37.5,12,47,69,-0.061,-0.161,-20.6,-20598.0,0.68,-25222.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-06,126,38.1,7,54,65,-0.152,-0.252,-31.72,-31719.0,0.54,-37857.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-07,120,43.3,14,38,68,0.05,-0.05,-5.98,-5974.0,0.89,-15578.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-08,203,40.4,19,60,124,0.002,-0.098,-19.86,-19865.0,0.78,-22910.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-09,167,40.7,17,51,99,0.021,-0.079,-13.17,-13167.0,0.82,-15038.0
+A LIVE (koi badlav nahi),N4 Nifty vs kal ka close,BOTH,2026-10,142,51.4,19,36,87,0.222,0.122,17.34,17336.0,1.32,-10664.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,TRAIN,248,36.7,35,122,91,-0.085,-0.185,-45.85,-45851.0,0.69,-53220.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,TEST,10,30.0,0,3,7,-0.251,-0.351,-3.51,-3512.0,0.18,-2593.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,FULL,258,36.4,35,125,98,-0.091,-0.191,-49.36,-49362.0,0.68,-56731.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,2026-04,11,36.4,3,7,1,-0.019,-0.119,-1.31,-1305.0,0.83,-5905.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,2026-05,50,36.0,9,24,17,-0.038,-0.138,-6.9,-6903.0,0.76,-10385.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,2026-06,52,30.8,6,30,16,-0.207,-0.307,-15.97,-15963.0,0.54,-21391.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,2026-07,83,38.6,9,33,41,-0.052,-0.152,-12.6,-12602.0,0.72,-19256.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,2026-08,52,40.4,8,28,16,-0.075,-0.175,-9.08,-9077.0,0.72,-14315.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),LONG,2026-10,10,30.0,0,3,7,-0.251,-0.351,-3.51,-3512.0,0.18,-2593.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,TRAIN,301,49.2,27,83,191,0.132,0.032,9.55,9543.0,1.08,-30471.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,TEST,298,47.0,34,87,177,0.114,0.014,4.27,4274.0,1.03,-12620.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,FULL,599,48.1,61,170,368,0.123,0.023,13.82,13818.0,1.06,-26832.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,2026-05,92,48.9,6,29,57,0.105,0.005,0.45,450.0,1.01,-11317.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,2026-06,72,54.2,4,22,46,0.118,0.018,1.28,1281.0,1.04,-11149.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,2026-07,42,57.1,8,8,26,0.325,0.225,9.47,9469.0,1.79,-6128.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,2026-08,95,42.1,9,24,62,0.083,-0.017,-1.65,-1657.0,0.96,-13697.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,2026-09,173,46.8,14,52,107,0.065,-0.035,-6.09,-6090.0,0.91,-11143.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),SHORT,2026-10,125,47.2,20,35,70,0.183,0.083,10.36,10364.0,1.19,-8993.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,TRAIN,549,43.5,62,205,282,0.034,-0.066,-36.3,-36307.0,0.86,-64740.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,TEST,308,46.4,34,90,184,0.102,0.002,0.76,763.0,1.01,-15415.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,FULL,857,44.6,96,295,466,0.059,-0.041,-35.54,-35545.0,0.91,-60800.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-04,11,36.4,3,7,1,-0.019,-0.119,-1.31,-1305.0,0.83,-5905.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-05,142,44.4,15,53,74,0.055,-0.045,-6.45,-6453.0,0.9,-16930.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-06,124,44.4,10,52,62,-0.018,-0.118,-14.69,-14682.0,0.77,-23056.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-07,125,44.8,17,41,67,0.075,-0.025,-3.13,-3133.0,0.94,-16751.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-08,147,41.5,17,52,78,0.027,-0.073,-10.73,-10734.0,0.85,-22772.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-09,173,46.8,14,52,107,0.065,-0.035,-6.09,-6090.0,0.91,-11143.0
+A LIVE (koi badlav nahi),N5 Nifty daily trend (EMA20),BOTH,2026-10,135,45.9,20,38,77,0.151,0.051,6.85,6852.0,1.12,-9278.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,TRAIN,141,33.3,15,70,56,-0.171,-0.271,-38.21,-38209.0,0.57,-41242.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,TEST,4,25.0,0,0,4,-0.021,-0.121,-0.48,-485.0,0.45,-434.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,FULL,145,33.1,15,70,60,-0.167,-0.267,-38.69,-38694.0,0.56,-41727.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,2026-04,6,50.0,3,3,0,0.5,0.4,2.4,2400.0,1.73,-3300.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,2026-05,23,26.1,1,12,10,-0.377,-0.477,-10.97,-10971.0,0.26,-10162.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,2026-06,36,25.0,5,23,8,-0.283,-0.383,-13.79,-13795.0,0.48,-18086.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,2026-07,61,37.7,4,24,33,-0.113,-0.213,-13.01,-13014.0,0.61,-12847.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,2026-08,15,40.0,2,8,5,-0.089,-0.189,-2.83,-2829.0,0.71,-4700.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,LONG,2026-10,4,25.0,0,0,4,-0.021,-0.121,-0.48,-485.0,0.45,-434.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,TRAIN,164,43.3,12,56,96,0.009,-0.091,-14.87,-14875.0,0.8,-28725.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,TEST,198,50.0,25,50,123,0.181,0.081,15.99,15994.0,1.21,-12710.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,FULL,362,47.0,37,106,219,0.103,0.003,1.11,1119.0,1.01,-29006.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,2026-05,42,50.0,3,17,22,0.062,-0.038,-1.59,-1592.0,0.92,-6580.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,2026-06,36,38.9,0,16,20,-0.253,-0.353,-12.7,-12701.0,0.38,-15016.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,2026-07,4,50.0,1,1,2,0.289,0.189,0.76,756.0,1.6,-1100.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,2026-08,82,41.5,8,22,52,0.084,-0.016,-1.34,-1339.0,0.96,-10623.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,2026-09,107,47.7,9,30,68,0.094,-0.006,-0.64,-630.0,0.99,-9617.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,SHORT,2026-10,91,52.7,16,20,55,0.283,0.183,16.62,16625.0,1.48,-9868.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,TRAIN,305,38.7,27,126,152,-0.074,-0.174,-53.08,-53085.0,0.68,-64118.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,TEST,202,49.5,25,50,127,0.177,0.077,15.51,15510.0,1.2,-12997.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,FULL,507,43.0,52,176,279,0.026,-0.074,-37.58,-37575.0,0.84,-59215.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-04,6,50.0,3,3,0,0.5,0.4,2.4,2400.0,1.73,-3300.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-05,65,41.5,4,29,32,-0.093,-0.193,-12.56,-12563.0,0.64,-15698.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-06,72,31.9,5,39,28,-0.268,-0.368,-26.5,-26495.0,0.44,-32022.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-07,65,38.5,5,25,35,-0.089,-0.189,-12.26,-12258.0,0.65,-13007.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-08,97,41.2,10,30,57,0.057,-0.043,-4.17,-4169.0,0.91,-13846.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-09,107,47.7,9,30,68,0.094,-0.006,-0.64,-630.0,0.99,-9617.0
+A LIVE (koi badlav nahi),N6 Daily trend + aaj ka open,BOTH,2026-10,95,51.6,16,20,59,0.27,0.17,16.14,16140.0,1.45,-10155.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,TRAIN,273,34.1,40,137,96,-0.102,-0.202,-55.26,-55256.0,0.67,-57387.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,TEST,119,38.7,18,46,55,-0.01,-0.11,-13.09,-13094.0,0.79,-18843.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,FULL,392,35.5,58,183,151,-0.074,-0.174,-68.35,-68350.0,0.7,-68695.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-04,8,25.0,2,6,0,-0.25,-0.35,-2.8,-2800.0,0.58,-6600.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-05,62,29.0,11,32,19,-0.132,-0.232,-14.39,-14392.0,0.63,-20208.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-06,62,32.3,11,31,20,-0.055,-0.155,-9.63,-9631.0,0.74,-18714.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-07,82,39.0,9,38,35,-0.071,-0.171,-14.0,-13999.0,0.71,-15975.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-08,59,35.6,7,30,22,-0.145,-0.245,-14.43,-14434.0,0.6,-16414.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-09,75,34.7,14,29,32,-0.04,-0.14,-10.49,-10493.0,0.75,-16182.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,LONG,2026-10,44,45.5,4,17,23,0.041,-0.059,-2.6,-2601.0,0.87,-4670.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,TRAIN,543,48.3,45,140,358,0.099,-0.001,-0.39,-387.0,1.0,-26670.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,TEST,214,45.8,20,71,123,0.063,-0.037,-8.0,-7999.0,0.92,-12834.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,FULL,757,47.6,65,211,481,0.089,-0.011,-8.39,-8385.0,0.97,-26030.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-04,19,47.4,1,6,12,0.132,0.032,0.61,612.0,1.07,-4438.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-05,106,49.1,10,29,67,0.132,0.032,3.4,3399.0,1.08,-9271.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-06,114,50.0,11,33,70,0.13,0.03,3.42,3428.0,1.07,-10708.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-07,140,54.3,12,29,99,0.167,0.067,9.34,9339.0,1.21,-6978.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-08,164,41.5,11,43,110,-0.005,-0.105,-17.16,-17164.0,0.74,-24954.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-09,116,43.1,7,38,71,-0.018,-0.118,-13.74,-13733.0,0.74,-15257.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,SHORT,2026-10,98,49.0,13,33,52,0.158,0.058,5.73,5734.0,1.13,-8856.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,TRAIN,816,43.5,85,277,454,0.032,-0.068,-55.65,-55643.0,0.85,-69291.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,TEST,333,43.2,38,117,178,0.037,-0.063,-21.1,-21092.0,0.87,-25186.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,FULL,1149,43.4,123,394,632,0.033,-0.067,-76.74,-76735.0,0.86,-88638.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-04,27,40.7,3,12,12,0.019,-0.081,-2.19,-2188.0,0.85,-6756.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-05,168,41.7,21,61,86,0.035,-0.065,-10.99,-10993.0,0.86,-23580.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-06,176,43.8,22,64,90,0.065,-0.035,-6.21,-6203.0,0.93,-20370.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-07,222,48.6,21,67,134,0.079,-0.021,-4.66,-4661.0,0.95,-20589.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-08,223,39.9,18,73,132,-0.042,-0.142,-31.6,-31598.0,0.69,-37647.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-09,191,39.8,21,67,103,-0.027,-0.127,-24.23,-24225.0,0.75,-27082.0
+A LIVE (koi badlav nahi),V1 Entry volume >= 1.5x avg,BOTH,2026-10,142,47.9,17,50,75,0.122,0.022,3.13,3133.0,1.05,-11960.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,TRAIN,190,33.2,31,100,59,-0.11,-0.21,-39.99,-39986.0,0.67,-39571.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,TEST,79,40.5,10,25,44,0.029,-0.071,-5.6,-5594.0,0.85,-15830.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,FULL,269,35.3,41,125,103,-0.069,-0.169,-45.58,-45579.0,0.71,-44985.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-04,6,33.3,2,4,0,0.0,-0.1,-0.6,-600.0,0.86,-4400.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-05,45,24.4,9,28,8,-0.233,-0.333,-14.98,-14982.0,0.55,-19905.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-06,42,38.1,8,21,13,-0.015,-0.115,-4.84,-4836.0,0.81,-13247.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-07,51,37.3,6,24,21,-0.073,-0.173,-8.84,-8837.0,0.71,-9645.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-08,46,32.6,6,23,17,-0.133,-0.233,-10.73,-10730.0,0.61,-12406.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-09,53,35.8,8,19,26,-0.041,-0.141,-7.46,-7454.0,0.74,-15717.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,LONG,2026-10,26,50.0,2,6,18,0.172,0.072,1.86,1861.0,1.21,-2381.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,TRAIN,382,45.8,31,103,248,0.079,-0.021,-7.85,-7847.0,0.95,-25932.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,TEST,137,42.3,14,45,78,0.059,-0.041,-5.64,-5638.0,0.91,-9235.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,FULL,519,44.9,45,148,326,0.074,-0.026,-13.49,-13485.0,0.94,-26472.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-04,14,35.7,0,6,8,-0.126,-0.227,-3.17,-3171.0,0.61,-4438.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-05,71,50.7,9,17,45,0.229,0.129,9.15,9151.0,1.38,-5680.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-06,79,54.4,8,20,51,0.225,0.125,9.88,9879.0,1.35,-7098.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-07,97,47.4,8,24,65,0.085,-0.015,-1.5,-1498.0,0.96,-8870.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-08,121,37.2,6,36,79,-0.084,-0.184,-22.2,-22208.0,0.59,-30523.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-09,76,38.2,6,25,45,0.009,-0.091,-6.93,-6923.0,0.8,-8615.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,SHORT,2026-10,61,47.5,8,20,33,0.121,0.021,1.28,1285.0,1.05,-6220.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,TRAIN,572,41.6,62,203,307,0.016,-0.084,-47.83,-47833.0,0.82,-52476.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,TEST,216,41.7,24,70,122,0.048,-0.052,-11.24,-11231.0,0.89,-22796.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,FULL,788,41.6,86,273,429,0.025,-0.075,-59.07,-59065.0,0.84,-66653.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-04,20,35.0,2,10,8,-0.089,-0.189,-3.77,-3771.0,0.7,-5560.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-05,116,40.5,18,45,53,0.05,-0.05,-5.83,-5831.0,0.9,-19668.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-06,121,48.8,16,41,64,0.142,0.042,5.04,5042.0,1.1,-14269.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-07,148,43.9,14,48,86,0.03,-0.07,-10.33,-10335.0,0.85,-18956.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-08,167,35.9,12,59,96,-0.097,-0.197,-32.94,-32938.0,0.6,-37960.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-09,129,37.2,14,44,71,-0.011,-0.111,-14.38,-14377.0,0.77,-21126.0
+A LIVE (koi badlav nahi),V2 Entry volume >= 2x avg,BOTH,2026-10,87,48.3,10,26,51,0.136,0.036,3.14,3146.0,1.09,-7329.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,TRAIN,120,31.7,16,64,40,-0.184,-0.284,-34.02,-34024.0,0.56,-35568.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,TEST,51,47.1,7,18,26,0.058,-0.042,-2.14,-2139.0,0.91,-11311.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,FULL,171,36.3,23,82,66,-0.111,-0.211,-36.16,-36162.0,0.64,-40346.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-04,3,33.3,1,2,0,0.0,-0.1,-0.3,-300.0,0.86,-2200.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-05,29,24.1,5,19,5,-0.288,-0.388,-11.27,-11266.0,0.49,-15179.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-06,27,37.0,4,13,10,-0.083,-0.183,-4.95,-4953.0,0.69,-8314.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-07,33,33.3,4,17,12,-0.162,-0.262,-8.63,-8635.0,0.6,-9223.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-08,28,32.1,2,13,13,-0.217,-0.317,-8.87,-8870.0,0.45,-8334.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-09,33,42.4,5,13,15,-0.056,-0.156,-5.13,-5131.0,0.7,-9494.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,LONG,2026-10,18,55.6,2,5,11,0.266,0.166,2.99,2992.0,1.45,-1817.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,TRAIN,216,44.9,20,48,148,0.102,0.002,0.46,462.0,1.01,-13720.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,TEST,78,46.2,11,23,44,0.158,0.058,4.53,4535.0,1.14,-4674.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,FULL,294,45.2,31,71,192,0.117,0.017,4.99,4997.0,1.04,-13332.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-04,7,28.6,0,4,3,-0.258,-0.358,-2.51,-2506.0,0.5,-4400.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-05,46,50.0,6,10,30,0.246,0.146,6.73,6730.0,1.43,-4301.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-06,49,59.2,3,8,38,0.27,0.17,8.34,8339.0,1.63,-3471.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-07,56,44.6,6,12,38,0.078,-0.022,-1.22,-1219.0,0.94,-9072.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-08,58,31.0,5,14,39,-0.088,-0.188,-10.88,-10882.0,0.56,-13333.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-09,42,35.7,5,13,24,0.005,-0.095,-3.97,-3970.0,0.79,-6795.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,SHORT,2026-10,36,58.3,6,10,20,0.336,0.236,8.5,8505.0,1.6,-3105.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,TRAIN,336,40.2,36,112,188,0.0,-0.1,-33.56,-33561.0,0.79,-37324.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,TEST,129,46.5,18,41,70,0.119,0.019,2.39,2396.0,1.04,-14357.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,FULL,465,41.9,54,153,258,0.033,-0.067,-31.17,-31165.0,0.85,-43375.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-04,10,30.0,1,6,3,-0.181,-0.281,-2.81,-2806.0,0.61,-5420.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-05,75,40.0,11,29,35,0.04,-0.06,-4.53,-4536.0,0.88,-17353.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-06,76,51.3,7,21,48,0.145,0.044,3.38,3386.0,1.12,-6394.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-07,89,40.4,10,29,50,-0.011,-0.111,-9.85,-9854.0,0.77,-17671.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-08,86,31.4,7,27,52,-0.13,-0.23,-19.75,-19752.0,0.52,-21055.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-09,75,38.7,10,26,39,-0.021,-0.121,-9.1,-9102.0,0.75,-15399.0
+A LIVE (koi badlav nahi),V3 Entry volume = 20 candle high,BOTH,2026-10,54,57.4,8,15,31,0.313,0.213,11.5,11498.0,1.55,-3922.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,TRAIN,357,33.9,49,173,135,-0.117,-0.217,-77.42,-77424.0,0.64,-82044.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,TEST,146,39.0,25,51,70,0.041,-0.059,-8.55,-8551.0,0.88,-13376.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,FULL,503,35.4,74,224,205,-0.071,-0.171,-85.98,-85975.0,0.7,-90628.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-04,11,36.4,3,7,1,-0.019,-0.119,-1.31,-1305.0,0.83,-5905.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-05,75,32.0,12,36,27,-0.11,-0.21,-15.75,-15748.0,0.65,-22208.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-06,79,29.1,11,43,25,-0.204,-0.304,-23.98,-23981.0,0.55,-27216.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-07,108,37.0,13,47,48,-0.059,-0.159,-17.16,-17162.0,0.72,-19910.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-08,84,35.7,10,40,34,-0.129,-0.229,-19.23,-19229.0,0.62,-21770.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-09,89,33.7,18,33,38,-0.008,-0.108,-9.58,-9580.0,0.8,-15264.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),LONG,2026-10,57,47.4,7,18,32,0.118,0.018,1.03,1029.0,1.04,-3460.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,TRAIN,723,47.7,62,204,457,0.105,0.005,3.67,3673.0,1.01,-43110.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,TEST,298,48.7,37,88,173,0.149,0.049,14.6,14606.0,1.12,-15925.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,FULL,1021,48.0,99,292,630,0.118,0.018,18.28,18279.0,1.04,-24222.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-04,21,42.9,2,7,12,0.108,0.008,0.18,177.0,1.02,-3390.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-05,165,49.1,15,48,102,0.125,0.025,4.12,4121.0,1.06,-14476.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-06,145,52.4,12,40,93,0.18,0.08,11.53,11538.0,1.21,-8824.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-07,182,48.9,16,53,113,0.095,-0.005,-0.98,-976.0,0.99,-18026.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-08,210,42.9,17,56,137,0.047,-0.053,-11.19,-11187.0,0.87,-21905.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-09,162,47.5,14,49,99,0.081,-0.019,-3.05,-3048.0,0.95,-11263.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),SHORT,2026-10,136,50.0,23,39,74,0.23,0.13,17.65,17654.0,1.31,-9508.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,TRAIN,1080,43.1,111,377,592,0.032,-0.068,-73.75,-73751.0,0.85,-94873.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,TEST,444,45.5,62,139,243,0.114,0.014,6.05,6055.0,1.03,-20526.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,FULL,1524,43.8,173,516,835,0.056,-0.044,-67.7,-67696.0,0.9,-87764.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-04,32,40.6,5,14,13,0.065,-0.035,-1.13,-1128.0,0.93,-8105.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-05,240,43.8,27,84,129,0.052,-0.048,-11.62,-11626.0,0.9,-30172.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-06,224,44.2,23,83,118,0.044,-0.056,-12.45,-12443.0,0.88,-28688.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-07,290,44.5,29,100,161,0.037,-0.063,-18.14,-18138.0,0.86,-29549.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-08,294,40.8,27,96,171,-0.003,-0.103,-30.41,-30416.0,0.78,-39726.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-09,251,42.6,32,82,137,0.05,-0.05,-12.64,-12628.0,0.89,-14784.0
+A LIVE (koi badlav nahi),P1 POC 24h (S below / L above),BOTH,2026-10,193,49.2,30,57,106,0.197,0.097,18.68,18683.0,1.23,-12152.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,TRAIN,665,52.9,66,77,522,0.181,0.081,53.81,53810.0,1.23,-23915.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,TEST,256,50.4,26,29,201,0.155,0.055,14.03,14032.0,1.14,-14508.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,FULL,921,52.2,92,106,723,0.174,0.074,67.84,67842.0,1.2,-17880.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-04,22,40.9,2,6,14,-0.029,-0.129,-2.83,-2830.0,0.77,-4760.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-05,143,52.4,18,19,106,0.204,0.104,14.84,14836.0,1.27,-11182.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-06,134,58.2,15,18,101,0.257,0.157,21.02,21026.0,1.44,-11725.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-07,180,55.0,16,19,145,0.214,0.114,20.6,20604.0,1.37,-6685.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-08,186,48.9,15,15,156,0.101,0.001,0.17,173.0,1.0,-9918.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-09,138,47.1,8,15,115,0.037,-0.063,-8.76,-8762.0,0.84,-14485.0
+B BEST setup (SHORT),N0 Koi extra filter nahi,SHORT,2026-10,118,54.2,18,14,86,0.293,0.193,22.79,22794.0,1.52,-7994.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,TRAIN,406,50.7,35,42,329,0.139,0.039,16.01,16009.0,1.11,-18786.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,TEST,190,53.2,22,20,148,0.2,0.1,19.02,19021.0,1.27,-10756.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,FULL,596,51.5,57,62,477,0.159,0.059,35.03,35030.0,1.16,-19089.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-04,12,25.0,1,6,5,-0.603,-0.703,-8.44,-8435.0,0.2,-8921.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-05,84,51.2,9,9,66,0.227,0.127,10.64,10635.0,1.38,-6316.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-06,84,60.7,6,8,70,0.238,0.138,11.59,11593.0,1.43,-8000.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-07,92,54.3,6,8,78,0.197,0.097,8.94,8938.0,1.36,-4691.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-08,134,44.0,13,11,110,0.05,-0.05,-6.72,-6722.0,0.87,-10565.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-09,105,44.8,7,12,86,0.003,-0.097,-10.14,-10137.0,0.76,-14649.0
+B BEST setup (SHORT),N1 Nifty vs 5m EMA20,SHORT,2026-10,85,63.5,15,8,62,0.443,0.343,29.16,29158.0,2.09,-5220.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,TRAIN,353,51.8,32,43,278,0.135,0.035,12.42,12422.0,1.1,-14985.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,TEST,183,51.9,17,19,147,0.161,0.061,11.08,11081.0,1.16,-12413.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,FULL,536,51.9,49,62,425,0.144,0.044,23.5,23503.0,1.12,-15839.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-04,12,25.0,1,6,5,-0.603,-0.703,-8.44,-8435.0,0.2,-8921.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-05,77,50.6,8,12,57,0.157,0.057,4.39,4387.0,1.14,-7561.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-06,69,63.8,5,9,55,0.248,0.148,10.19,10190.0,1.47,-8009.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-07,68,61.8,7,5,56,0.345,0.245,16.67,16666.0,2.13,-3515.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-08,127,43.3,11,11,105,0.018,-0.082,-10.39,-10386.0,0.8,-16420.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-09,105,43.8,5,12,88,-0.014,-0.114,-12.01,-12010.0,0.72,-14780.0
+B BEST setup (SHORT),N2 Nifty vs 5m EMA50,SHORT,2026-10,78,62.8,12,7,59,0.396,0.296,23.09,23091.0,1.93,-5728.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,TRAIN,380,50.0,30,48,302,0.097,-0.003,-0.98,-974.0,0.99,-14159.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,TEST,167,54.5,19,18,130,0.236,0.136,22.64,22647.0,1.38,-10607.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,FULL,547,51.4,49,66,432,0.14,0.04,21.66,21673.0,1.11,-16287.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-04,13,15.4,1,6,6,-0.637,-0.737,-9.58,-9581.0,0.17,-9844.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-05,65,55.4,7,10,48,0.199,0.099,6.41,6411.0,1.27,-4913.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-06,70,51.4,3,10,57,0.028,-0.072,-5.03,-5023.0,0.82,-11368.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-07,67,58.2,5,7,55,0.247,0.147,9.83,9835.0,1.54,-5004.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-08,165,46.7,14,15,136,0.084,-0.016,-2.62,-2616.0,0.96,-10175.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-09,80,47.5,5,10,65,0.058,-0.042,-3.36,-3361.0,0.89,-8050.0
+B BEST setup (SHORT),N3 Nifty vs aaj ka open,SHORT,2026-10,87,60.9,14,8,65,0.399,0.299,26.01,26008.0,1.93,-5885.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,TRAIN,318,52.2,29,33,256,0.149,0.049,15.62,15624.0,1.14,-11430.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,TEST,165,52.7,15,17,133,0.193,0.093,15.37,15372.0,1.26,-12923.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,FULL,483,52.4,44,50,389,0.164,0.064,30.99,30995.0,1.18,-17076.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-04,13,15.4,1,6,6,-0.637,-0.737,-9.58,-9581.0,0.17,-9844.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-05,53,50.9,7,4,42,0.288,0.188,9.98,9978.0,1.63,-5239.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-06,60,63.3,2,8,50,0.166,0.066,3.98,3985.0,1.2,-4947.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-07,53,60.4,6,3,44,0.365,0.265,14.04,14034.0,2.31,-2410.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-08,139,48.2,13,12,114,0.08,-0.02,-2.8,-2792.0,0.95,-10357.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-09,87,43.7,5,9,73,0.034,-0.066,-5.78,-5777.0,0.83,-10346.0
+B BEST setup (SHORT),N4 Nifty vs kal ka close,SHORT,2026-10,78,62.8,10,8,60,0.371,0.271,21.15,21149.0,1.82,-7695.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,TRAIN,254,54.7,33,28,193,0.254,0.154,39.13,39130.0,1.46,-9320.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,TEST,244,49.2,24,29,191,0.124,0.024,5.95,5955.0,1.06,-15928.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,FULL,498,52.0,57,57,384,0.191,0.091,45.09,45085.0,1.25,-12680.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,2026-05,78,56.4,10,11,57,0.263,0.163,12.69,12684.0,1.46,-6144.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,2026-06,59,62.7,6,7,46,0.309,0.209,12.36,12361.0,1.67,-6885.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,2026-07,38,60.5,9,2,27,0.467,0.367,13.96,13958.0,2.55,-4275.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,2026-08,79,44.3,8,8,63,0.102,0.002,0.13,127.0,1.0,-6931.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,2026-09,139,47.5,8,15,116,0.037,-0.063,-8.74,-8743.0,0.84,-14485.0
+B BEST setup (SHORT),N5 Nifty daily trend (EMA20),SHORT,2026-10,105,51.4,16,14,75,0.24,0.14,14.7,14697.0,1.35,-8427.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,TRAIN,133,51.1,14,18,101,0.147,0.047,6.29,6295.0,1.12,-7033.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,TEST,158,52.5,18,18,122,0.201,0.101,15.89,15893.0,1.27,-11040.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,FULL,291,51.9,32,36,223,0.176,0.076,22.18,22187.0,1.2,-14342.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,2026-05,30,70.0,4,5,21,0.4,0.3,9.0,9000.0,1.97,-2971.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,2026-06,28,46.4,0,5,23,-0.133,-0.233,-6.53,-6525.0,0.53,-8520.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,2026-07,5,80.0,2,0,3,1.066,0.966,4.83,4831.0,31.19,-160.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,2026-08,70,42.9,8,8,54,0.086,-0.014,-1.01,-1011.0,0.97,-5948.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,2026-09,80,47.5,5,10,65,0.058,-0.042,-3.36,-3361.0,0.89,-8050.0
+B BEST setup (SHORT),N6 Daily trend + aaj ka open,SHORT,2026-10,78,57.7,13,8,57,0.347,0.247,19.25,19254.0,1.68,-6979.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,TRAIN,468,52.6,46,53,369,0.171,0.071,33.29,33289.0,1.21,-20532.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,TEST,168,46.4,17,19,132,0.11,0.01,1.73,1736.0,1.02,-11832.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,FULL,636,50.9,63,72,501,0.155,0.055,35.02,35025.0,1.15,-16966.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-04,17,47.1,2,4,11,0.121,0.021,0.36,361.0,1.04,-2513.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-05,89,52.8,10,10,69,0.228,0.128,11.42,11414.0,1.39,-7358.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-06,97,59.8,12,11,74,0.248,0.148,14.4,14407.0,1.42,-10757.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-07,126,53.2,10,14,102,0.163,0.063,7.92,7920.0,1.2,-8541.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-08,139,47.5,12,14,113,0.094,-0.006,-0.81,-813.0,0.98,-10597.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-09,92,42.4,5,9,78,0.005,-0.095,-8.72,-8721.0,0.77,-13315.0
+B BEST setup (SHORT),V1 Entry volume >= 1.5x avg,SHORT,2026-10,76,51.3,12,10,54,0.238,0.138,10.45,10458.0,1.34,-6817.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,TRAIN,327,51.1,29,38,260,0.146,0.046,15.2,15201.0,1.13,-13870.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,TEST,114,45.6,12,16,86,0.095,-0.005,-0.6,-592.0,0.99,-11823.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,FULL,441,49.7,41,54,346,0.133,0.033,14.61,14609.0,1.09,-18665.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-04,13,46.2,1,4,8,0.01,-0.09,-1.17,-1169.0,0.85,-2513.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-05,57,56.1,6,6,45,0.302,0.202,11.51,11505.0,1.7,-5383.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-06,67,61.2,7,7,53,0.25,0.15,10.02,10019.0,1.46,-6959.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-07,89,52.8,7,10,72,0.135,0.035,3.13,3131.0,1.1,-8200.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-08,101,40.6,8,11,82,0.018,-0.082,-8.29,-8285.0,0.79,-13675.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-09,65,38.5,5,8,52,0.019,-0.081,-5.24,-5236.0,0.82,-9839.0
+B BEST setup (SHORT),V2 Entry volume >= 2x avg,SHORT,2026-10,49,55.1,7,8,34,0.195,0.095,4.64,4644.0,1.22,-5566.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,TRAIN,195,47.2,20,17,158,0.147,0.047,9.23,9226.0,1.14,-7911.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,TEST,66,43.9,7,8,51,0.079,-0.021,-1.38,-1373.0,0.95,-9612.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,FULL,261,46.4,27,25,209,0.13,0.03,7.85,7853.0,1.08,-13528.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-04,7,28.6,1,2,4,-0.068,-0.168,-1.18,-1178.0,0.72,-2096.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-05,37,48.6,4,3,30,0.258,0.158,5.85,5851.0,1.5,-4670.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-06,43,58.1,3,6,34,0.128,0.028,1.2,1206.0,1.07,-7392.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-07,54,50.0,5,4,45,0.136,0.036,1.96,1964.0,1.11,-6955.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-08,54,37.0,7,2,45,0.126,0.026,1.38,1384.0,1.08,-4303.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-09,40,37.5,4,5,31,-0.011,-0.111,-4.43,-4426.0,0.77,-8376.0
+B BEST setup (SHORT),V3 Entry volume = 20 candle high,SHORT,2026-10,26,53.8,3,3,20,0.217,0.117,3.05,3052.0,1.29,-4197.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,TRAIN,579,53.5,59,65,455,0.19,0.09,52.15,52152.0,1.26,-16959.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,TEST,238,50.8,26,27,185,0.17,0.07,16.62,16627.0,1.18,-14628.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,FULL,817,52.8,85,92,640,0.184,0.084,68.78,68779.0,1.23,-16074.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-04,14,42.9,1,4,9,-0.094,-0.194,-2.71,-2711.0,0.66,-4057.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-05,130,52.3,14,19,97,0.167,0.067,8.74,8739.0,1.17,-11580.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-06,115,60.0,13,13,89,0.291,0.191,21.97,21977.0,1.57,-9446.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-07,156,54.5,16,17,123,0.226,0.126,19.68,19679.0,1.4,-9600.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-08,164,50.0,15,12,137,0.127,0.027,4.47,4467.0,1.08,-7264.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-09,128,47.7,8,14,106,0.045,-0.055,-7.1,-7094.0,0.86,-15279.0
+B BEST setup (SHORT),P1 POC 24h (S below / L above),SHORT,2026-10,110,54.5,18,13,79,0.316,0.216,23.72,23721.0,1.59,-7691.0

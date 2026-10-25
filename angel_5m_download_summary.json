@@ -1,0 +1,12 @@
+{
+  "requested_symbols": 174,
+  "ok": 171,
+  "partial": 0,
+  "failed": 0,
+  "no_token": 3,
+  "candles": 1565666,
+  "days_requested": 180,
+  "interval": "FIVE_MINUTE",
+  "start_ist": "2026-04-27T22:40:00+05:30",
+  "end_ist": "2026-10-24T22:40:00+05:30"
+}

@@ -1,0 +1,86 @@
+{
+  "period": "2026-04-28 to 2026-10-23",
+  "symbols_tested": 171,
+  "cost_round_trip_pct": 0.1,
+  "capital_per_trade_rs": 100000.0,
+  "ALL": {
+    "trades": 1683,
+    "win_rate_pct": 43.7,
+    "tp_hits": 187,
+    "sl_hits": 563,
+    "eod_exits": 933,
+    "avg_gross_pct": 0.054,
+    "avg_net_pct": -0.046,
+    "total_net_pct_sum": -78.22,
+    "total_net_rs": -78211.0,
+    "profit_factor": 0.9,
+    "max_drawdown_rs": -104418.0
+  },
+  "LONG": {
+    "trades": 562,
+    "win_rate_pct": 37.0,
+    "tp_hits": 83,
+    "sl_hits": 240,
+    "eod_exits": 239,
+    "avg_gross_pct": -0.036,
+    "avg_net_pct": -0.136,
+    "total_net_pct_sum": -76.62,
+    "total_net_rs": -76621.0,
+    "profit_factor": 0.75,
+    "max_drawdown_rs": -80563.0
+  },
+  "SHORT": {
+    "trades": 1121,
+    "win_rate_pct": 47.1,
+    "tp_hits": 104,
+    "sl_hits": 323,
+    "eod_exits": 694,
+    "avg_gross_pct": 0.099,
+    "avg_net_pct": -0.001,
+    "total_net_pct_sum": -1.6,
+    "total_net_rs": -1591.0,
+    "profit_factor": 1.0,
+    "max_drawdown_rs": -42391.0
+  },
+  "by_zone": {
+    "BEAR FVG": {
+      "trades": 240,
+      "win_rate_pct": 46.2,
+      "tp_hits": 22,
+      "sl_hits": 66,
+      "eod_exits": 152,
+      "avg_gross_pct": 0.074,
+      "avg_net_pct": -0.026,
+      "total_net_pct_sum": -6.14,
+      "total_net_rs": -6136.0,
+      "profit_factor": 0.94,
+      "max_drawdown_rs": -22184.0
+    },
+    "BEAR OB": {
+      "trades": 881,
+      "win_rate_pct": 47.3,
+      "tp_hits": 82,
+      "sl_hits": 257,
+      "eod_exits": 542,
+      "avg_gross_pct": 0.105,
+      "avg_net_pct": 0.005,
+      "total_net_pct_sum": 4.54,
+      "total_net_rs": 4546.0,
+      "profit_factor": 1.01,
+      "max_drawdown_rs": -30277.0
+    },
+    "BULL OB": {
+      "trades": 562,
+      "win_rate_pct": 37.0,
+      "tp_hits": 83,
+      "sl_hits": 240,
+      "eod_exits": 239,
+      "avg_gross_pct": -0.036,
+      "avg_net_pct": -0.136,
+      "total_net_pct_sum": -76.62,
+      "total_net_rs": -76621.0,
+      "profit_factor": 0.75,
+      "max_drawdown_rs": -80563.0
+    }
+  }
+}
