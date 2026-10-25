@@ -2,9 +2,14 @@ name: Reliance Intraday Strategy Test (1 year, Angel One)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "reliance_strategy/**"
+      - ".github/workflows/reliance-strategy.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   reliance:
@@ -32,6 +37,16 @@ jobs:
         run: |
           if [ -f reliance_strategy/results/summary.md ]; then
             cat reliance_strategy/results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Save results to repo
+        if: always()
+        run: |
+          if [ -d reliance_strategy/results ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add -f reliance_strategy/results
+            git commit -m "Reliance strategy results [skip ci]" || exit 0
+            git pull --rebase origin main && git push
           fi
       - name: Upload results
         if: always()
