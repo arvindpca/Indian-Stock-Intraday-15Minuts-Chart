@@ -1,0 +1,51 @@
+name: Reliance Paper Trade (live, every 5 min)
+
+on:
+  schedule:
+    # IST 9:30-15:25 (UTC 4:00-9:55) aur 15:30-15:45 (exit/no-signal message). Mon-Fri.
+    - cron: "*/5 4-9 * * 1-5"
+    - cron: "0-15/5 10 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reliance-paper
+  cancel-in-progress: false
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PAPER_QTY: "100"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt tabulate
+      - name: Run paper trader
+        run: python reliance_strategy/paper_live.py
+      - name: Save state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -f reliance_strategy/paper
+          if git diff --cached --quiet; then echo "No change"; exit 0; fi
+          git commit -m "Reliance paper update $(TZ=Asia/Kolkata date '+%F %H:%M') [skip ci]"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+      - name: Summary
+        if: always()
+        run: |
+          [ -f reliance_strategy/paper/STATUS.md ] && cat reliance_strategy/paper/STATUS.md >> "$GITHUB_STEP_SUMMARY" || true

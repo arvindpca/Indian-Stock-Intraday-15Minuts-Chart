@@ -42,7 +42,12 @@ def atr(d, n=14):
 
 
 def prepare(path):
-    d = pd.read_csv(path, parse_dates=["datetime"]).set_index("datetime").between_time("09:15", "15:29")
+    d = pd.read_csv(path, parse_dates=["datetime"]).set_index("datetime")
+    return prepare_df(d)
+
+
+def prepare_df(d):
+    d = d.between_time("09:15", "15:29").copy()
     d["day"] = d.index.normalize()
     d["tod"] = d.index.hour * 60 + d.index.minute
     d["atr"] = atr(d)
