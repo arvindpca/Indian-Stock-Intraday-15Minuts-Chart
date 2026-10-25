@@ -6,6 +6,11 @@ on:
     - cron: "*/5 4-9 * * 1-5"
     - cron: "0-15/5 10 * * 1-5"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "reliance_strategy/paper_live.py"
+      - ".github/workflows/reliance-paper.yml"
 
 permissions:
   contents: write
