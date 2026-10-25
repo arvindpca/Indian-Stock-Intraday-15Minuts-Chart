@@ -100,10 +100,10 @@ def main():
         quotes, nifty_ltp = angel_quotes(names)
         src = "Angel One live"
     except Exception as e:
-        print("Angel quotes fail:", e, "-> Yahoo backup")
+        print(f"::warning title=Angel quotes fail::{str(e)[:180]}")
         quotes, nifty_ltp = yahoo_today(names)
         src = "Yahoo (15-20 min delayed)"
-    print(f"quotes {len(quotes)} | source {src} | nifty {nifty_ltp}")
+    print(f"::notice title=3PM data::quotes {len(quotes)} | source {src} | nifty {nifty_ltp}")
     if len(quotes) < 100:
         pt.telegram(f"⚠️ <b>3 PM Alert</b>: aaj ka live data nahi mila ({len(quotes)} stocks). "
                     "Aaj market chhutti to nahi? Shaam wala paper run normal chalega.")
@@ -177,6 +177,7 @@ def main():
     lines += ["", f"Rule: {pt.inr(pt.PER_TRADE)}/trade, max {pt.MAX_POS}, SL 5%, 20 din hold.",
               "<i>3 baje ka data hai - close tak signal badal sakta hai. Paper bot final entry close pe karega.</i>"]
     pt.telegram("\n".join(lines))
+    print(f"::notice title=3PM result::market_ok={market_ok} signals={len(cands)} sell_today={len(sell_today)}")
     if not test:
         pt.append_csv(LOG_F, log_rows)
 
