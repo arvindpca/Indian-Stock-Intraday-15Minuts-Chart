@@ -25,6 +25,10 @@ OUT.mkdir(parents=True, exist_ok=True)
 SPLIT, COST, EOD = f1.SPLIT, f1.COST, f1.EOD
 PAIRS = [(1.0, 1.0), (0.5, 1.0), (0.75, 1.5), (1.0, 2.0)]        # (SL %, TP %)
 KEY = "1.0_2.0"                                                  # main score; robustness uses all pairs
+# Trailing SL exits, no fixed target: (initial SL %, activate after +%, trail distance %)
+TRAILS = {"tr1": (0.75, 0.75, 0.75), "tr2": (1.0, 1.0, 1.0), "tr3": (1.0, 1.0, 0.5), "tr4": (1.5, 1.5, 1.0)}
+TKEY = "tr2"
+FAMILIES = {"FIXED": ([f"{sl}_{tp}" for sl, tp in PAIRS], KEY), "TRAIL": (list(TRAILS), TKEY)}
 MIN_TRADES = 150
 
 
@@ -60,6 +64,39 @@ def outcomes(d):
                 r = np.where((fw == 10 ** 6) & (fl == 10 ** 6), np.clip(eod, -sl, tp), r)
                 res[f"{side}_{sl}_{tp}"][idx] = np.where(np.arange(k) < e, r - COST, np.nan)
     return pd.DataFrame(res, index=d.index)
+
+
+def trailing(d, rows):
+    """Trailing-stop outcome (% net) for entries at `rows` (index positions), both sides.
+    Per candle: stop from earlier candles is checked first (gap fills at open), then the
+    best price so far is updated with this candle's high/low. Exit 15:15 close otherwise.
+    Same rule as backtest_sl_tp.py."""
+    H, L, O, C = (d[c].to_numpy(float) for c in ("high", "low", "open", "close"))
+    M, D = d["minute"].to_numpy(), d["date"].to_numpy()
+    out = {f"{s}_{k}": np.full(len(d), np.nan) for s in ("long", "short") for k in TRAILS}
+    for i in rows:
+        j = i + 1
+        while j < len(d) and D[j] == D[i] and M[j - 1] < EOD:
+            j += 1
+        if j <= i + 1 or M[i] >= EOD:
+            continue
+        sl_idx = slice(i + 1, j)
+        e = C[i]
+        for side in ("long", "short"):
+            if side == "long":
+                hi, lo, op = (H[sl_idx] / e - 1) * 100, (L[sl_idx] / e - 1) * 100, (O[sl_idx] / e - 1) * 100
+                last = (C[j - 1] / e - 1) * 100
+            else:
+                hi, lo, op = (1 - L[sl_idx] / e) * 100, (1 - H[sl_idx] / e) * 100, (1 - O[sl_idx] / e) * 100
+                last = (1 - C[j - 1] / e) * 100
+            best = np.maximum.accumulate(np.maximum(hi, 0))
+            bprev = np.concatenate([[0.0], best[:-1]])
+            for k, (sl, act, dist) in TRAILS.items():
+                stop = np.where(bprev >= act, np.maximum(-sl, bprev - dist), -sl)
+                hit = np.where(lo <= stop)[0]
+                r = min(stop[hit[0]], op[hit[0]]) if len(hit) else last
+                out[f"{side}_{k}"][i] = r - COST
+    return pd.DataFrame(out, index=d.index)
 
 
 def events(d, f):
@@ -109,7 +146,11 @@ def build():
         f = f1.features(d, nifty)
         y = outcomes(d)
         ev = events(d, f)
-        base = pd.concat([f, y], axis=1)
+        any_ev = np.zeros(len(d), bool)
+        for v in ev.values():
+            any_ev |= v.to_numpy()
+        tr_out = trailing(d, np.where(any_ev)[0])
+        base = pd.concat([f, y, tr_out], axis=1)
         base["symbol"] = Path(path).name.replace("_5m.csv", "")
         base["time"] = d["time"].dt.strftime("%Y-%m-%d %H:%M")
         base["date"] = d["date"].astype(str)
@@ -125,21 +166,26 @@ def build():
     return t
 
 
+ALL_EXITS = [f"{sl}_{tp}" for sl, tp in PAIRS] + list(TRAILS)
+
+
 def stats(x, side):
     out = {"trades": len(x)}
     if len(x) == 0:
         return out
-    for sl, tp in PAIRS:
-        v = x[f"{side}_{sl}_{tp}"]
-        out[f"avg_{sl}_{tp}"] = round(v.mean(), 3)
-        out[f"win_{sl}_{tp}"] = round((v > 0).mean() * 100, 1)
+    for k in ALL_EXITS:
+        v = x[f"{side}_{k}"]
+        out[f"avg_{k}"] = round(v.mean(), 3)
+        out[f"win_{k}"] = round((v > 0).mean() * 100, 1)
     out["rs_" + KEY] = round(x[f"{side}_{KEY}"].sum() / 100 * 1e5, 0)
+    out["rs_" + TKEY] = round(x[f"{side}_{TKEY}"].sum() / 100 * 1e5, 0)
     out["days"] = x["date"].nunique()
     return out
 
 
-def robust(st):
-    return st["trades"] >= MIN_TRADES and all(st[f"avg_{sl}_{tp}"] > 0 for sl, tp in PAIRS)
+def robust(st, family):
+    keys = FAMILIES[family][0]
+    return st["trades"] >= MIN_TRADES and all(st[f"avg_{k}"] > 0 for k in keys)
 
 
 def main():
@@ -147,68 +193,66 @@ def main():
     tr, te = t[t.period == "TRAIN"], t[t.period == "TEST"]
     print(f"event rows train={len(tr)} test={len(te)}", flush=True)
     FEATS = f1.FEATS
+    summary = {"events_train": len(tr), "events_test": len(te)}
 
-    # A) every event x direction, no filter (TRAIN only)
+    # A) every event x direction, no filter (TRAIN only), all exits incl. trailing
     base_rows = []
     for ev, g in tr.groupby("event"):
         for side in ("long", "short"):
             base_rows.append({"event": ev, "side": side, **stats(g, side)})
-    base = pd.DataFrame(base_rows).sort_values(f"avg_{KEY}", ascending=False)
-    base.to_csv(OUT / "events_train.csv", index=False)
+    pd.DataFrame(base_rows).sort_values(f"avg_{TKEY}", ascending=False).to_csv(OUT / "events_train.csv", index=False)
 
-    # B) per event x direction: shallow tree on TRAIN -> filtered rules (max 2 conditions)
-    cands = []
-    for ev, g in tr.groupby("event"):
-        for side in ("long", "short"):
-            st = stats(g, side)
-            cands.append({"event": ev, "side": side, "rule": "(no filter)", "conds": [], **{f"TRAIN_{k}": v for k, v in st.items()},
-                          "robust": robust(st)})
-            if len(g) < 3 * MIN_TRADES:
-                continue
-            X = g[FEATS].fillna(-999)
-            y = g[f"{side}_{KEY}"]
-            m = DecisionTreeRegressor(max_depth=2, min_samples_leaf=MIN_TRADES, random_state=0).fit(X, y)
-            tt = m.tree_
+    for family, (keys, score) in FAMILIES.items():
+        # B) per event x direction: shallow tree on TRAIN (target = family score) -> rules
+        cands = []
+        for ev, g in tr.groupby("event"):
+            for side in ("long", "short"):
+                st = stats(g, side)
+                cands.append({"event": ev, "side": side, "rule": "(no filter)", "conds": [],
+                              **{f"TRAIN_{k}": v for k, v in st.items()}, "robust": robust(st, family)})
+                if len(g) < 3 * MIN_TRADES:
+                    continue
+                y = g[f"{side}_{score}"]
+                ok = y.notna()
+                m = DecisionTreeRegressor(max_depth=2, min_samples_leaf=MIN_TRADES, random_state=0)
+                m.fit(g.loc[ok, FEATS].fillna(-999), y[ok])
+                tt = m.tree_
 
-            def walk(node, conds):
-                if tt.children_left[node] == -1:
-                    if not conds:
+                def walk(node, conds):
+                    if tt.children_left[node] == -1:
+                        if conds:
+                            s2 = stats(g[f1.mask_for(g, conds)], side)
+                            cands.append({"event": ev, "side": side, "rule": f1.describe(conds), "conds": conds,
+                                          **{f"TRAIN_{k}": v for k, v in s2.items()}, "robust": robust(s2, family)})
                         return
-                    x = g[f1.mask_for(g, conds)]
-                    s2 = stats(x, side)
-                    cands.append({"event": ev, "side": side, "rule": f1.describe(conds), "conds": conds,
-                                  **{f"TRAIN_{k}": v for k, v in s2.items()}, "robust": robust(s2)})
-                    return
-                fname, thr = FEATS[tt.feature[node]], float(tt.threshold[node])
-                walk(tt.children_left[node], conds + [(fname, "<=", thr)])
-                walk(tt.children_right[node], conds + [(fname, ">", thr)])
-            walk(0, [])
-    c = pd.DataFrame(cands)
-    c = c.sort_values(["robust", f"TRAIN_avg_{KEY}"], ascending=False)
-    c.drop(columns=["conds"]).to_csv(OUT / "all_candidates_train.csv", index=False)
-    summary = {"events_train": len(tr), "events_test": len(te), "candidates_tested": len(c),
-               "robust_on_train": int(c["robust"].sum())}
+                    fname, thr = FEATS[tt.feature[node]], float(tt.threshold[node])
+                    walk(tt.children_left[node], conds + [(fname, "<=", thr)])
+                    walk(tt.children_right[node], conds + [(fname, ">", thr)])
+                walk(0, [])
+        c = pd.DataFrame(cands).sort_values(["robust", f"TRAIN_avg_{score}"], ascending=False)
+        c.drop(columns=["conds"]).to_csv(OUT / f"all_candidates_train_{family}.csv", index=False)
+        summary[family] = {"candidates_tested": len(c), "robust_on_train": int(c["robust"].sum())}
 
-    # C) chosen = robust on TRAIN, best 8 by TRAIN avg; only now look at TEST
-    chosen = c[c["robust"]].head(8)
-    rows, monthly = [], []
-    for _, r in chosen.iterrows():
-        gte = te[te.event == r["event"]]
-        gte = gte[f1.mask_for(gte, r["conds"])] if r["conds"] else gte
-        rows.append({f"TEST_{k}": v for k, v in stats(gte, r["side"]).items()})
-        gall = t[t.event == r["event"]]
-        gall = gall[f1.mask_for(gall, r["conds"])] if r["conds"] else gall
-        gall = gall.assign(month=gall["date"].str[:7])
-        for mon, x in gall.groupby("month"):
-            monthly.append({"event": r["event"], "side": r["side"], "rule": r["rule"], "month": mon,
-                            "trades": len(x), "rs_" + KEY: round(x[f"{r['side']}_{KEY}"].sum() / 100 * 1e5, 0)})
-    if len(chosen):
-        out = pd.concat([chosen.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
-        out.drop(columns=["conds"]).to_csv(OUT / "chosen_rules.csv", index=False)
-        pd.DataFrame(monthly).to_csv(OUT / "chosen_monthly.csv", index=False)
-        with open(OUT / "chosen_rules.json", "w") as fh:
-            json.dump([{"event": r["event"], "side": r["side"], "rule": r["rule"], "conds": r["conds"]}
-                       for _, r in chosen.iterrows()], fh, indent=1)
+        # C) chosen = robust on TRAIN, best 8 by TRAIN score; only now look at TEST
+        chosen = c[c["robust"]].head(8)
+        rows, monthly = [], []
+        for _, r in chosen.iterrows():
+            gte = te[te.event == r["event"]]
+            gte = gte[f1.mask_for(gte, r["conds"])] if r["conds"] else gte
+            rows.append({f"TEST_{k}": v for k, v in stats(gte, r["side"]).items()})
+            gall = t[t.event == r["event"]]
+            gall = gall[f1.mask_for(gall, r["conds"])] if r["conds"] else gall
+            gall = gall.assign(month=gall["date"].str[:7])
+            for mon, x in gall.groupby("month"):
+                monthly.append({"event": r["event"], "side": r["side"], "rule": r["rule"], "month": mon,
+                                "trades": len(x), "rs": round(x[f"{r['side']}_{score}"].sum() / 100 * 1e5, 0)})
+        if len(chosen):
+            out = pd.concat([chosen.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
+            out.drop(columns=["conds"]).to_csv(OUT / f"chosen_rules_{family}.csv", index=False)
+            pd.DataFrame(monthly).to_csv(OUT / f"chosen_monthly_{family}.csv", index=False)
+            with open(OUT / f"chosen_rules_{family}.json", "w") as fh:
+                json.dump([{"event": r["event"], "side": r["side"], "rule": r["rule"], "conds": r["conds"]}
+                           for _, r in chosen.iterrows()], fh, indent=1)
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
 
