@@ -1,4 +1,4 @@
-name: Validate on unseen 1 year (Apr 2025 - Apr 2026)
+name: Validate Aug 2025 - Oct 2026
 
 on:
   push:
@@ -16,9 +16,9 @@ jobs:
       ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
       ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
       ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
-      RANGE_START: "2025-04-28"
-      RANGE_END: "2026-04-27"
-      MAX_SYMBOLS: "3"
+      RANGE_START: "2025-08-01"
+      RANGE_END: "2026-10-24"
+      MAX_SYMBOLS: "0"
       BACKTEST_DAYS: "1000"
       PYTHONUNBUFFERED: "1"
     steps:
@@ -37,7 +37,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: angel-5m-2025-04-28-to-2026-04-27
+          name: angel-5m-2025-08-01-to-2026-10-24
           path: data/
           retention-days: 30
       - name: Push results to validate-results branch
