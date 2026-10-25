@@ -1,0 +1,10 @@
+{
+  "start": "2025-08-01",
+  "end": "2026-10-24",
+  "symbols": 174,
+  "candles": 3812659,
+  "OK": 171,
+  "PARTIAL": 0,
+  "FAILED": 0,
+  "NO_TOKEN": 3
+}
