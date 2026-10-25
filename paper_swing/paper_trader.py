@@ -59,8 +59,15 @@ SL_PCT = 0.05
 MAX_HOLD = 20
 COST = 0.002
 
-TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-TG_CHAT = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+def _clean(v):
+    """Secret me copy hue space / newline / invisible chars / quotes / 'bot' prefix hatao."""
+    import unicodedata
+    v = "".join(c for c in (v or "") if unicodedata.category(c) != "Cf").strip().strip("\"'").strip()
+    return v[3:] if v.lower().startswith("bot") and ":" in v else v
+
+
+TG_TOKEN = _clean(os.getenv("TELEGRAM_BOT_TOKEN"))
+TG_CHAT = _clean(os.getenv("TELEGRAM_CHAT_ID"))
 
 
 # ---------------------------------------------------------------- helpers
