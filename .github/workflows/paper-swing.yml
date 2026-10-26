@@ -3,9 +3,14 @@ name: Paper Swing Trader (daily, after market)
 
 on:
   schedule:
-    # 16:37 IST (market band hone ke baad) + 18:37 IST retry. Mon-Fri. Same din dobara process nahi hota.
+    # Market band ke baad kai slots (IST 4:37, 5:13, 5:43, 6:37, 8:13, 10:13 PM).
+    # GitHub run chhod de to agla pakad le. Same din dobara process nahi hota.
     - cron: "7 11 * * 1-5"
+    - cron: "43 11 * * 1-5"
+    - cron: "13 12 * * 1-5"
     - cron: "7 13 * * 1-5"
+    - cron: "43 14 * * 1-5"
+    - cron: "43 16 * * 1-5"
   workflow_dispatch:
 
 permissions:

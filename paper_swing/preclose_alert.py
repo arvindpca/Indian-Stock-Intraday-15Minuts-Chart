@@ -92,6 +92,14 @@ def yahoo_today(symbols):
 def main():
     now = datetime.now(IST)
     today = pd.Timestamp(os.getenv("PAPER_AS_OF") or now.date())
+    test = os.getenv("PRECLOSE_TEST") == "1"
+    meta = json.loads(pt.META_F.read_text()) if pt.META_F.exists() else {}
+    if not test and meta.get("preclose_sent") == str(today.date()):
+        print("Aaj ka 3 PM alert pehle hi bhej chuke - skip")
+        return
+    if not test and now.hour * 60 + now.minute > 15 * 60 + 22 and not os.getenv("PAPER_AS_OF"):
+        print("3:22 ke baad - alert ka fayda nahi, skip")
+        return
     syms = pt.symbols()
     names = [s.replace(".NS", "") for s in syms]
 
@@ -139,7 +147,6 @@ def main():
     free = pt.MAX_POS - len(positions) + len(sell_today)
     held = {p["symbol"] for p in positions if p not in sell_today}
 
-    test = os.getenv("PRECLOSE_TEST") == "1"
     lines = [("🧪 <b>TEST RUN</b> (market band hai - sirf connection check, isse trade mat lena)\n" if test else "")
              + f"⏰ <b>3 PM Swing Alert | {today:%d %b %Y}</b>  <i>({src}, {now:%H:%M})</i>",
              f"Nifty {nifty_ltp:,.0f} vs 50 EMA {ema.iloc[-1]:,.0f} → "
@@ -180,6 +187,9 @@ def main():
     print(f"::notice title=3PM result::market_ok={market_ok} signals={len(cands)} sell_today={len(sell_today)}")
     if not test:
         pt.append_csv(LOG_F, log_rows)
+        meta = json.loads(pt.META_F.read_text()) if pt.META_F.exists() else {}
+        meta["preclose_sent"] = str(today.date())
+        pt.META_F.write_text(json.dumps(meta, indent=2))
 
 
 if __name__ == "__main__":
