@@ -229,8 +229,13 @@ def main():
     summary["verdict"] = ("CANDIDATE FOR PAPER TRADING (not live)" if robust else
                           "NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs")
     write_json(out / "summary.json", summary)
+    print(f"::notice title=verdict::{summary['verdict']} | symbols {len(tradable_syms)} | dev experiments {len(dev)} | accepted {summary['accepted']}")
     log.info("VERDICT: %s | runtime %.1f min | results -> %s", summary["verdict"], summary["runtime_min"], out)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        print(f"::error title=run_research::{type(exc).__name__}: {str(exc)[:300]}")
+        raise

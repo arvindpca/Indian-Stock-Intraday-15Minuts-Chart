@@ -109,6 +109,7 @@ def main() -> None:
     todo = [s for s in symbols if not _is_fresh(cfg, s, start)]
     log.info("universe=%d | already cached & fresh=%d | to download=%d", len(symbols), len(symbols) - len(todo), len(todo))
     report_path = ROOT / cfg["data"]["report_dir"] / "download_report.csv"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     old = pd.read_csv(report_path) if report_path.exists() else pd.DataFrame()
     report = {r["symbol"]: r for r in old.to_dict("records")} if not old.empty else {}
     for s in symbols:
@@ -132,6 +133,7 @@ def main() -> None:
             api = SmartConnect(api_key=_env("ANGEL_API_KEY"))
             login = api.generateSession(_env("ANGEL_CLIENT_ID"), _env("ANGEL_PASSWORD"), pyotp.TOTP(_env("ANGEL_TOTP_SECRET")).now())
             if not login or not login.get("status"):
+                print("::error title=angel_login::" + str((login or {}).get("message"))[:200])
                 raise SystemExit("Angel login failed: " + str((login or {}).get("message")))
             for n, sym in enumerate(todo, 1):
                 if (time.time() - t0) / 60 > args.time_budget_min:
@@ -160,7 +162,14 @@ def main() -> None:
         "requested": len(symbols), "files_present": present, "status_counts": rep["status"].value_counts().to_dict(),
         "history_days": cfg["data"]["history_days"], "run_end": datetime.now().isoformat()})
     log.info("files present: %d/%d", present, len(symbols))
+    print(f"::notice title=download::files present {present}/{len(symbols)} | status {rep['status'].value_counts().to_dict()}")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as exc:  # surface reason as a GitHub annotation (no credentials in message)
+        print(f"::error title=data_download::{type(exc).__name__}: {str(exc)[:300]}")
+        raise
