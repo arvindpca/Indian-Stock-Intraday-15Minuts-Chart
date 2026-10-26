@@ -1,7 +1,6 @@
 entry_time,side,entry,exit_time,exit,reason,ret_pct,period
-2025-10-10 12:50:00,BUY,1385.9,2025-10-10 13:10:00,1383.16,trail SL,-0.258,train (rules chune)
-2025-10-13 09:35:00,SELL,1371.7,2025-10-13 13:10:00,1373.36,trail SL,-0.181,train (rules chune)
-2025-10-14 09:35:00,BUY,1383.5,2025-10-14 09:55:00,1378.24,trail SL,-0.44,train (rules chune)
+2025-10-13 13:45:00,BUY,1373.3,2025-10-13 15:15:00,1376.0,15:15 exit,0.137,train (rules chune)
+2025-10-14 09:35:00,BUY,1383.5,2025-10-14 09:55:00,1378.22,trail SL,-0.442,train (rules chune)
 2025-10-15 09:35:00,BUY,1380.0,2025-10-15 14:05:00,1376.09,trail SL,-0.343,train (rules chune)
 2025-10-16 09:35:00,BUY,1380.7,2025-10-16 10:10:00,1376.72,trail SL,-0.348,train (rules chune)
 2025-10-17 09:35:00,BUY,1406.8,2025-10-17 09:45:00,1400.71,trail SL,-0.493,train (rules chune)
@@ -253,3 +252,4 @@ entry_time,side,entry,exit_time,exit,reason,ret_pct,period
 2026-10-21 09:35:00,BUY,1229.2,2026-10-21 09:50:00,1221.61,trail SL,-0.678,test (unseen)
 2026-10-22 09:35:00,SELL,1191.6,2026-10-22 09:40:00,1199.37,trail SL,-0.712,test (unseen)
 2026-10-23 09:35:00,BUY,1193.9,2026-10-23 10:05:00,1185.16,trail SL,-0.792,test (unseen)
+2026-10-26 09:35:00,SELL,1180.8,2026-10-26 09:55:00,1189.64,trail SL,-0.809,test (unseen)
