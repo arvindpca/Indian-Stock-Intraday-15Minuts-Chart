@@ -1,0 +1,7 @@
+{
+  "symbols": "",
+  "min_trades_dev": null,
+  "min_trades_val": null,
+  "workers": 2,
+  "out": "research_results/run_2026-10-27_0311"
+}

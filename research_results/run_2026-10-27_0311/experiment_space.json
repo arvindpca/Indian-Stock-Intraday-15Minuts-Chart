@@ -1,0 +1,73 @@
+{
+  "triggers": [
+    "BB_BRK",
+    "BOS",
+    "EMA_X",
+    "FVG",
+    "MACD_X",
+    "MSS",
+    "NBAR_BRK",
+    "OPEN",
+    "ORB",
+    "PDH_BRK",
+    "RETEST",
+    "RSI_REV",
+    "ST_FLIP",
+    "SWEEP",
+    "VWAP_X"
+  ],
+  "filters": [
+    "ABOVE_OR",
+    "ADX20",
+    "ATR_OK",
+    "BB_IN",
+    "BODY",
+    "CLOC",
+    "DI",
+    "DTREND",
+    "EMA50",
+    "EMA_STACK",
+    "GAP_AGAINST",
+    "GAP_SMALL",
+    "GAP_WITH",
+    "MACD_POS",
+    "MKT",
+    "RSI_MOM",
+    "RVOL15",
+    "ST",
+    "T_AM",
+    "T_MID",
+    "T_PM",
+    "VOLREG_HI",
+    "VOLREG_LO",
+    "VOL_SPIKE",
+    "VWAP"
+  ],
+  "exits": {
+    "sl_atr": [
+      1.0,
+      1.5,
+      2.0
+    ],
+    "rr": [
+      1.5,
+      2.0,
+      0
+    ]
+  },
+  "n_dev_experiments": 1016,
+  "splits": {
+    "dev": [
+      "2024-10-28",
+      "2025-10-24"
+    ],
+    "val": [
+      "2025-10-27",
+      "2026-04-28"
+    ],
+    "oos": [
+      "2026-04-29",
+      "2026-10-26"
+    ]
+  }
+}

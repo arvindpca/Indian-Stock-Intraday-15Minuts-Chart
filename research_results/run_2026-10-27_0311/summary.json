@@ -1,0 +1,41 @@
+{
+  "run_id": "2026-10-27_0311",
+  "runtime_min": 1.58,
+  "splits": {
+    "dev": [
+      "2024-10-28",
+      "2025-10-24"
+    ],
+    "val": [
+      "2025-10-27",
+      "2026-04-28"
+    ],
+    "oos": [
+      "2026-04-29",
+      "2026-10-26"
+    ]
+  },
+  "symbols_used": 169,
+  "n_dev_experiments": 1016,
+  "n_fdr_significant_dev": 0,
+  "validation_candidates": 0,
+  "accepted": 0,
+  "strict_accepted": 0,
+  "oos_status": "REJECTED_TRANSPARENCY_ONLY",
+  "oos_strategies": [],
+  "oos_portfolio": {
+    "trades": 0
+  },
+  "walkforward": {
+    "L": {
+      "trades": 0
+    },
+    "S": {
+      "trades": 0
+    },
+    "combined": {
+      "trades": 0
+    }
+  },
+  "verdict": "NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs"
+}

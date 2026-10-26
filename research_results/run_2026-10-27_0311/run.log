@@ -1,0 +1,9 @@
+2026-10-27 03:11:53,202 INFO quality: {'WARN': 98, 'PASS': 72, 'MISSING': 3, 'FAIL': 2}
+2026-10-27 03:11:53,207 INFO features: 0 cached, 169 to build (workers=2)
+2026-10-27 03:12:15,403 INFO panel rows=81168 (symbol-days) | splits {'dev': ('2024-10-28', '2025-10-24'), 'val': ('2025-10-27', '2026-04-28'), 'oos': ('2026-04-29', '2026-10-26')}
+2026-10-27 03:12:46,126 INFO stage1: 270 experiments, 270 with >= 150 trades
+2026-10-27 03:12:55,119 INFO stage2: 300 experiments, 142 improve on trigger alone
+2026-10-27 03:13:02,844 INFO total dev experiments: 1016 | FDR-significant (alpha=0.10): 0
+2026-10-27 03:13:02,859 INFO validation: 0 candidates, 0 accepted, 0 strict-accepted
+2026-10-27 03:13:19,268 INFO walk-forward: 6 folds, pool=270 configs
+2026-10-27 03:13:23,692 INFO VERDICT: NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs | runtime 1.6 min | results -> research_results/run_2026-10-27_0311

@@ -1,0 +1,18 @@
+{
+  "requested": 174,
+  "quality_status": {
+    "WARN": 98,
+    "PASS": 72,
+    "MISSING": 3,
+    "FAIL": 2
+  },
+  "usable_symbols": 169,
+  "market_data": true,
+  "check_15m_vs_reference": {},
+  "known_limitations": [
+    "Universe = today's stock_names.txt -> survivorship bias (delisted/renamed stocks absent)",
+    "Angel candles appear split/bonus adjusted (no large gaps in RELIANCE 2024 bonus); large gaps are flagged, not fixed",
+    "No sector map in repo -> sector breakdown not reported",
+    "No F&O contract-level data -> no options backtest (stock OHLCV is NOT option data)"
+  ]
+}

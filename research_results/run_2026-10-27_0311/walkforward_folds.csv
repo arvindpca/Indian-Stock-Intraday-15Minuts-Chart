@@ -1,0 +1,13 @@
+fold,side,train,test,chosen,train_expR,test_trades
+0,L,2024-10..2025-03,2025-04..2025-05,FLAT (no positive config in train),-0.19762857166711506,0
+0,S,2024-10..2025-03,2025-04..2025-05,FLAT (no positive config in train),-0.1321443894111059,0
+1,L,2024-12..2025-05,2025-06..2025-07,FLAT (no positive config in train),-0.19095578370034874,0
+1,S,2024-12..2025-05,2025-06..2025-07,FLAT (no positive config in train),-0.12229320925782419,0
+2,L,2025-02..2025-07,2025-08..2025-09,FLAT (no positive config in train),-0.1874800118817476,0
+2,S,2025-02..2025-07,2025-08..2025-09,FLAT (no positive config in train),-0.12562794531155083,0
+3,L,2025-04..2025-09,2025-10..2025-11,FLAT (no positive config in train),-0.23152200356399252,0
+3,S,2025-04..2025-09,2025-10..2025-11,FLAT (no positive config in train),-0.16585429679390248,0
+4,L,2025-06..2025-11,2025-12..2026-01,FLAT (no positive config in train),-0.2810046027083178,0
+4,S,2025-06..2025-11,2025-12..2026-01,FLAT (no positive config in train),-0.1398391384018006,0
+5,L,2025-08..2026-01,2026-02..2026-03,FLAT (no positive config in train),-0.27856012887682363,0
+5,S,2025-08..2026-01,2026-02..2026-03,FLAT (no positive config in train),-0.14853665608300948,0
