@@ -1,0 +1,2 @@
+id,date,symbol,token,side,signal_candle,entry,sl,tp,status,exit_time,exit,gross_pct,net_pct,net_rs,zone
+AFCONS-EQ|2026-10-26 13:35:00 IST,2026-10-26,AFCONS-EQ,25977,SHORT,2026-10-26 13:35:00,212.10,215.28,207.86,OPEN,,,,,,BEAR OB
