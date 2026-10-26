@@ -1,8 +1,8 @@
 # Paper Swing - Live Status
 
-**Last update:** 23 Oct 2026 | **Started:** 2026-10-23 | Capital Rs 2,50,000 (Rs 50k × 5)
+**Last update:** 26 Oct 2026 | **Started:** 2026-10-23 | Capital Rs 1,00,000 (Rs 20,000 × 5)
 
-**Nifty:** 22,600 vs 50 EMA 23,229 → naya trade nahi
+**Nifty:** 22,753 vs 50 EMA 23,211 → naya trade nahi
 
 | Realized | Open P&L | Kul | Closed trades | Win |
 |---|---|---|---|---|
