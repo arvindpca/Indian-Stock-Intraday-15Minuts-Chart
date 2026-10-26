@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "reliance_strategy/**"
+      - "reliance_strategy/reliance_intraday_backtest.py"
       - ".github/workflows/reliance-strategy.yml"
 
 permissions:
