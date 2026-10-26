@@ -1,0 +1,3 @@
+symbol,status,reasons,rows_raw,first,last,trading_days,market_days_missing,dup_ts,invalid_ohlc,out_of_session,zero_volume_bars,missing_bars,complete_day_pct,special_session_days,corp_action_suspect_days,max_bar_jump_pct,median_turnover_cr
+NIFTY,WARN,complete days 88.16%,56080,2024-10-28 09:15:00,2026-10-26 15:25:00,490,3,0,0,162,36661,106,88.16,1,,0.86,
+RELIANCE,WARN,complete days 88.16%,56041,2024-10-28 09:15:00,2026-10-26 15:25:00,490,3,0,0,162,29,129,88.16,1,,1.48,1548.28

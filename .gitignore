@@ -4,3 +4,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# research system: raw candles + feature cache (kept in GitHub Actions cache, not git)
+research_data/

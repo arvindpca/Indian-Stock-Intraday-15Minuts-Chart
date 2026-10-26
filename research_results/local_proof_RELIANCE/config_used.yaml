@@ -1,0 +1,75 @@
+# NSE intraday strategy research - configuration
+# Har setting yahan se badli ja sakti hai. Code me hard-coded number nahi.
+
+universe_file: stock_names.txt        # 174 symbols (user choice)
+market_symbol: NIFTY                  # market regime filter ke liye (Angel token 99926000)
+
+data:
+  raw_dir: research_data/raw/5m        # per-symbol CSV.gz (gitignored, GitHub cache me rakha jata hai)
+  report_dir: research_data/reports
+  history_days: 730                    # 2 saal
+  chunk_days: 30                       # Angel FIVE_MINUTE request size (pehle se working)
+  request_gap_sec: 0.4                 # Angel historical API rate limit ke andar
+  refresh_if_older_than_days: 1        # cache reuse: isse purana ho tabhi naya data lao
+  # Repo me pehle se pada validated data - re-download nahi karna
+  local_seed:
+    RELIANCE: reliance_strategy/data/RELIANCE_5m_3y.csv
+    NIFTY: reliance_strategy/data/NIFTY_5m_3y.csv
+
+quality:
+  bars_per_day: 75                     # 09:15 se 15:25 tak 5-min
+  special_session_max_bars: 20         # isse kam candles = Muhurat/special session -> trade nahi
+  min_trading_days: 200
+  min_median_turnover_cr: 5.0          # roz ka median turnover (crore) - illiquid stocks reject
+  corp_action_gap_pct: 15.0            # overnight gap isse bada = corporate action suspect, us din trade nahi
+  max_bar_jump_pct: 10.0
+
+session:
+  first_bar: "09:15"
+  entry_start: "09:30"                 # signal candle ka time >= ye
+  entry_end: "14:40"                   # signal candle ka time <= ye
+  square_off: "15:15"                  # is candle ke open par forced exit
+
+splits:                                # trading days ke hisaab se, chronological
+  dev: 0.50
+  val: 0.25
+  oos: 0.25                            # untouched - sirf final report me ek baar
+
+walkforward:
+  train_months: 6
+  test_months: 2
+
+costs:                                 # Angel One equity intraday (Oct 2026, angelone.in)
+  brokerage_pct: 0.10                  # per order
+  brokerage_cap: 20.0
+  brokerage_min: 5.0
+  stt_sell_pct: 0.025
+  exchange_pct: 0.0030699              # NSE, dono side
+  sebi_per_crore: 10.0
+  ipft_pct: 0.0000001
+  stamp_buy_pct: 0.003
+  gst_pct: 18.0
+  slippage_pct: 0.03                   # har fill par (spread + impact); sensitivity 0x-3x report me
+
+risk:
+  capital: 500000
+  risk_per_trade: 1000                 # SL lagne par max loss (Rs)
+  max_notional: 200000                 # ek trade me max paisa (leverage assume nahi)
+  max_vol_participation: 0.02          # qty <= 2% of avg 5-min volume
+  max_positions: 5
+  daily_loss_limit: 3000
+
+exits:
+  sl_atr: [1.0, 1.5, 2.0]              # stop = entry -/+ k * ATR(14, 5m)
+  rr: [1.5, 2.0, 0]                    # target = rr * risk; 0 = target nahi, sirf SL ya square-off
+
+discovery:
+  swing_k: 3                           # swing high/low pivot (confirmation k candles baad)
+  nbar_lookback: 12
+  min_trades_dev: 150
+  min_trades_val: 60
+  top_triggers: 6                      # per direction, stage 2 me jayenge
+  top_pairs: 10                        # per direction, stage 3 me jayenge
+  finalists: 5                         # per direction
+  fdr_alpha: 0.10
+  min_positive_month_frac: 0.55

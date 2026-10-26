@@ -1,0 +1,7 @@
+{
+  "symbols": "RELIANCE",
+  "min_trades_dev": 60,
+  "min_trades_val": 25,
+  "workers": 2,
+  "out": "research_results/local_proof_RELIANCE"
+}

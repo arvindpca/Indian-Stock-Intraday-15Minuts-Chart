@@ -1,0 +1,128 @@
+{
+  "run_id": "2026-10-26_1930",
+  "runtime_min": 0.12,
+  "splits": {
+    "dev": [
+      "2024-10-28",
+      "2025-10-24"
+    ],
+    "val": [
+      "2025-10-27",
+      "2026-04-28"
+    ],
+    "oos": [
+      "2026-04-29",
+      "2026-10-26"
+    ]
+  },
+  "symbols_used": 1,
+  "n_dev_experiments": 1030,
+  "n_fdr_significant_dev": 0,
+  "validation_candidates": 15,
+  "accepted": 1,
+  "strict_accepted": 0,
+  "oos_status": "ACCEPTED",
+  "oos_strategies": [
+    {
+      "id": "S|MSS|DI+GAP_SMALL|sl2.0|rr0.0",
+      "stage": "oos",
+      "period": "oos",
+      "side": "S",
+      "trigger": "MSS",
+      "filters": "DI+GAP_SMALL",
+      "sl_atr": 2.0,
+      "rr": 0.0,
+      "slip_mult": 1.0,
+      "trades": 24,
+      "net_pnl": 3174.2734762955115,
+      "win_rate": 50.0,
+      "profit_factor": 1.3205690685781737,
+      "expectancy_rs": 132.26139484564632,
+      "expectancy_R": 0.30909011535650954,
+      "max_drawdown": -3142.550127845083,
+      "max_losing_streak": 3,
+      "positive_month_frac": 0.7142857142857143,
+      "t_stat": 0.8822404458616525,
+      "p_value": 0.19338731013488353,
+      "charges": 2786.9435993040975,
+      "symbols_traded": 1,
+      "status": "ACCEPTED",
+      "oos_expR_slip0x": 0.48515672040221974,
+      "oos_expR_slip1x": 0.30909011535650954,
+      "oos_expR_slip2x": 0.13302351031076642,
+      "oos_expR_slip3x": -0.043043094734963705
+    }
+  ],
+  "oos_portfolio": {
+    "trades": 24,
+    "net_pnl": 3174.2734762955115,
+    "gross_pnl_before_costs": 8757.32599779994,
+    "charges": 2786.9435993040975,
+    "slippage": 2796.10892220033,
+    "win_rate": 50.0,
+    "avg_win": 1089.689081824641,
+    "avg_loss": -825.1662921333485,
+    "profit_factor": 1.3205690685781737,
+    "expectancy_rs": 132.26139484564632,
+    "expectancy_R": 0.30909011535650954,
+    "max_drawdown": -3142.550127845083,
+    "max_drawdown_pct": -0.6254823701724356,
+    "max_losing_streak": 3,
+    "exposure_pct": 1.2986449864498646,
+    "months": 7,
+    "positive_month_frac": 0.7142857142857143,
+    "t_stat": 0.8822404458616525,
+    "p_value": 0.19338731013488353,
+    "symbols_traded": 1
+  },
+  "walkforward": {
+    "L": {
+      "trades": 0
+    },
+    "S": {
+      "trades": 34,
+      "net_pnl": -6625.900852266716,
+      "gross_pnl_before_costs": 1445.5427410007096,
+      "charges": 4007.649876090324,
+      "slippage": 4063.7937171771023,
+      "win_rate": 35.294117647058826,
+      "avg_win": 696.3398646889782,
+      "avg_loss": -680.9990558424753,
+      "profit_factor": 0.5577419544376937,
+      "expectancy_rs": -194.87943683137402,
+      "expectancy_R": -0.3585563640485695,
+      "max_drawdown": -6512.218042744207,
+      "max_drawdown_pct": -1.3036938588779574,
+      "max_losing_streak": 4,
+      "exposure_pct": NaN,
+      "months": 4,
+      "positive_month_frac": 0.25,
+      "t_stat": -1.1310438834464849,
+      "p_value": 0.8669051523897617,
+      "symbols_traded": 1
+    },
+    "combined": {
+      "trades": 34,
+      "net_pnl": -6625.900852266716,
+      "gross_pnl_before_costs": 1445.5427410007096,
+      "charges": 4007.649876090324,
+      "slippage": 4063.7937171771023,
+      "win_rate": 35.294117647058826,
+      "avg_win": 696.3398646889782,
+      "avg_loss": -680.9990558424753,
+      "profit_factor": 0.5577419544376937,
+      "expectancy_rs": -194.87943683137402,
+      "expectancy_R": -0.3585563640485695,
+      "max_drawdown": -6512.218042744207,
+      "max_drawdown_pct": -1.3036938588779574,
+      "max_losing_streak": 4,
+      "exposure_pct": NaN,
+      "months": 4,
+      "positive_month_frac": 0.25,
+      "t_stat": -1.1310438834464849,
+      "p_value": 0.8669051523897617,
+      "symbols_traded": 1
+    }
+  },
+  "verdict": "NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs"
+}
