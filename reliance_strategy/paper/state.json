@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-26",
+  "trades": {
+    "MOM-20261026-0935": {
+      "entry_sent": true,
+      "last_sl": 1189.64,
+      "exit_sent": true
+    }
+  },
+  "day_end_sent": true
+}
