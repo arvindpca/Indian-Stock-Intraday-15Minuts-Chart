@@ -1,29 +1,8 @@
-time 2026-10-26 17:32 IST
-ANGEL_API_KEY: set (len 9)
-ANGEL_CLIENT_ID: set (len 8)
+time 2026-10-26 17:33 IST
+ANGEL_API_KEY: set (len 8)
+ANGEL_CLIENT_ID: set (len 7)
 ANGEL_PASSWORD: set (len 4)
 ANGEL_TOTP_SECRET: set (len 26)
-EXCEPTION:
-.12.15/x64/lib/python3.12/site-packages/requests/sessions.py", line 651, in request
-    resp = self.send(prep, **send_kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/requests/sessions.py", line 784, in send
-    r = adapter.send(request, **kwargs)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/requests/adapters.py", line 696, in send
-    resp = conn.urlopen(
-           ^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/urllib3/connectionpool.py", line 793, in urlopen
-    response = self._make_request(
-               ^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/urllib3/connectionpool.py", line 499, in _make_request
-    conn.request(
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/urllib3/connection.py", line 566, in request
-    self.putheader(header, value)
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/urllib3/connection.py", line 480, in putheader
-    super().putheader(header, *values)
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/http/client.py", line 1359, in putheader
-    values[i] = one_value.encode('latin-1')
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-UnicodeEncodeError: 'latin-1' codec can't encode character '\u200e' in position 8: ordinal not in range(256)
-
+login status=True message=SUCCESS errorcode= (1.4s)
+candles status=True message=SUCCESS errorcode= rows=293 (0.9s)
+last candle ['2026-10-26T15:25:00+05:30', 1206.0, 1206.0, 1201.8, 1201.8, 952879]
