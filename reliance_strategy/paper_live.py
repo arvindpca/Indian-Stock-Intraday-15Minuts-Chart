@@ -1,39 +1,48 @@
 """
-Reliance PAPER TRADE (live) -- 20-Minute Momentum + 2-ATR Trailing Stop
------------------------------------------------------------------------
-GitHub Actions har 5 minute (market time) isko chalata hai. Har run me:
-  1. Angel One se Reliance ke 5-min candle (pichle kuch din + aaj) laata hai
-     -- sirf POORI band ho chuki candles use hoti hain.
-  2. Aaj ka din shuru se dobara simulate karta hai (final_strategy.py wale hi rules),
-     isliye agar koi run late ho ya miss ho jaye, tab bhi result same rehta hai.
-  3. Jo naya hua (entry / SL khiska / exit) uska Telegram alert bhejta hai.
-  4. Exit hone pe trade reliance_strategy/paper/paper_trades.csv me likhta hai.
+Reliance PAPER TRADE (live) -- 2 strategies, 1 position, Rs 1 lakh
+------------------------------------------------------------------
+Strategies (book.py me rules):
+  MOM = 20-Min Momentum + 2xATR trailing SL (BUY/SELL)
+  PBS = VWAP Pullback Short (sirf SELL, fixed SL + 2R target)
+Kaun si chalani hai: env PAPER_STRATEGIES="MOM,PBS" (ya sirf "PBS" / "MOM").
 
-Koi asli order nahi lagta. Entry price = signal ke baad wali candle ka open (backtest jaisa).
+Har run:
+  1. Angel One se Reliance + Nifty ke 5-min candle (sirf poori band candles).
+  2. Aaj ka din shuru se dobara simulate (book.simulate_day) -> run late/miss ho to bhi same result.
+  3. Har trade ka ek ID hota hai (strategy + entry time). state.json me likha rehta hai
+     ki kaunsa alert ja chuka -> koi alert / entry DUPLICATE nahi hoti.
+  4. Band trade paper/paper_trades.csv me (ek ID ek baar).
 
-Local test (purane data pe ek din replay):
-  python reliance_strategy/paper_live.py --replay 2026-10-14
+Modes:
+  python reliance_strategy/paper_live.py            # ek baar check
+  python reliance_strategy/paper_live.py --loop     # market band hone tak har 5 min (GitHub job)
+  python reliance_strategy/paper_live.py --replay 2026-10-15   # purane data pe din replay (dry)
+  python reliance_strategy/paper_live.py --hello    # Telegram test
 """
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 import unicodedata
 from datetime import datetime, timedelta
 
-import numpy as np
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from final_strategy import COST, EXIT, LAST_ENTRY, START, TRAIL_ATR, prepare_df  # noqa: E402
+from book import CAPITAL, NAMES, pending_signal, prepare_all, simulate_day  # noqa: E402
+from final_strategy import EXIT, TRAIL_ATR  # noqa: E402
 
 PAPER = os.path.join(HERE, "paper")
 STATE = os.path.join(PAPER, "state.json")
 TRADES = os.path.join(PAPER, "paper_trades.csv")
-QTY = int(os.getenv("PAPER_QTY", "100"))          # paper quantity (sirf rupee P&L dikhane ke liye)
-SL_ALERT_STEP = 1.0                               # SL itna (x ATR) khiske tabhi update alert
+STRATS = [s.strip().upper() for s in os.getenv("PAPER_STRATEGIES", "MOM,PBS").split(",") if s.strip()]
+SL_ALERT_STEP = 1.0          # MOM ka trailing SL itna (x ATR) khiske tab update alert
+TOKENS = {"RELIANCE": "2885", "NIFTY": "99926000"}
+COLS = ["id", "date", "strategy", "side", "entry_time", "entry", "exit_time", "exit", "reason",
+        "qty", "ret_pct", "pnl_rs"]
 
 
 def _env(name):
@@ -45,70 +54,45 @@ def ist_now():
 
 
 # ------------------------------------------------------------------ data
-def fetch_angel(now):
-    from SmartApi import SmartConnect
-    import pyotp
+_api = None
 
-    api = SmartConnect(api_key=_env("ANGEL_API_KEY"))
-    login = api.generateSession(_env("ANGEL_CLIENT_ID"), _env("ANGEL_PASSWORD"),
-                                pyotp.TOTP(_env("ANGEL_TOTP_SECRET")).now())
-    if not login or not login.get("status"):
-        sys.exit(f"Angel One login fail: {login and login.get('message')}")
-    params = {"exchange": "NSE", "symboltoken": "2885", "interval": "FIVE_MINUTE",
+
+def angel():
+    global _api
+    if _api is None:
+        from SmartApi import SmartConnect
+        import pyotp
+        api = SmartConnect(api_key=_env("ANGEL_API_KEY"))
+        login = api.generateSession(_env("ANGEL_CLIENT_ID"), _env("ANGEL_PASSWORD"),
+                                    pyotp.TOTP(_env("ANGEL_TOTP_SECRET")).now())
+        if not login or not login.get("status"):
+            raise RuntimeError(f"Angel One login fail: {login and login.get('message')}")
+        _api = api
+    return _api
+
+
+def fetch(sym, now):
+    global _api
+    params = {"exchange": "NSE", "symboltoken": TOKENS[sym], "interval": "FIVE_MINUTE",
               "fromdate": (now - timedelta(days=7)).strftime("%Y-%m-%d 09:15"),
               "todate": now.strftime("%Y-%m-%d %H:%M")}
-    for attempt in range(3):
+    for attempt in range(4):
         try:
-            r = api.getCandleData(params)
-            rows = (r or {}).get("data") or []
+            rows = (angel().getCandleData(params) or {}).get("data") or []
             if rows:
-                break
+                d = pd.DataFrame(rows, columns=["datetime", "open", "high", "low", "close", "volume"])
+                d["datetime"] = pd.to_datetime(d["datetime"]).dt.tz_localize(None)
+                return d.drop_duplicates("datetime").set_index("datetime").sort_index()
         except Exception as e:
-            print("candle fetch retry:", e)
+            print(f"{sym} fetch retry {attempt + 1}:", e)
+            if attempt == 1:
+                _api = None          # dobara login
         time.sleep(3)
-    else:
-        sys.exit("Angel One se candle nahi mile")
-    d = pd.DataFrame(rows, columns=["datetime", "open", "high", "low", "close", "volume"])
-    d["datetime"] = pd.to_datetime(d["datetime"]).dt.tz_localize(None)
-    return d.drop_duplicates("datetime").set_index("datetime").sort_index()
+    raise RuntimeError(f"{sym}: Angel One se candle nahi mile")
 
 
 def completed(d, now):
-    """Sirf wo candles jo poori band ho chuki hain (start + 5 min <= abhi)."""
     return d[d.index + pd.Timedelta(minutes=5) <= now]
-
-
-# -------------------------------------------------------------- simulate
-def simulate_today(d, today):
-    """Aaj ke din ko rules ke hisaab se chalao. Return: dict ya None (aaj signal nahi)."""
-    t = d[d.day == pd.Timestamp(today)]
-    if t.empty:
-        return None
-    o, h, l, c, a = t.open.values, t.high.values, t.low.values, t.close.values, t.atr.values
-    tod, sig, idx = t.tod.values, t.signal.values, t.index
-    for i in range(len(t)):
-        s = sig[i]
-        if not (s and START <= tod[i] <= LAST_ENTRY):
-            continue
-        if i + 1 >= len(t):           # signal aaya, entry candle abhi band nahi hui
-            return dict(status="pending", side=int(s), signal_time=str(idx[i]))
-        e, R = o[i + 1], a[i]
-        stop = e - s * TRAIL_ATR * R
-        tr = dict(status="open", side=int(s), signal_time=str(idx[i]), entry_time=str(idx[i + 1]),
-                  entry=round(float(e), 2), atr=round(float(R), 2), init_sl=round(float(stop), 2))
-        for j in range(i + 1, len(t)):
-            if (s == 1 and l[j] <= stop) or (s == -1 and h[j] >= stop):
-                tr.update(status="closed", exit=round(float(stop), 2), exit_time=str(idx[j]), reason="Trailing SL hit")
-                break
-            stop = max(stop, c[j] - TRAIL_ATR * R) if s == 1 else min(stop, c[j] + TRAIL_ATR * R)
-            if tod[j] >= EXIT:
-                tr.update(status="closed", exit=round(float(c[j]), 2), exit_time=str(idx[j]), reason="15:15 time exit")
-                break
-        tr["sl"] = round(float(stop), 2)
-        tr["last_close"] = round(float(c[-1]), 2)
-        tr["last_time"] = str(idx[-1])
-        return tr
-    return None
 
 
 # ----------------------------------------------------------- telegram
@@ -130,16 +114,19 @@ def hhmm(ts):
 
 
 def side_txt(s):
-    return "🟢 BUY" if s == 1 else "🔴 SELL"
+    return "🟢 BUY" if s == "BUY" else "🔴 SELL"
 
 
-# --------------------------------------------------------------- state
-def load_state():
+# --------------------------------------------------------------- files
+def load_state(today):
     try:
         with open(STATE) as f:
-            return json.load(f)
+            st = json.load(f)
     except Exception:
-        return {}
+        st = {}
+    if st.get("date") != str(today) or "trades" not in st:
+        st = {"date": str(today), "trades": {}}
+    return st
 
 
 def save_state(st):
@@ -148,121 +135,192 @@ def save_state(st):
         json.dump(st, f, indent=2)
 
 
-def record_trade(tr, today):
+def load_trades():
+    if not os.path.exists(TRADES):
+        return pd.DataFrame(columns=COLS)
+    df = pd.read_csv(TRADES)
+    if "id" not in df.columns:               # purana format (sirf MOM, qty 100) -> naya format
+        df["strategy"] = "MOM"
+        df["id"] = "MOM-" + pd.to_datetime(df.entry_time).dt.strftime("%Y%m%d-%H%M")
+    return df.reindex(columns=COLS)
+
+
+def record_trade(p, today):
     os.makedirs(PAPER, exist_ok=True)
-    s = tr["side"]
-    ret = s * (tr["exit"] - tr["entry"]) / tr["entry"] - COST
-    row = dict(date=str(today), side="BUY" if s == 1 else "SELL", entry_time=tr["entry_time"], entry=tr["entry"],
-               exit_time=tr["exit_time"], exit=tr["exit"], reason=tr["reason"],
-               ret_pct=round(ret * 100, 3), pnl_rs=round(ret * tr["entry"] * QTY, 2), qty=QTY)
-    df = pd.read_csv(TRADES) if os.path.exists(TRADES) else pd.DataFrame()
-    if not df.empty and ((df.date == row["date"]).any()):
-        return df, row
+    df = load_trades()
+    if (df["id"] == p["id"]).any():          # pehle se likha hai -> duplicate nahi
+        return df
+    row = {k: p.get(k) for k in COLS}
+    row["date"] = str(today)
     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     df.to_csv(TRADES, index=False)
-    return df, row
+    return df
 
 
 def write_status(df):
-    lines = ["## Reliance paper trade status\n"]
-    if df is None or df.empty:
+    lines = [f"## Reliance paper trade status (capital ₹{CAPITAL:,.0f}, ek position)\n\n",
+             f"Strategies: {', '.join(NAMES[s] for s in STRATS)}\n\n"]
+    if df.empty:
         lines.append("Abhi tak koi paper trade band nahi hua.\n")
     else:
-        r = df.ret_pct
-        pf = r[r > 0].sum() / -r[r < 0].sum() if (r < 0).any() else float("inf")
-        lines.append(f"Trades: {len(df)} | Win: {(r > 0).mean() * 100:.0f}% | Total: {r.sum():+.2f}% "
-                     f"| P&L: ₹{df.pnl_rs.sum():+,.0f} (qty {QTY}) | Profit Factor: {pf:.2f}\n\n")
-        lines.append(df.tail(15).to_markdown(index=False) + "\n")
+        def line(name, g):
+            p = g.pnl_rs.astype(float)
+            pf = p[p > 0].sum() / -p[p < 0].sum() if (p < 0).any() else float("inf")
+            return (f"| {name} | {len(g)} | {(p > 0).mean() * 100:.0f}% | ₹{p.sum():+,.0f} | "
+                    f"{p.sum() / CAPITAL * 100:+.2f}% | {pf:.2f} |\n")
+        lines.append("| | Trades | Win | P&L | Return | Profit Factor |\n|---|---|---|---|---|---|\n")
+        lines.append(line("**TOTAL**", df))
+        for s, g in df.groupby("strategy"):
+            lines.append(line(NAMES.get(s, s), g))
+        lines.append("\n### Last 20 trades\n\n" + df.tail(20).drop(columns=["id"]).to_markdown(index=False) + "\n")
     with open(os.path.join(PAPER, "STATUS.md"), "w") as f:
         f.write("".join(lines))
 
 
-# ------------------------------------------------------------------ main
-def run(raw, now, dry=False):
+def totals_line(df):
+    p = df.pnl_rs.astype(float)
+    return f"Ab tak: {len(df)} trades, {(p > 0).mean() * 100:.0f}% win, total ₹{p.sum():+,.0f} ({p.sum() / CAPITAL * 100:+.2f}%)"
+
+
+# ------------------------------------------------------------------ core
+def run(rel, nif, now, dry=False):
     today = now.date()
-    d = completed(raw, now)
-    if d.empty or d.index[-1].date() != today:
+    rel, nif = completed(rel, now), completed(nif, now)
+    if rel.empty or rel.index[-1].date() != today:
         print(f"{now:%Y-%m-%d %H:%M} -- aaj ka koi candle nahi (holiday / market abhi khula nahi).")
-        return
-    d = prepare_df(d)
-    tr = simulate_today(d, today)
-    st = load_state()
-    if st.get("date") != str(today):
-        st = {"date": str(today)}
-    last = d.iloc[-1]
-    print(f"{now:%H:%M} IST | last candle {d.index[-1]:%H:%M} close {last.close:.2f} "
-          f"move {last.move:+.2f} ATR | trade: {tr and tr['status']}")
+        return False
+    d = prepare_all(rel, nif)
+    if "MOM" not in STRATS:
+        d["signal"] = 0
+    if "PBS" not in STRATS:
+        d["pb_filter"] = False
+    t = d[d.day == pd.Timestamp(today)]
+    trades = simulate_day(t)
+    st = load_state(today)
+    last = t.iloc[-1]
+    print(f"{now:%H:%M} IST | last candle {t.index[-1]:%H:%M} close {last.close:.2f} | "
+          f"move {last.move:+.2f} ATR | VWAP {last.vwap:.2f} | ADX {last.adx:.1f} | Nifty15m {last.nret3:+.2f}% | "
+          f"trades: {[(p['id'], p['status']) for p in trades]} | pending: {pending_signal(t)}")
 
     changed = False
-    if tr and tr["status"] in ("open", "closed") and not st.get("entry_sent"):
-        risk = abs(tr["entry"] - tr["init_sl"])
-        tg(f"<b>RELIANCE PAPER {side_txt(tr['side'])}</b>\n"
-           f"Entry: ₹{tr['entry']} ({hhmm(tr['entry_time'])})\n"
-           f"Stop loss: ₹{tr['init_sl']} (risk ₹{risk:.2f}/share)\n"
-           f"Target: nahi -- trailing SL (2×ATR = ₹{TRAIL_ATR * tr['atr']:.2f})\n"
-           f"Signal candle: {hhmm(tr['signal_time'])} | 20-min momentum strategy", dry)
-        st.update(entry_sent=True, side=tr["side"], entry=tr["entry"], last_sl_sent=tr["init_sl"])
-        changed = True
-
-    if tr and tr["status"] == "open" and st.get("entry_sent"):
-        if abs(tr["sl"] - st.get("last_sl_sent", tr["init_sl"])) >= SL_ALERT_STEP * tr["atr"]:
-            open_pnl = tr["side"] * (tr["last_close"] - tr["entry"])
-            locked = tr["side"] * (tr["sl"] - tr["entry"])
-            tg(f"<b>RELIANCE PAPER SL update</b> {side_txt(tr['side'])}\n"
-               f"Naya SL: ₹{tr['sl']} (pehle ₹{st.get('last_sl_sent')})\n"
-               f"Abhi price: ₹{tr['last_close']} | Open P&L: ₹{open_pnl:+.2f}/share\n"
-               f"{'Profit lock: ₹%+.2f/share' % locked if locked > 0 else 'Abhi profit lock nahi'}", dry)
-            st["last_sl_sent"] = tr["sl"]
+    for p in trades:
+        s = st["trades"].setdefault(p["id"], {})
+        if not s.get("entry_sent"):
+            risk = abs(p["entry"] - p["init_sl"])
+            tgt = (f"Target: ₹{p['tp']} (2R)" if p["strategy"] == "PBS"
+                   else f"Target: nahi — trailing SL (2×ATR = ₹{TRAIL_ATR * p['atr']:.2f})")
+            tg(f"<b>RELIANCE PAPER {side_txt(p['side'])}</b>  [{NAMES[p['strategy']]}]\n"
+               f"Entry: ₹{p['entry']} ({hhmm(p['entry_time'])}) × {p['qty']} shares = ₹{p['entry'] * p['qty']:,.0f}\n"
+               f"Stop loss: ₹{p['init_sl']} (risk ₹{risk * p['qty']:,.0f})\n{tgt}\n"
+               f"Signal candle: {hhmm(p['signal_time'])}", dry)
+            s.update(entry_sent=True, last_sl=p["init_sl"])
+            changed = True
+        if p["status"] == "open" and p["strategy"] == "MOM" \
+                and abs(p["sl"] - s.get("last_sl", p["init_sl"])) >= SL_ALERT_STEP * p["atr"]:
+            sgn = 1 if p["side"] == "BUY" else -1
+            locked = sgn * (p["sl"] - p["entry"]) * p["qty"]
+            tg(f"<b>RELIANCE PAPER SL update</b> {side_txt(p['side'])}  [{NAMES['MOM']}]\n"
+               f"Naya SL: ₹{p['sl']} (pehle ₹{s.get('last_sl')})\n"
+               f"Abhi price: ₹{last.close:.2f} | Open P&L: ₹{sgn * (last.close - p['entry']) * p['qty']:+,.0f}\n"
+               f"{'Profit lock: ₹%+.0f' % locked if locked > 0 else 'Abhi profit lock nahi'}", dry)
+            s["last_sl"] = p["sl"]
+            changed = True
+        if p["status"] == "closed" and not s.get("exit_sent"):
+            df = record_trade(p, today)
+            tg(f"<b>RELIANCE PAPER EXIT</b> {side_txt(p['side'])}  [{NAMES[p['strategy']]}]\n"
+               f"₹{p['entry']} → ₹{p['exit']} ({hhmm(p['exit_time'])}) × {p['qty']}\n"
+               f"Wajah: {p['reason']}\n"
+               f"Result: ₹{p['pnl_rs']:+,.0f} ({p['ret_pct']:+.2f}%, charges ke baad)\n{totals_line(df)}", dry)
+            write_status(df)
+            s["exit_sent"] = True
             changed = True
 
-    if tr and tr["status"] == "closed" and not st.get("exit_sent"):
-        df, row = record_trade(tr, today)
-        r = df.ret_pct
-        tg(f"<b>RELIANCE PAPER EXIT</b> {side_txt(tr['side'])}\n"
-           f"Entry ₹{tr['entry']} → Exit ₹{tr['exit']} ({hhmm(tr['exit_time'])})\n"
-           f"Wajah: {tr['reason']}\n"
-           f"Result: {row['ret_pct']:+.2f}% (charges ke baad) | ₹{row['pnl_rs']:+,.0f} on {QTY} shares\n"
-           f"Ab tak: {len(df)} trades, {(r > 0).mean() * 100:.0f}% win, total {r.sum():+.2f}%", dry)
-        write_status(df)
-        st["exit_sent"] = True
+    if last.tod >= EXIT and not st.get("day_end_sent"):
+        if not trades:
+            tg("RELIANCE paper: aaj koi signal nahi aaya (dono strategy).", dry)
+        else:
+            day_pnl = sum(p.get("pnl_rs") or 0 for p in trades if p["status"] == "closed")
+            tg(f"<b>RELIANCE paper — din khatam</b>\nAaj {len(trades)} trade, P&L ₹{day_pnl:+,.0f}\n"
+               f"{totals_line(load_trades())}", dry)
+        st["day_end_sent"] = True
         changed = True
-
-    if not tr and not st.get("noday_sent") and last.tod >= EXIT:
-        tg("RELIANCE paper: aaj koi signal nahi aaya (9:30–14:30 me 20-min move 1.5×ATR se kam raha).", dry)
-        st["noday_sent"] = True
-        changed = True
-
     if changed or not os.path.exists(STATE):
         save_state(st)
+    return True
+
+
+def git_save():
+    rel = os.path.relpath(PAPER, os.path.dirname(HERE))
+    cmds = [f'git add -f {rel}',
+            'git diff --cached --quiet || git commit -q -m "Reliance paper update $(TZ=Asia/Kolkata date \'+%F %H:%M\') [skip ci]"',
+            'for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done']
+    for c in cmds:
+        subprocess.run(c, shell=True, cwd=os.path.dirname(HERE))
+
+
+def loop():
+    started = time.time()
+    max_secs = float(os.getenv("LOOP_MAX_MIN", "345")) * 60      # GitHub job 6h limit se pehle
+    while True:
+        now = ist_now()
+        if now.weekday() >= 5 or now.hour * 60 + now.minute > 15 * 60 + 45:
+            print("Market band -- loop khatam"); break
+        if time.time() - started > max_secs:
+            print("Job time limit -- agla job sambhalega"); break
+        if now.hour * 60 + now.minute >= 9 * 60 + 20:
+            try:
+                run(fetch("RELIANCE", now), fetch("NIFTY", now), now)
+                git_save()
+            except Exception as e:
+                print("RUN ERROR:", repr(e))
+        nxt = (now.replace(second=0, microsecond=0) + timedelta(minutes=5 - now.minute % 5, seconds=20))
+        time.sleep(max(30, (nxt - ist_now()).total_seconds()))
 
 
 def main():
+    global PAPER, STATE, TRADES
     ap = argparse.ArgumentParser()
-    ap.add_argument("--hello", action="store_true", help="Telegram pe 'paper trade active' test message")
-    ap.add_argument("--replay", help="YYYY-MM-DD: data/RELIANCE_5m.csv pe ek din har 5 min step karke test")
+    ap.add_argument("--hello", action="store_true")
+    ap.add_argument("--loop", action="store_true")
+    ap.add_argument("--check", action="store_true", help="sirf Angel login + data check, koi alert/state nahi")
+    ap.add_argument("--replay", help="YYYY-MM-DD: data/ CSV pe ek din har 5 min step (dry run)")
     args = ap.parse_args()
     if args.hello:
-        tg("<b>✅ RELIANCE PAPER TRADE ACTIVE</b>\n"
-           "Strategy: 20-min momentum + 2×ATR trailing SL (5-min chart)\n"
-           "BUY: 20 min me move > +1.5×ATR | SELL: < −1.5×ATR\n"
-           "Entry 9:30–14:30, din me 1 trade, koi target nahi, 15:15 pe exit\n"
-           f"Paper qty: {QTY} shares | Har 5 min check (Mon–Fri)\n"
-           "Alerts: Entry, SL update, Exit, aur 'no signal' din")
+        tg("<b>✅ RELIANCE PAPER BOOK ACTIVE</b>\n"
+           f"Capital: ₹{CAPITAL:,.0f} | Ek waqt pe sirf 1 position (no duplicate entry)\n"
+           f"Strategies: {', '.join(NAMES[s] for s in STRATS)}\n"
+           "• 20-Min Momentum: move > 1.5×ATR, trailing SL 2×ATR, din me 1\n"
+           "• VWAP Pullback Short: VWAP ke neeche swing high + (Nifty ↑ ya ADX>30), SL 1×ATR, target 2R, din me 2\n"
+           "Alerts: Entry, SL update, Exit + P&L, din ka summary")
         return
     if args.replay:
-        global PAPER, STATE, TRADES
-        PAPER = os.path.join("/tmp", "reliance_paper_replay")
+        PAPER = "/tmp/reliance_paper_replay"
         STATE, TRADES = os.path.join(PAPER, "state.json"), os.path.join(PAPER, "paper_trades.csv")
-        if os.path.exists(STATE):
-            os.remove(STATE)
-        raw = pd.read_csv(os.path.join(HERE, "data", "RELIANCE_5m.csv"), parse_dates=["datetime"]).set_index("datetime")
+        for f in (STATE, TRADES):
+            if os.path.exists(f):
+                os.remove(f)
+        rd = lambda s: pd.read_csv(os.path.join(HERE, "data", f"{s}_5m.csv"), parse_dates=["datetime"]).set_index("datetime")
+        rel, nif = rd("RELIANCE"), rd("NIFTY")
         day = pd.Timestamp(args.replay)
+        start = day - pd.Timedelta(days=7)
+        rel, nif = rel[rel.index >= start], nif[nif.index >= start]
         for m in range(9 * 60 + 20, 15 * 60 + 41, 5):
             now = day + pd.Timedelta(minutes=m)
-            run(raw[raw.index < now], now, dry=True)
+            run(rel[rel.index < now], nif[nif.index < now], now, dry=True)
+        return
+    if args.loop:
+        loop()
+        return
+    if args.check:
+        now = ist_now()
+        rel, nif = fetch("RELIANCE", now), fetch("NIFTY", now)
+        d = prepare_all(completed(rel, now), completed(nif, now))
+        last = d.iloc[-1]
+        print(f"CHECK OK | Reliance {len(rel)} candles, last {d.index[-1]} close {last.close:.2f} "
+              f"ATR {last.atr:.2f} VWAP {last.vwap:.2f} ADX {last.adx:.1f} | Nifty {len(nif)} candles")
         return
     now = ist_now()
-    run(fetch_angel(now), now)
+    run(fetch("RELIANCE", now), fetch("NIFTY", now), now)
 
 
 if __name__ == "__main__":
