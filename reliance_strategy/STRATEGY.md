@@ -1,5 +1,7 @@
 # Reliance Intraday — Final Strategy (Reverse Engineering se)
 
+![Explainer](RELIANCE_EXPLAINER.png)
+
 ![Strategy](STRATEGY.png)
 
 **Naam:** 20-Minute Momentum + 2-ATR Trailing Stop
