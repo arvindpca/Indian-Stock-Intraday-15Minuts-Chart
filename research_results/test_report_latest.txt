@@ -1,0 +1,23 @@
+test_min_brokerage (research.tests.test_research.TestCosts.test_min_brokerage) ... ok
+test_round_trip_hand_calc (research.tests.test_research.TestCosts.test_round_trip_hand_calc) ... ok
+test_short_trade_stt_on_sell_leg (research.tests.test_research.TestCosts.test_short_trade_stt_on_sell_leg) ... ok
+test_duplicates_invalid_and_session (research.tests.test_research.TestDataQuality.test_duplicates_invalid_and_session) ... /home/runner/work/Indian-Stock-Intraday-15Minuts-Chart/Indian-Stock-Intraday-15Minuts-Chart/research/data_quality.py:50: Pandas4Warning: Series.dt.weekday is deprecated and will be removed in a future version. Use Series.dt.day_of_week instead.
+  oos = (t < 9 * 60 + 15) | (t > 15 * 60 + 25) | (df["datetime"].dt.weekday >= 5) | (df["datetime"].dt.minute % 5 != 0)
+ok
+test_resample_15m_anchor (research.tests.test_research.TestDataQuality.test_resample_15m_anchor) ... ok
+test_entry_is_next_bar_open (research.tests.test_research.TestExecution.test_entry_is_next_bar_open) ... ok
+test_eod_exit_at_square_off_open (research.tests.test_research.TestExecution.test_eod_exit_at_square_off_open) ... ok
+test_gap_through_stop_fills_at_open (research.tests.test_research.TestExecution.test_gap_through_stop_fills_at_open) ... ok
+test_no_entry_outside_window (research.tests.test_research.TestExecution.test_no_entry_outside_window) ... ok
+test_no_overlapping_positions (research.tests.test_research.TestExecution.test_no_overlapping_positions) ... ok
+test_portfolio_limits (research.tests.test_research.TestExecution.test_portfolio_limits) ... ok
+test_sl_and_tp_same_bar_assumes_sl (research.tests.test_research.TestExecution.test_sl_and_tp_same_bar_assumes_sl) ... ok
+test_tp_before_sl (research.tests.test_research.TestExecution.test_tp_before_sl) ... ok
+test_bh_fdr (research.tests.test_research.TestMetrics.test_bh_fdr) ... ok
+test_summary (research.tests.test_research.TestMetrics.test_summary) ... ok
+test_truncation_invariance (research.tests.test_research.TestNoLookahead.test_truncation_invariance) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.458s
+
+OK
