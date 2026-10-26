@@ -51,6 +51,9 @@ def summarize(trades: pd.DataFrame, capital: float = 500000.0, total_bars: int |
         "profit_factor": float(gp / gl) if gl > 0 else float("inf"),
         "expectancy_rs": float(net.mean()),
         "expectancy_R": float(R.mean()),
+        # same trades with ZERO charges and ZERO slippage -> is there any raw edge at all?
+        "expectancy_R_before_costs": float(((trades["net"] + trades["charges"] + trades["slippage"]) / trades["risk_rs"]).mean()),
+        "avg_cost_R": float(((trades["charges"] + trades["slippage"]) / trades["risk_rs"]).mean()),
         "max_drawdown": float(ed["drawdown"].min()),
         "max_drawdown_pct": float(ed["drawdown_pct"].min()),
         "max_losing_streak": int(max_losing_streak(net)),

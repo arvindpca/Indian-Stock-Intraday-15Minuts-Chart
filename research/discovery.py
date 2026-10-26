@@ -15,7 +15,7 @@ import pandas as pd
 from research.engine import run_strategy
 from research.metrics import bh_fdr, summarize
 
-KEYS = ["trades", "net_pnl", "win_rate", "profit_factor", "expectancy_rs", "expectancy_R", "max_drawdown",
+KEYS = ["trades", "net_pnl", "win_rate", "profit_factor", "expectancy_rs", "expectancy_R", "expectancy_R_before_costs", "avg_cost_R", "max_drawdown",
         "max_losing_streak", "positive_month_frac", "t_stat", "p_value", "charges", "symbols_traded"]
 
 

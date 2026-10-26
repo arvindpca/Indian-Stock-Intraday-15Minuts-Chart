@@ -159,7 +159,8 @@ class TestMetrics(unittest.TestCase):
         net = [100, -50, -50, 200, -100]
         t = pd.DataFrame({"net": net, "gross": net, "charges": 0.0, "slippage": 0.0, "R": np.array(net) / 100,
                           "date": pd.date_range("2025-01-01", periods=5), "exit_time": pd.date_range("2025-01-01", periods=5),
-                          "entry_slot": 10, "exit_slot": 12, "symbol": "A"})
+                          "entry_slot": 10, "exit_slot": 12, "symbol": "A", "risk_rs": 100.0})
+        self.assertAlmostEqual(summarize(t, capital=1000)["expectancy_R_before_costs"], 0.2)
         s = summarize(t, capital=1000)
         self.assertAlmostEqual(s["profit_factor"], 1.5)
         self.assertAlmostEqual(s["win_rate"], 40.0)

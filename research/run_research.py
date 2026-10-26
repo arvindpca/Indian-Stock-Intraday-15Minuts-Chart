@@ -158,6 +158,8 @@ def main():
 
     # ---------------------------------------------------------------- 4. validation
     val = R.validate(dev)
+    if val.empty:
+        val = pd.DataFrame(columns=["id", "side", "accepted", "strict_accepted", "reject_reasons"])
     val.to_csv(out / "validation.csv", index=False)
     log.info("validation: %d candidates, %d accepted, %d strict-accepted", len(val),
              int(val["accepted"].sum()) if len(val) else 0, int(val["strict_accepted"].sum()) if len(val) else 0)
@@ -226,6 +228,12 @@ def main():
         "walkforward": wf_sum, "verdict": None}
     robust = (label == "ACCEPTED" and port_sum.get("trades", 0) >= 50 and port_sum.get("expectancy_R", -1) > 0
               and (wf_sum.get("combined", {}).get("expectancy_R") or -1) > 0)
+    summary["edge_diagnostic"] = {
+        "dev_experiments_positive_after_costs": int((dev["expectancy_R"] > 0).sum()),
+        "dev_experiments_positive_before_costs": int((dev["expectancy_R_before_costs"] > 0).sum()),
+        "best_expR_after_costs": float(dev["expectancy_R"].max()),
+        "best_expR_before_costs": float(dev["expectancy_R_before_costs"].max()),
+        "median_cost_R_per_trade": float(dev["avg_cost_R"].median())}
     summary["verdict"] = ("CANDIDATE FOR PAPER TRADING (not live)" if robust else
                           "NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs")
     write_json(out / "summary.json", summary)

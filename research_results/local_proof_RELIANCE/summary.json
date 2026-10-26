@@ -1,6 +1,6 @@
 {
-  "run_id": "2026-10-26_1943",
-  "runtime_min": 0.13,
+  "run_id": "2026-10-26_2144",
+  "runtime_min": 0.12,
   "splits": {
     "dev": [
       "2024-10-28",
@@ -39,6 +39,8 @@
       "profit_factor": 1.3046563439114305,
       "expectancy_rs": 99.72180421054806,
       "expectancy_R": 0.17577828884122562,
+      "expectancy_R_before_costs": 0.5378801466333987,
+      "avg_cost_R": 0.3621018577921732,
       "max_drawdown": -3406.3988729157136,
       "max_losing_streak": 4,
       "positive_month_frac": 0.42857142857142855,
@@ -65,6 +67,8 @@
     "profit_factor": 1.3046563439114305,
     "expectancy_rs": 99.72180421054806,
     "expectancy_R": 0.17577828884122562,
+    "expectancy_R_before_costs": 0.5378801466333987,
+    "avg_cost_R": 0.3621018577921732,
     "max_drawdown": -3406.3988729157136,
     "max_drawdown_pct": -0.6795326175192794,
     "max_losing_streak": 4,
@@ -91,6 +95,8 @@
       "profit_factor": 0.45379342445260695,
       "expectancy_rs": -235.55082846956725,
       "expectancy_R": -0.49494747341397416,
+      "expectancy_R_before_costs": 0.08914074677862599,
+      "avg_cost_R": 0.5840882201926002,
       "max_drawdown": -7529.225131036073,
       "max_drawdown_pct": -1.5072905269776555,
       "max_losing_streak": 4,
@@ -113,6 +119,8 @@
       "profit_factor": 0.45379342445260695,
       "expectancy_rs": -235.55082846956725,
       "expectancy_R": -0.49494747341397416,
+      "expectancy_R_before_costs": 0.08914074677862599,
+      "avg_cost_R": 0.5840882201926002,
       "max_drawdown": -7529.225131036073,
       "max_drawdown_pct": -1.5072905269776555,
       "max_losing_streak": 4,
@@ -124,5 +132,12 @@
       "symbols_traded": 1
     }
   },
-  "verdict": "NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs"
+  "verdict": "NO ROBUST PROFITABLE STRATEGY FOUND under these rules/costs",
+  "edge_diagnostic": {
+    "dev_experiments_positive_after_costs": 93,
+    "dev_experiments_positive_before_costs": 685,
+    "best_expR_after_costs": 1.137355879642653,
+    "best_expR_before_costs": 1.5000000000000093,
+    "median_cost_R_per_trade": 0.3428777958037481
+  }
 }
