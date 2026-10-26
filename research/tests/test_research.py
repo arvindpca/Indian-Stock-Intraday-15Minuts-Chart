@@ -84,16 +84,17 @@ class TestExecution(unittest.TestCase):
     def test_eod_exit_at_square_off_open(self):
         f = synth_day()
         f.loc[10, "T_X_L"] = True
-        f.loc[72, "open"] = 100.5
-        f.loc[72, "high"] = 100.5
+        sq = panel_of(f).sq
+        f.loc[sq, "open"] = 100.5
+        f.loc[sq, "high"] = 100.5
         P = panel_of(f)
         xs, xp, rs = precompute_exits(P, 1, 1.0, 0)
-        self.assertEqual((rs[0, 10], xs[0, 10]), (EOD, 72))
+        self.assertEqual((rs[0, 10], xs[0, 10]), (EOD, sq))
         self.assertAlmostEqual(xp[0, 10], 100.5)
 
     def test_no_entry_outside_window(self):
         f = synth_day()
-        f.loc[[1, 70], "T_X_L"] = True      # 09:20 and 15:05 -> both outside 09:30..14:40
+        f.loc[[1, 67], "T_X_L"] = True      # 09:20 and 14:50 -> both outside 09:30..14:40
         P = panel_of(f)
         t = run_strategy(P, ExitCache(P), CFG, "X", [], "L", 1.0, 0)
         self.assertEqual(len(t), 0)

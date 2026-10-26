@@ -19,7 +19,7 @@ import pandas as pd
 from research.common import read_raw
 
 QUALITY_COLS = ["symbol", "status", "reasons", "rows_raw", "first", "last", "trading_days", "market_days_missing",
-                "dup_ts", "invalid_ohlc", "out_of_session", "zero_volume_bars", "missing_bars", "complete_day_pct",
+                "dup_ts", "invalid_ohlc", "out_of_session", "auction_bars_dropped", "zero_volume_bars", "missing_bars", "complete_day_pct",
                 "special_session_days", "corp_action_suspect_days", "max_bar_jump_pct", "median_turnover_cr"]
 
 
@@ -50,6 +50,12 @@ def clean_and_validate(df: pd.DataFrame, symbol: str, cfg: dict, market_days: se
     oos = (t < 9 * 60 + 15) | (t > 15 * 60 + 25) | (df["datetime"].dt.weekday >= 5) | (df["datetime"].dt.minute % 5 != 0)
     rep["out_of_session"] = int(oos.sum())
     df = df[~oos].reset_index(drop=True)
+    if not is_index and q.get("drop_auction_bars_after"):
+        hh, mm = map(int, q["drop_auction_bars_after"].split(":"))
+        tt = df["datetime"].dt.hour * 60 + df["datetime"].dt.minute
+        auc = (tt >= hh * 60 + mm) & (df["volume"] <= 0)
+        rep["auction_bars_dropped"] = int(auc.sum())
+        df = df[~auc].reset_index(drop=True)
     rep["zero_volume_bars"] = int((df["volume"] <= 0).sum())
 
     if df.empty:

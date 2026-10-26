@@ -23,12 +23,14 @@ quality:
   min_median_turnover_cr: 5.0          # roz ka median turnover (crore) - illiquid stocks reject
   corp_action_gap_pct: 15.0            # overnight gap isse bada = corporate action suspect, us din trade nahi
   max_bar_jump_pct: 10.0
+  drop_auction_bars_after: "15:15"     # isse baad zero-volume bars (closing auction print) hata do
 
 session:
   first_bar: "09:15"
   entry_start: "09:30"                 # signal candle ka time >= ye
   entry_end: "14:40"                   # signal candle ka time <= ye
-  square_off: "15:15"                  # is candle ke open par forced exit
+  square_off: "15:00"                  # is candle ke open par forced exit. NSE CAS (3 Aug 2026) ke baad
+                                       # F&O stocks ka continuous trading 15:15 tak, broker square-off 15:00
 
 splits:                                # trading days ke hisaab se, chronological
   dev: 0.50

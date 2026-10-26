@@ -55,7 +55,9 @@ python research/run_research.py --symbols RELIANCE --min-trades-dev 60 --min-tra
    limit), cost sensitivity (slippage 0×/1×/2×/3×), breakdown by month/symbol/direction/vol-regime/time.
 
 ## Execution & cost assumptions (`config.yaml` me badal sakte hain)
-* Signal = complete candle; entry = **agle candle ka open**. Entry window 09:30–14:40, square-off 15:15.
+* Signal = complete candle; entry = **agle candle ka open**. Entry window 09:30–14:40, square-off **15:00**
+  (NSE Closing Auction Session 3 Aug 2026 se F&O stocks me continuous trading 15:15 par band; broker square-off 15:00).
+  15:15 ke baad ke zero-volume auction bars hata diye jaate hain (count `data_quality.csv` me).
 * Stop = k×ATR(14); target = rr × risk (rr=0 → sirf SL ya square-off).
 * Ek hi candle me SL aur TP dono → **SL maana jaata hai**. Gap se SL ke paar → us candle ka open.
 * Ek stock me ek time par ek hi trade.

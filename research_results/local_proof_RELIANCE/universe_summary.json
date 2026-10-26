@@ -6,7 +6,7 @@
   "usable_symbols": 1,
   "market_data": true,
   "check_15m_vs_reference": {
-    "overlap_bars": 6341,
+    "overlap_bars": 6312,
     "max_abs_diff_open": 0.0,
     "max_abs_diff_high": 0.0,
     "max_abs_diff_low": 0.0,
