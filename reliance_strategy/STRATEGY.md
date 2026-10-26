@@ -1,5 +1,7 @@
 # Reliance Intraday — Final Strategy (Reverse Engineering se)
 
+![Strategy](STRATEGY.png)
+
 **Naam:** 20-Minute Momentum + 2-ATR Trailing Stop
 **Chart:** Reliance 5-minute | **Data:** Angel One, 10 Oct 2025 – 23 Oct 2026 (256 din)
 
