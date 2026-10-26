@@ -10,6 +10,8 @@ import pandas as pd
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 SYMBOLS = {"RELIANCE": ("NSE", "2885"), "NIFTY": ("NSE", "99926000")}
 INTERVALS = {"FIFTEEN_MINUTE": ("15m", 90), "FIVE_MINUTE": ("5m", 30)}
+ONLY = os.getenv("ONLY_INTERVALS")          # e.g. "FIVE_MINUTE"
+SUFFIX = os.getenv("FILE_SUFFIX", "")       # e.g. "_3y"
 
 
 def _env(name):
@@ -17,7 +19,7 @@ def _env(name):
     return "".join(ch for ch in v.strip() if unicodedata.category(ch) != "Cf")
 
 
-def main(days=380):
+def main(days=int(os.getenv("DAYS", "380"))):
     from SmartApi import SmartConnect
     import pyotp
 
@@ -30,6 +32,8 @@ def main(days=380):
     end = datetime.now()
     for sym, (exch, token) in SYMBOLS.items():
         for iv, (tag, chunk) in INTERVALS.items():
+            if ONLY and iv not in ONLY.split(","):
+                continue
             rows, cur = [], end - timedelta(days=days)
             while cur < end:
                 nxt = min(cur + timedelta(days=chunk), end)
@@ -44,11 +48,11 @@ def main(days=380):
                         print("retry", sym, tag, cur.date(), e)
                         time.sleep(3)
                 cur = nxt + timedelta(days=1)
-                time.sleep(0.5)
+                time.sleep(0.6)
             df = pd.DataFrame(rows, columns=["datetime", "open", "high", "low", "close", "volume"])
             df["datetime"] = pd.to_datetime(df["datetime"]).dt.tz_localize(None)
             df = df.drop_duplicates("datetime").sort_values("datetime")
-            path = os.path.join(OUT, f"{sym}_{tag}.csv")
+            path = os.path.join(OUT, f"{sym}_{tag}{SUFFIX}.csv")
             df.to_csv(path, index=False)
             print(f"{sym} {tag}: {len(df)} candles -> {path}")
 

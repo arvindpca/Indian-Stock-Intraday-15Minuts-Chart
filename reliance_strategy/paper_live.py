@@ -199,7 +199,7 @@ def run(rel, nif, now, dry=False):
     st = load_state(today)
     last = t.iloc[-1]
     print(f"{now:%H:%M} IST | last candle {t.index[-1]:%H:%M} close {last.close:.2f} | "
-          f"move {last.move:+.2f} ATR | VWAP {last.vwap:.2f} | ADX {last.adx:.1f} | Nifty15m {last.nret3:+.2f}% | "
+          f"move {last.move:+.2f} ATR | RSI {last.rsi14:.1f} | EMA20 {last.ema20:.2f} | VWAP {last.vwap:.2f} | ADX {last.adx:.1f} | Nifty15m {last.nret3:+.2f}% | "
           f"trades: {[(p['id'], p['status']) for p in trades]} | pending: {pending_signal(t)}")
 
     changed = False
@@ -260,6 +260,9 @@ def git_save():
 
 def loop():
     started = time.time()
+    st_now = ist_now()
+    if st_now.hour * 60 + st_now.minute < 8 * 60 + 45:
+        print("Market khulne me der hai (8:45 se pehle) -- loop shuru nahi kiya"); return
     max_secs = float(os.getenv("LOOP_MAX_MIN", "345")) * 60      # GitHub job 6h limit se pehle
     while True:
         now = ist_now()
@@ -290,7 +293,9 @@ def main():
            f"Capital: ₹{CAPITAL:,.0f} | Ek waqt pe sirf 1 position (no duplicate entry)\n"
            f"Strategies: {', '.join(NAMES[s] for s in STRATS)}\n"
            "• 20-Min Momentum: move > 1.5×ATR, trailing SL 2×ATR, din me 1\n"
-           "• VWAP Pullback Short: VWAP ke neeche swing high + (Nifty ↑ ya ADX>30), SL 1×ATR, target 2R, din me 2\n"
+           "   BUY sirf: RSI≤65, price>EMA20, ATR%≥0.17 | SELL sirf: RSI≥35, price<EMA20, VWAP se 1 ATR+ neeche (ya VWAP ke upar)\n"
+           "• VWAP Pullback Short: VWAP+EMA20 ke neeche swing high + (Nifty ↑ ya ADX>30), SL 1×ATR, target 2R, din me 2\n"
+           "Version: FINAL (loss-analysis filters)\n"
            "Alerts: Entry, SL update, Exit + P&L, din ka summary")
         return
     if args.replay:

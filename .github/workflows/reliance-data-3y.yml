@@ -1,0 +1,41 @@
+name: Reliance 3-Year Data Download (Angel One)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/reliance-data-3y.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  data3y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      DAYS: "1110"
+      ONLY_INTERVALS: "FIVE_MINUTE"
+      FILE_SUFFIX: "_3y"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Download 3 saal ka 5-min data (Reliance + Nifty)
+        run: python reliance_strategy/download_data.py
+      - name: Save data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -f reliance_strategy/data/*_3y.csv
+          git commit -m "Reliance + Nifty 3-year 5m data [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
