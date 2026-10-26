@@ -880,8 +880,9 @@ def start_market_websocket(stocks, client):
     WATCHLIST_BY_TOKEN = {str(x["token"]): x for x in stocks}
     auth_token = get_auth_token()
     feed_token = get_feed_token()
-    api_key = os.getenv("ANGEL_API_KEY", "").strip()
-    client_code = os.getenv("ANGEL_CLIENT_ID", "").strip()
+    from angel_client import API_KEY, CLIENT_ID  # invisible marks already removed
+    api_key = API_KEY or ""
+    client_code = CLIENT_ID or ""
     if not all([auth_token, feed_token, api_key, client_code]):
         raise RuntimeError("Angel WebSocket credentials/session data are incomplete")
 

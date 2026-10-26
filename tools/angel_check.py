@@ -1,8 +1,10 @@
 """Angel One check: sirf login + Reliance 5-min candle fetch. Koi trade/Telegram nahi."""
-import os, time, traceback
+import os, time, traceback, unicodedata
 from datetime import datetime, timedelta, timezone
 IST = timezone(timedelta(hours=5, minutes=30))
 out = []
+for _k in ["ANGEL_API_KEY", "ANGEL_CLIENT_ID", "ANGEL_PASSWORD", "ANGEL_TOTP_SECRET"]:
+    os.environ[_k] = "".join(ch for ch in os.getenv(_k, "").strip() if unicodedata.category(ch) != "Cf")
 def log(s):
     print(s, flush=True); out.append(str(s))
 now = datetime.now(IST)
