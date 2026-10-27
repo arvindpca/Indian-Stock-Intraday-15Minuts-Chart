@@ -8,6 +8,9 @@ on:
       universe:
         description: "stock_names = 174 repo stocks | nifty500 / midcap100 / nifty100 = trade only NON-F&O stocks of that index"
         default: "nifty500"
+      trade_file:
+        description: "Optional: trade ONLY the stocks in this file (e.g. sector_pullback/nifty500_selected182.txt)"
+        default: ""
 
 permissions:
   contents: write
@@ -75,6 +78,10 @@ jobs:
             ARGS="--symbols-file stock_names.txt"
           else
             ARGS="--symbols-file sector_pullback/$U.txt --trade-symbols-file sector_pullback/${U}_nonfno.txt"
+          fi
+          if [ -n "${{ inputs.trade_file }}" ]; then
+            ARGS="--symbols-file sector_pullback/$U.txt --trade-symbols-file ${{ inputs.trade_file }}"
+            OUT=${OUT}_$(basename ${{ inputs.trade_file }} .txt); echo "OUT=$OUT" >> $GITHUB_ENV
           fi
           python sector_pullback/backtest.py --data-dir research_data/raw/5m $ARGS --out "$OUT"
           cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
