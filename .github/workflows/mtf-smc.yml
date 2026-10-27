@@ -31,7 +31,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install
-        run: pip install -r research/requirements.txt
+        run: pip install pandas numpy -r research/requirements.txt
 
       - name: Restore cached candle data (from research pipeline)
         uses: actions/cache/restore@v4
