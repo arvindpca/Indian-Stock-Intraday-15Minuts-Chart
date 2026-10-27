@@ -1,0 +1,502 @@
+symbol,company,sector,fno,last_close,median_vol_20d,median_turnover_cr_20d,ok_price,ok_volume,ok_turnover,selected
+SANSERA,Sansera Engineering Ltd.,Automobile and Auto Components,False,4290.0,237089.5,101.16,True,True,True,True
+EXIDEIND,Exide Industries Ltd.,Automobile and Auto Components,False,338.25,1709858.5,60.82,True,True,True,True
+BELRISE,Belrise Industries Ltd.,Automobile and Auto Components,False,212.65,1861288.5,42.27,True,True,True,True
+RKFORGE,Ramkrishna Forgings Ltd.,Automobile and Auto Components,False,623.3,545951.0,36.06,True,True,True,True
+OLECTRA,Olectra Greentech Ltd.,Automobile and Auto Components,False,979.0,272460.5,27.86,True,True,True,True
+TENNIND,Tenneco Clean Air India Ltd.,Automobile and Auto Components,False,445.8,529684.5,26.15,True,True,True,True
+ARE&M,Amara Raja Energy & Mobility Ltd.,Automobile and Auto Components,False,713.1,343377.0,25.32,True,True,True,True
+APOLLOTYRE,Apollo Tyres Ltd.,Automobile and Auto Components,False,383.3,429499.0,16.89,True,True,True,True
+MINDACORP,Minda Corporation Ltd.,Automobile and Auto Components,False,610.0,240061.5,15.35,True,True,True,True
+JKTYRE,JK Tyre & Industries Ltd.,Automobile and Auto Components,False,303.95,378000.5,12.58,True,True,True,True
+WELCORP,Welspun Corp Ltd.,Capital Goods,False,2474.1,1325495.0,362.51,True,True,True,True
+TDPOWERSYS,TD Power Systems Ltd.,Capital Goods,False,687.2,2914977.0,232.87,True,True,True,True
+TMCV,Tata Motors Ltd.,Capital Goods,False,399.2,5452755.0,225.87,True,True,True,True
+AZAD,Azad Engineering Ltd.,Capital Goods,False,2577.5,646345.0,176.27,True,True,True,True
+SYRMA,Syrma SGS Technology Ltd.,Capital Goods,False,1519.6,1003040.0,164.16,True,True,True,True
+DATAPATTNS,Data Patterns (India) Ltd.,Capital Goods,False,4119.4,292182.0,118.79,True,True,True,True
+TARIL,Transformers And Rectifiers (India) Ltd.,Capital Goods,False,314.3,3459638.5,109.07,True,True,True,True
+CPPLUS,Aditya Infotech Ltd.,Capital Goods,False,3968.2,264092.0,102.75,True,True,True,True
+HBLENGINE,HBL Engineering Ltd.,Capital Goods,False,788.0,1278314.0,95.39,True,True,True,True
+GRSE,Garden Reach Shipbuilders & Engineers Ltd.,Capital Goods,False,1930.9,408940.5,87.55,True,True,True,True
+KIRLOSENG,Kirloskar Oil Eng Ltd.,Capital Goods,False,1880.5,390506.0,81.52,True,True,True,True
+GRAPHITE,Graphite India Ltd.,Capital Goods,False,744.0,1009797.0,80.6,True,True,True,True
+RRKABEL,R R Kabel Ltd.,Capital Goods,False,2194.4,317675.0,79.59,True,True,True,True
+FINCABLES,Finolex Cables Ltd.,Capital Goods,False,1165.9,494499.5,72.19,True,True,True,True
+TEGA,Tega Industries Ltd.,Capital Goods,False,1774.5,267798.5,53.93,True,True,True,True
+EMMVEE,Emmvee Photovoltaic Power Ltd.,Capital Goods,False,240.65,2018784.5,51.38,True,True,True,True
+JYOTICNC,Jyoti CNC Automation Ltd.,Capital Goods,False,926.2,527923.5,50.66,True,True,True,True
+SHYAMMETL,Shyam Metalics and Energy Ltd.,Capital Goods,False,1153.8,391243.5,43.93,True,True,True,True
+JINDALSAW,Jindal Saw Ltd.,Capital Goods,False,244.85,1636691.5,42.17,True,True,True,True
+ZENTEC,Zen Technologies Ltd.,Capital Goods,False,1562.4,230244.0,36.34,True,True,True,True
+ELECON,Elecon Engineering Co. Ltd.,Capital Goods,False,428.35,782030.0,34.12,True,True,True,True
+ACE,Action Construction Equipment Ltd.,Capital Goods,False,1034.8,252410.5,29.4,True,True,True,True
+TITAGARH,Titagarh Rail Systems Ltd.,Capital Goods,False,652.9,333468.0,25.08,True,True,True,True
+GALLANTT,Gallantt Ispat Ltd.,Capital Goods,False,541.75,438372.0,23.67,True,True,True,True
+USHAMART,Usha Martin Ltd.,Capital Goods,False,476.0,491726.0,23.63,True,True,True,True
+GPIL,Godawari Power & Ispat Ltd.,Capital Goods,False,194.3,1068606.0,21.4,True,True,True,True
+JWL,Jupiter Wagons Ltd.,Capital Goods,False,176.68,1111146.0,20.29,True,True,True,True
+TRITURBINE,Triveni Turbine Ltd.,Capital Goods,False,452.2,381053.0,19.48,True,True,True,True
+HEGAM,HEG Advanced Materials Ltd.,Capital Goods,False,215.27,732475.5,16.89,True,True,True,True
+ELGIEQUIP,Elgi Equipments Ltd.,Capital Goods,False,520.0,235851.5,13.07,True,True,True,True
+RHIM,RHI MAGNESITA INDIA LTD.,Capital Goods,False,360.0,261557.5,9.55,True,True,True,True
+HSCL,Himadri Speciality Chemical Ltd.,Chemicals,False,541.5,1422236.0,94.88,True,True,True,True
+TATACHEM,Tata Chemicals Ltd.,Chemicals,False,599.0,1094403.0,66.62,True,True,True,True
+AETHER,Aether Industries Ltd.,Chemicals,False,1537.4,317293.5,51.55,True,True,True,True
+ANURAS,Anupam Rasayan India Ltd.,Chemicals,False,1125.0,347362.0,40.4,True,True,True,True
+DEEPAKFERT,Deepak Fertilisers & Petrochemicals Corp. Ltd.,Chemicals,False,1184.5,239344.5,30.87,True,True,True,True
+AARTIIND,Aarti Industries Ltd.,Chemicals,False,435.7,650787.5,29.22,True,True,True,True
+PARADEEP,Paradeep Phosphates Ltd.,Chemicals,False,138.97,1722593.0,25.9,True,True,True,True
+SWANCORP,Swan Corp Ltd.,Chemicals,False,238.05,768919.0,20.62,True,True,True,True
+PCBL,PCBL Chemical Ltd.,Chemicals,False,287.95,657977.5,20.57,True,True,True,True
+CHAMBLFERT,Chambal Fertilizers & Chemicals Ltd.,Chemicals,False,358.9,421356.5,16.56,True,True,True,True
+CLEAN,Clean Science and Technology Ltd.,Chemicals,False,744.0,201457.5,15.75,True,True,True,True
+JUBLINGREA,Jubilant Ingrevia Ltd.,Chemicals,False,640.0,215163.0,13.36,True,True,True,True
+SUMICHEM,Sumitomo Chemical India Ltd.,Chemicals,False,339.5,276330.0,11.7,True,True,True,True
+ENGINERSIN,Engineers India Ltd.,Construction,False,250.2,3390748.5,92.21,True,True,True,True
+CEMPRO,Cemindia Projects Ltd.,Construction,False,1203.8,323667.5,37.93,True,True,True,True
+KEC,Kec International Ltd.,Construction,False,331.65,1079351.5,37.32,True,True,True,True
+IRCON,IRCON International Ltd.,Construction,False,98.61,2213152.0,23.57,True,True,True,True
+NCC,NCC Ltd.,Construction,False,115.41,1596092.0,19.48,True,True,True,True
+RITES,RITES Ltd.,Construction,False,197.67,531100.0,10.65,True,True,True,True
+AFCONS,Afcons Infrastructure Ltd.,Construction,False,209.08,382751.5,9.35,True,True,True,True
+JSWCEMENT,JSW Cement Ltd.,Construction Materials,False,116.61,1421694.5,16.43,True,True,True,True
+NUVOCO,Nuvoco Vistas Corporation Ltd.,Construction Materials,False,339.55,225349.0,7.39,True,True,True,True
+INDIACEM,India Cements Ltd.,Construction Materials,False,308.85,237072.0,7.08,True,True,True,True
+LGEINDIA,LG Electronics India Ltd.,Consumer Durables,False,1677.8,363548.0,62.63,True,True,True,True
+KAJARIACER,Kajaria Ceramics Ltd.,Consumer Durables,False,1146.9,333266.5,39.8,True,True,True,True
+WHIRLPOOL,Whirlpool of India Ltd.,Consumer Durables,False,847.05,480090.0,39.12,True,True,True,True
+BERGEPAINT,Berger Paints India Ltd.,Consumer Durables,False,463.95,219375.0,10.33,True,True,True,True
+MEESHO,Meesho Ltd.,Consumer Services,False,223.58,14172958.0,325.84,True,True,True,True
+LENSKART,Lenskart Solutions Ltd.,Consumer Services,False,669.2,3128977.0,212.88,True,True,True,True
+CARTRADE,Cartrade Tech Ltd.,Consumer Services,False,2821.2,269646.0,80.74,True,True,True,True
+PWL,Physicswallah Ltd.,Consumer Services,False,129.89,5852576.5,71.62,True,True,True,True
+URBANCO,Urban Company Ltd.,Consumer Services,False,143.66,4274304.0,67.58,True,True,True,True
+IRCTC,Indian Railway Catering And Tourism Corporation Ltd.,Consumer Services,False,449.2,800368.0,36.51,True,True,True,True
+LEMONTREE,Lemon Tree Hotels Ltd.,Consumer Services,False,106.53,2452884.0,26.72,True,True,True,True
+FIRSTCRY,Brainbees Solutions Ltd.,Consumer Services,False,164.58,1326421.5,23.32,True,True,True,True
+ITCHOTELS,ITC Hotels Ltd.,Consumer Services,False,166.3,1443144.5,23.32,True,True,True,True
+BLS,BLS International Services Ltd.,Consumer Services,False,218.0,634841.0,13.64,True,True,True,True
+DEVYANI,Devyani International Ltd.,Consumer Services,False,120.45,1021754.0,12.59,True,True,True,True
+CUPID,Cupid Ltd.,Fast Moving Consumer Goods,False,316.6,19962352.0,690.88,True,True,True,True
+BALRAMCHIN,Balrampur Chini Mills Ltd.,Fast Moving Consumer Goods,False,631.65,1063731.5,74.35,True,True,True,True
+ABDL,Allied Blenders and Distillers Ltd.,Fast Moving Consumer Goods,False,693.15,626988.5,44.26,True,True,True,True
+HONASA,Honasa Consumer Ltd.,Fast Moving Consumer Goods,False,449.15,820882.0,37.2,True,True,True,True
+EMAMILTD,Emami Ltd.,Fast Moving Consumer Goods,False,368.9,751141.0,28.17,True,True,True,True
+AWL,AWL Agri Business Ltd.,Fast Moving Consumer Goods,False,176.35,1497749.5,26.84,True,True,True,True
+EIDPARRY,E.I.D. Parry (India) Ltd.,Fast Moving Consumer Goods,False,620.7,301937.0,20.79,True,True,True,True
+LTFOODS,LT Foods Ltd.,Fast Moving Consumer Goods,False,391.55,341237.5,14.02,True,True,True,True
+GROWW,Billionbrains Garage Ventures Ltd.,Financial Services,False,186.57,20088728.0,390.38,True,True,True,True
+PINELABS,Pine Labs Ltd.,Financial Services,False,153.79,10919822.5,185.89,True,True,True,True
+IFCI,IFCI Ltd.,Financial Services,False,59.05,25294769.5,166.54,True,True,True,True
+ICICIAMC,ICICI Prudential Asset Management Company Ltd.,Financial Services,False,2799.7,369994.5,112.98,True,True,True,True
+KARURVYSYA,Karur Vysya Bank Ltd.,Financial Services,False,350.6,2998343.5,99.67,True,True,True,True
+IIFL,IIFL Finance Ltd.,Financial Services,False,527.55,1633553.5,97.68,True,True,True,True
+SAMMAANCAP,Sammaan Capital Ltd.,Financial Services,False,113.97,5930360.0,75.25,True,True,True,True
+IDBI,IDBI Bank Ltd.,Financial Services,False,78.22,8562274.0,69.64,True,True,True,True
+CGCL,Capri Global Capital Ltd.,Financial Services,False,234.2,2581184.0,63.08,True,True,True,True
+M&MFIN,Mahindra & Mahindra Financial Services Ltd.,Financial Services,False,260.85,1956005.0,59.85,True,True,True,True
+TATACAP,Tata Capital Ltd.,Financial Services,False,300.45,1723436.0,54.27,True,True,True,True
+POONAWALLA,Poonawalla Fincorp Ltd.,Financial Services,False,402.8,1213587.5,52.77,True,True,True,True
+NUVAMA,Nuvama Wealth Management Ltd.,Financial Services,False,1690.8,301574.5,50.09,True,True,True,True
+HDBFS,HDB Financial Services Ltd.,Financial Services,False,504.3,878693.0,46.18,True,True,True,True
+CUB,City Union Bank Ltd.,Financial Services,False,213.12,1898291.5,42.96,True,True,True,True
+PIRAMALFIN,Piramal Finance Ltd.,Financial Services,False,1860.2,216265.5,42.67,True,True,True,True
+HUDCO,Housing & Urban Development Corporation Ltd.,Financial Services,False,143.33,2227167.5,35.19,True,True,True,True
+APTUS,Aptus Value Housing Finance India Ltd.,Financial Services,False,202.5,1553666.0,33.75,True,True,True,True
+J&KBANK,Jammu & Kashmir Bank Ltd.,Financial Services,False,123.91,2233906.0,30.72,True,True,True,True
+BAJAJHFL,Bajaj Housing Finance Ltd.,Financial Services,False,77.64,3714909.0,30.63,True,True,True,True
+CHOICEIN,Choice International Ltd.,Financial Services,False,721.15,353595.5,26.02,True,True,True,True
+NIACL,The New India Assurance Company Ltd.,Financial Services,False,163.33,1429592.0,25.94,True,True,True,True
+CREDITACC,CreditAccess Grameen Ltd.,Financial Services,False,1009.0,217031.0,24.17,True,True,True,True
+FIVESTAR,Five-Star Business Finance Ltd.,Financial Services,False,416.35,485991.5,23.65,True,True,True,True
+ABSLAMC,Aditya Birla Sun Life AMC Ltd.,Financial Services,False,878.55,207347.5,20.84,True,True,True,True
+GICRE,General Insurance Corporation of India,Financial Services,False,322.5,642507.0,20.81,True,True,True,True
+JMFINANCIL,JM Financial Ltd.,Financial Services,False,109.49,1716525.0,20.48,True,True,True,True
+TATAINVEST,Tata Investment Corporation Ltd.,Financial Services,False,556.7,301289.5,17.5,True,True,True,True
+STARHEALTH,Star Health and Allied Insurance Company Ltd.,Financial Services,False,546.75,273235.5,14.64,True,True,True,True
+AADHARHFC,Aadhar Housing Finance Ltd.,Financial Services,False,433.9,224662.0,9.98,True,True,True,True
+CANHLIFE,Canara HSBC Life Insurance Company Ltd.,Financial Services,False,122.0,620632.5,8.96,True,True,True,True
+WOCKPHARMA,Wockhardt Ltd.,Healthcare,False,1884.8,728279.5,143.35,True,True,True,True
+ACUTAAS,Acutaas Chemicals Ltd.,Healthcare,False,3793.3,347752.5,109.46,True,True,True,True
+GLAND,Gland Pharma Ltd.,Healthcare,False,2960.3,333048.5,95.33,True,True,True,True
+ASTERDM,Aster DM Quality Care Ltd.,Healthcare,False,662.8,1139941.0,77.24,True,True,True,True
+GRANULES,Granules India Ltd.,Healthcare,False,830.55,732875.0,60.31,True,True,True,True
+SAILIFE,Sai Life Sciences Ltd.,Healthcare,False,1486.2,416672.0,58.85,True,True,True,True
+LALPATHLAB,Dr. Lal Path Labs Ltd.,Healthcare,False,1890.0,250122.5,48.89,True,True,True,True
+IPCALAB,Ipca Laboratories Ltd.,Healthcare,False,1980.8,230821.0,44.39,True,True,True,True
+PPLPHARMA,Piramal Pharma Ltd.,Healthcare,False,198.72,2144786.0,43.39,True,True,True,True
+NATCOPHARM,NATCO Pharma Ltd.,Healthcare,False,794.55,498722.5,39.61,True,True,True,True
+ANTHEM,Anthem Biosciences Ltd.,Healthcare,False,837.15,379771.0,31.93,True,True,True,True
+KIMS,Krishna Institute of Medical Sciences Ltd.,Healthcare,False,697.65,416382.0,29.89,True,True,True,True
+ONESOURCE,Onesource Specialty Pharma Ltd.,Healthcare,False,1589.8,200723.0,28.92,True,True,True,True
+COHANCE,Cohance Lifesciences Ltd.,Healthcare,False,479.25,571282.0,25.8,True,True,True,True
+SYNGENE,Syngene International Ltd.,Healthcare,False,366.2,489526.0,17.94,True,True,True,True
+NETWEB,Netweb Technologies India Ltd.,Information Technology,False,4351.4,1280999.0,613.85,True,True,True,True
+BBOX,Black Box Ltd.,Information Technology,False,809.15,1031069.0,89.93,True,True,True,True
+ZENSARTECH,Zensar Technolgies Ltd.,Information Technology,False,507.75,1649598.5,78.68,True,True,True,True
+CYIENT,Cyient Ltd.,Information Technology,False,1182.3,566720.0,63.66,True,True,True,True
+TATATECH,Tata Technologies Ltd.,Information Technology,False,657.25,671326.5,46.58,True,True,True,True
+BSOFT,Birlasoft Ltd.,Information Technology,False,311.7,1667086.5,46.15,True,True,True,True
+HEXT,Hexaware Technologies Ltd.,Information Technology,False,569.35,352163.5,19.24,True,True,True,True
+INTELLECT,Intellect Design Arena Ltd.,Information Technology,False,602.6,306395.0,19.01,True,True,True,True
+FRACTAL,Fractal Analytics Ltd.,Information Technology,False,756.35,250063.5,17.9,True,True,True,True
+PFOCUS,Prime Focus Ltd.,Media Entertainment & Publication,False,299.15,4060573.0,117.9,True,True,True,True
+ZEEL,Zee Entertainment Enterprises Ltd.,Media Entertainment & Publication,False,64.58,12924211.5,93.75,True,True,True,True
+PVRINOX,PVR INOX Ltd.,Media Entertainment & Publication,False,1464.0,629750.5,83.71,True,True,True,True
+SUNTV,Sun TV Network Ltd.,Media Entertainment & Publication,False,634.55,1127137.5,66.85,True,True,True,True
+VAML,Vedanta Aluminium Metal Ltd.,Metals & Mining,False,354.1,6413785.5,233.17,True,True,True,True
+HINDCOPPER,Hindustan Copper Ltd.,Metals & Mining,False,407.35,4236675.0,189.4,True,True,True,True
+LLOYDSME,Lloyds Metals And Energy Ltd.,Metals & Mining,False,1773.6,396228.5,73.95,True,True,True,True
+JSL,Jindal Stainless Ltd.,Metals & Mining,False,705.5,487048.0,35.92,True,True,True,True
+GMDCLTD,Gujarat Mineral Development Corporation Ltd.,Metals & Mining,False,439.65,727704.0,34.0,True,True,True,True
+JAINREC,Jain Resource Recycling Ltd.,Metals & Mining,False,283.65,665659.5,19.36,True,True,True,True
+SARDAEN,Sarda Energy and Minerals Ltd.,Metals & Mining,False,458.25,219114.5,10.51,True,True,True,True
+CHENNPETRO,Chennai Petroleum Corporation Ltd.,Oil Gas & Consumable Fuels,False,1573.8,2135735.5,321.2,True,True,True,True
+MRPL,Mangalore Refinery & Petrochemicals Ltd.,Oil Gas & Consumable Fuels,False,189.44,13137565.5,227.47,True,True,True,True
+AEGISLOG,Aegis Logistics Ltd.,Oil Gas & Consumable Fuels,False,1200.1,826186.5,114.84,True,True,True,True
+CASTROLIND,Castrol India Ltd.,Oil Gas & Consumable Fuels,False,188.86,2415975.5,47.77,True,True,True,True
+ATGL,Adani Total Gas Ltd.,Oil Gas & Consumable Fuels,False,537.75,492422.5,28.46,True,True,True,True
+AEGISVOPAK,Aegis Vopak Terminals Ltd.,Oil Gas & Consumable Fuels,False,235.1,812973.0,21.2,True,True,True,True
+IGL,Indraprastha Gas Ltd.,Oil Gas & Consumable Fuels,False,139.52,1336060.0,19.16,True,True,True,True
+ACMESOLAR,ACME Solar Holdings Ltd.,Power,False,416.05,977294.5,41.21,True,True,True,True
+CLEANMAX,Clean Max Enviro Energy Solutions Ltd.,Power,False,1229.5,261852.0,33.43,True,True,True,True
+NLCINDIA,NLC India Ltd.,Power,False,230.4,1164520.0,28.72,True,True,True,True
+SJVN,SJVN Ltd.,Power,False,50.75,4217126.5,22.42,True,True,True,True
+CESC,CESC Ltd.,Power,False,123.45,1578239.0,21.05,True,True,True,True
+NTPCGREEN,NTPC Green Energy Ltd.,Power,False,83.13,2080957.0,18.26,True,True,True,True
+NAVA,Nava Ltd.,Power,False,490.05,265947.0,14.53,True,True,True,True
+ANANTRAJ,Anant Raj Ltd.,Realty,False,466.9,1477381.5,80.24,True,True,True,True
+ABREL,Aditya Birla Real Estate Ltd.,Realty,False,1080.5,237860.0,25.69,True,True,True,True
+SIGNATURE,Signatureglobal (India) Ltd.,Realty,False,703.9,271103.5,19.42,True,True,True,True
+REDINGTON,Redington Ltd.,Services,False,358.1,2977316.5,118.1,True,True,True,True
+GESHIP,Great Eastern Shipping Co. Ltd.,Services,False,1550.9,742695.5,113.3,True,True,True,True
+JSWINFRA,JSW Infrastructure Ltd.,Services,False,317.25,2333738.5,84.3,True,True,True,True
+SCI,Shipping Corporation of India Ltd.,Services,False,244.3,1601448.5,44.54,True,True,True,True
+FSL,Firstsource Solutions Ltd.,Services,False,298.75,1396457.5,40.42,True,True,True,True
+IGIL,International Gemological Institute Ltd.,Services,False,392.55,492243.5,15.84,True,True,True,True
+CMPDI,Central Mine Planning & Design Institute Ltd.,Services,False,184.37,752382.5,15.04,True,True,True,True
+MMTC,MMTC Ltd.,Services,False,51.11,1007816.0,5.43,True,True,True,True
+TEJASNET,Tejas Networks Ltd.,Telecommunication,False,412.3,1210818.5,55.43,True,True,True,True
+TATACOMM,Tata Communications Ltd.,Telecommunication,False,1708.9,223630.0,37.39,True,True,True,True
+RAILTEL,Railtel Corporation Of India Ltd.,Telecommunication,False,229.95,616448.0,15.22,True,True,True,True
+WELSPUNLIV,Welspun Living Ltd.,Textiles,False,215.03,2620153.5,57.07,True,True,True,True
+OLAELEC,Ola Electric Mobility Ltd.,Automobile and Auto Components,False,34.8,52829108.0,177.96,False,True,True,False
+CRAFTSMAN,Craftsman Automation Ltd.,Automobile and Auto Components,False,11011.0,43874.0,46.35,True,False,True,False
+MRF,MRF Ltd.,Automobile and Auto Components,False,118030.0,2485.0,30.42,True,False,True,False
+MSUMI,Motherson Sumi Wiring India Ltd.,Automobile and Auto Components,False,34.67,8772361.5,29.31,False,True,True,False
+BALKRISIND,Balkrishna Industries Ltd.,Automobile and Auto Components,False,2144.3,138413.5,28.65,True,False,True,False
+GABRIEL,Gabriel India Ltd.,Automobile and Auto Components,False,1449.7,199442.0,27.4,True,False,True,False
+SHRIPISTON,SPR Auto Technologies Ltd.,Automobile and Auto Components,False,4490.0,61438.5,26.64,True,False,True,False
+SCHAEFFLER,Schaeffler India Ltd.,Automobile and Auto Components,False,3670.2,54927.0,20.12,True,False,True,False
+ZFCVINDIA,ZF Commercial Vehicle Control Systems India Ltd.,Automobile and Auto Components,False,2134.0,86726.0,19.13,True,False,True,False
+ENDURANCE,Endurance Technologies Ltd.,Automobile and Auto Components,False,2278.0,75019.0,18.43,True,False,True,False
+CEATLTD,Ceat Ltd.,Automobile and Auto Components,False,3138.4,46373.5,15.04,True,False,True,False
+JBMA,JBM Auto Ltd.,Automobile and Auto Components,False,483.85,198678.0,10.68,True,False,True,False
+CIEINDIA,CIE Automotive India Ltd.,Automobile and Auto Components,False,368.0,181904.0,6.84,True,False,True,False
+ASAHIINDIA,Asahi India Glass Ltd.,Automobile and Auto Components,False,914.95,64549.5,5.94,True,False,True,False
+ATHERENERG,Ather Energy Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+BAJAJ-AUTO,Bajaj Auto Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+BHARATFORG,Bharat Forge Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+BOSCHLTD,Bosch Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+EICHERMOT,Eicher Motors Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+FORCEMOT,Force Motors Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+HEROMOTOCO,Hero MotoCorp Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+HYUNDAI,Hyundai Motor India Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+M&M,Mahindra & Mahindra Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+MARUTI,Maruti Suzuki India Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+MOTHERSON,Samvardhana Motherson International Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+SONACOMS,Sona BLW Precision Forgings Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+TVSMOTOR,TVS Motor Company Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+TMPV,Tata Motors Passenger Vehicles Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+TIINDIA,Tube Investments of India Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+UNOMINDA,UNO Minda Ltd.,Automobile and Auto Components,True,,,,False,False,False,False
+APARINDS,Apar Industries Ltd.,Capital Goods,False,15153.0,133538.5,217.6,True,False,True,False
+MTARTECH,MTAR Technologies Ltd.,Capital Goods,False,6742.0,161644.5,112.61,True,False,True,False
+PTCIL,PTC Industries Ltd.,Capital Goods,False,24055.0,21009.5,52.15,True,False,True,False
+THERMAX,Thermax Ltd.,Capital Goods,False,3153.3,152628.5,50.27,True,False,True,False
+BEML,BEML Ltd.,Capital Goods,False,1998.6,197474.5,38.88,True,False,True,False
+INOXINDIA,INOX India Ltd.,Capital Goods,False,1913.0,164889.0,32.05,True,False,True,False
+CARBORUNIV,Carborundum Universal Ltd.,Capital Goods,False,1097.7,197730.0,21.73,True,False,True,False
+SCHNEIDER,Schneider Electric Infrastructure Ltd.,Capital Goods,False,1141.3,154584.0,17.75,True,False,True,False
+AIAENG,AIA Engineering Ltd.,Capital Goods,False,3593.6,38187.0,14.25,True,False,True,False
+TIMKEN,Timken India Ltd.,Capital Goods,False,2780.0,43107.0,12.99,True,False,True,False
+ESCORTS,Escorts Kubota Ltd.,Capital Goods,False,2701.2,45836.0,12.58,True,False,True,False
+KSB,KSB Ltd.,Capital Goods,False,659.0,131732.0,9.35,True,False,True,False
+HONAUT,Honeywell Automation India Ltd.,Capital Goods,False,31520.0,2308.5,7.7,True,False,True,False
+KIRLOSBROS,Kirloskar Brothers Ltd.,Capital Goods,False,1551.4,38210.0,6.41,True,False,True,False
+ABB,ABB India Ltd.,Capital Goods,True,,,,False,False,False,False
+APLAPOLLO,APL Apollo Tubes Ltd.,Capital Goods,True,,,,False,False,False,False
+ASHOKLEY,Ashok Leyland Ltd.,Capital Goods,True,,,,False,False,False,False
+ASTRAL,Astral Ltd.,Capital Goods,True,,,,False,False,False,False
+BDL,Bharat Dynamics Ltd.,Capital Goods,True,,,,False,False,False,False
+BEL,Bharat Electronics Ltd.,Capital Goods,True,,,,False,False,False,False
+BHEL,Bharat Heavy Electricals Ltd.,Capital Goods,True,,,,False,False,False,False
+CGPOWER,CG Power and Industrial Solutions Ltd.,Capital Goods,True,,,,False,False,False,False
+COCHINSHIP,Cochin Shipyard Ltd.,Capital Goods,True,,,,False,False,False,False
+CUMMINSIND,Cummins India Ltd.,Capital Goods,True,,,,False,False,False,False
+DUMMYHEG,Dummy HEG Ltd.,Capital Goods,False,,,,False,False,False,False
+GVT&D,GE Vernova T&D India Ltd.,Capital Goods,True,,,,False,False,False,False
+HAL,Hindustan Aeronautics Ltd.,Capital Goods,True,,,,False,False,False,False
+POWERINDIA,Hitachi Energy India Ltd.,Capital Goods,True,,,,False,False,False,False
+INOXWIND,Inox Wind Ltd.,Capital Goods,True,,,,False,False,False,False
+KEI,KEI Industries Ltd.,Capital Goods,True,,,,False,False,False,False
+KAYNES,Kaynes Technology India Ltd.,Capital Goods,True,,,,False,False,False,False
+MAZDOCK,Mazagoan Dock Shipbuilders Ltd.,Capital Goods,True,,,,False,False,False,False
+POLYCAB,Polycab India Ltd.,Capital Goods,True,,,,False,False,False,False
+PREMIERENE,Premier Energies Ltd.,Capital Goods,True,,,,False,False,False,False
+ENRIN,Siemens Energy India Ltd.,Capital Goods,True,,,,False,False,False,False
+SIEMENS,Siemens Ltd.,Capital Goods,True,,,,False,False,False,False
+SUPREMEIND,Supreme Industries Ltd.,Capital Goods,True,,,,False,False,False,False
+SUZLON,Suzlon Energy Ltd.,Capital Goods,True,,,,False,False,False,False
+WAAREEENER,Waaree Energies Ltd.,Capital Goods,True,,,,False,False,False,False
+NAVINFLUOR,Navin Fluorine International Ltd.,Chemicals,False,8280.0,97039.0,76.93,True,False,True,False
+FLUOROCHEM,Gujarat Fluorochemicals Ltd.,Chemicals,False,4235.7,84923.0,38.17,True,False,True,False
+COROMANDEL,Coromandel International Ltd.,Chemicals,False,1735.1,166449.5,29.61,True,False,True,False
+PRIVISCL,Privi Speciality Chemicals Ltd.,Chemicals,False,3540.0,82348.5,28.52,True,False,True,False
+DEEPAKNTR,Deepak Nitrite Ltd.,Chemicals,False,1431.5,157117.5,23.09,True,False,True,False
+ATUL,Atul Ltd.,Chemicals,False,5413.5,35348.0,21.16,True,False,True,False
+LINDEINDIA,Linde India Ltd.,Chemicals,False,5640.0,16213.5,9.55,True,False,True,False
+FACT,Fertilisers and Chemicals Travancore Ltd.,Chemicals,False,679.7,63460.0,4.47,True,False,False,False
+PIIND,PI Industries Ltd.,Chemicals,True,,,,False,False,False,False
+PIDILITIND,Pidilite Industries Ltd.,Chemicals,True,,,,False,False,False,False
+SRF,SRF Ltd.,Chemicals,True,,,,False,False,False,False
+SOLARINDS,Solar Industries India Ltd.,Chemicals,True,,,,False,False,False,False
+UPL,UPL Ltd.,Chemicals,True,,,,False,False,False,False
+IRB,IRB Infrastructure Developers Ltd.,Construction,False,15.8,10676056.0,17.88,False,True,True,False
+KPIL,Kalpataru Projects International Ltd.,Construction,False,1324.9,119678.5,16.25,True,False,True,False
+TECHNOE,Techno Electric & Engineering Company Ltd.,Construction,False,839.0,124629.5,11.28,True,False,True,False
+LT,Larsen & Toubro Ltd.,Construction,True,,,,False,False,False,False
+NBCC,NBCC (India) Ltd.,Construction,True,,,,False,False,False,False
+RVNL,Rail Vikas Nigam Ltd.,Construction,True,,,,False,False,False,False
+JKCEMENT,J.K. Cement Ltd.,Construction Materials,False,4888.5,33179.0,16.18,True,False,True,False
+ACC,ACC Ltd.,Construction Materials,False,1147.5,114280.5,12.97,True,False,True,False
+RAMCOCEM,The Ramco Cements Ltd.,Construction Materials,False,731.75,121435.0,9.78,True,False,True,False
+DALBHARAT,Dalmia Bharat Ltd.,Construction Materials,False,1519.0,47693.0,7.78,True,False,True,False
+AMBUJACEM,Ambuja Cements Ltd.,Construction Materials,True,,,,False,False,False,False
+GRASIM,Grasim Industries Ltd.,Construction Materials,True,,,,False,False,False,False
+SHREECEM,Shree Cement Ltd.,Construction Materials,True,,,,False,False,False,False
+ULTRACEMCO,UltraTech Cement Ltd.,Construction Materials,True,,,,False,False,False,False
+THANGAMAYL,Thangamayil Jewellery Ltd.,Consumer Durables,False,4762.0,41484.0,19.95,True,False,True,False
+BATAINDIA,Bata India Ltd.,Consumer Durables,False,662.4,131901.5,8.14,True,False,True,False
+AMBER,Amber Enterprises India Ltd.,Consumer Durables,True,,,,False,False,False,False
+ASIANPAINT,Asian Paints Ltd.,Consumer Durables,True,,,,False,False,False,False
+BLUESTARCO,Blue Star Ltd.,Consumer Durables,True,,,,False,False,False,False
+CROMPTON,Crompton Greaves Consumer Electricals Ltd.,Consumer Durables,True,,,,False,False,False,False
+DIXON,Dixon Technologies (India) Ltd.,Consumer Durables,True,,,,False,False,False,False
+HAVELLS,Havells India Ltd.,Consumer Durables,True,,,,False,False,False,False
+KALYANKJIL,Kalyan Jewellers India Ltd.,Consumer Durables,True,,,,False,False,False,False
+PGEL,PG Electroplast Ltd.,Consumer Durables,True,,,,False,False,False,False
+TITAN,Titan Company Ltd.,Consumer Durables,True,,,,False,False,False,False
+VOLTAS,Voltas Ltd.,Consumer Durables,True,,,,False,False,False,False
+TBOTEK,TBO Tek Ltd.,Consumer Services,False,1535.2,101050.0,16.66,True,False,True,False
+INDIAMART,Indiamart Intermesh Ltd.,Consumer Services,False,1627.8,58780.0,9.46,True,False,True,False
+EIHOTEL,EIH Ltd.,Consumer Services,False,291.3,147897.5,4.39,True,False,False,False
+DMART,Avenue Supermarts Ltd.,Consumer Services,True,,,,False,False,False,False
+ETERNAL,Eternal Ltd.,Consumer Services,True,,,,False,False,False,False
+NYKAA,FSN E-Commerce Ventures Ltd.,Consumer Services,True,,,,False,False,False,False
+INDHOTEL,Indian Hotels Co. Ltd.,Consumer Services,True,,,,False,False,False,False
+NAUKRI,Info Edge (India) Ltd.,Consumer Services,True,,,,False,False,False,False
+JUBLFOOD,Jubilant Foodworks Ltd.,Consumer Services,True,,,,False,False,False,False
+SWIGGY,Swiggy Ltd.,Consumer Services,True,,,,False,False,False,False
+TRENT,Trent Ltd.,Consumer Services,True,,,,False,False,False,False
+VMM,Vishal Mega Mart Ltd.,Consumer Services,True,,,,False,False,False,False
+GODREJIND,Godrej Industries Ltd.,Diversified,False,943.8,53859.0,5.21,True,False,True,False
+CCL,CCL Products (I) Ltd.,Fast Moving Consumer Goods,False,910.0,149851.0,15.68,True,False,True,False
+AVANTIFEED,Avanti Feeds Ltd.,Fast Moving Consumer Goods,False,671.45,197075.0,13.89,True,False,True,False
+UBL,United Breweries Ltd.,Fast Moving Consumer Goods,False,1136.2,101982.0,11.95,True,False,True,False
+GILLETTE,Gillette India Ltd.,Fast Moving Consumer Goods,False,7310.0,15962.0,11.51,True,False,True,False
+ZYDUSWELL,Zydus Wellness Ltd.,Fast Moving Consumer Goods,False,472.0,112205.5,5.42,True,False,True,False
+DOMS,DOMS Industries Ltd.,Fast Moving Consumer Goods,False,1865.0,17172.0,3.37,True,False,False,False
+BRITANNIA,Britannia Industries Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+COLPAL,Colgate Palmolive (India) Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+DABUR,Dabur India Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+GODFRYPHLP,Godfrey Phillips India Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+GODREJCP,Godrej Consumer Products Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+HINDUNILVR,Hindustan Unilever Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+ITC,ITC Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+MARICO,Marico Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+NESTLEIND,Nestle India Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+PATANJALI,Patanjali Foods Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+RADICO,Radico Khaitan Ltd,Fast Moving Consumer Goods,True,,,,False,False,False,False
+TATACONSUM,Tata Consumer Products Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+UNITDSPR,United Spirits Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+VBL,Varun Beverages Ltd.,Fast Moving Consumer Goods,True,,,,False,False,False,False
+HOMEFIRST,Home First Finance Company India Ltd.,Financial Services,False,1020.0,161049.5,17.73,True,False,True,False
+CHOLAHLDNG,Cholamandalam Financial Holdings Ltd.,Financial Services,False,1258.8,136582.0,17.54,True,False,True,False
+SUNDARMFIN,Sundaram Finance Ltd.,Financial Services,False,3902.0,38144.0,15.65,True,False,True,False
+CENTRALBK,Central Bank of India,Financial Services,False,28.91,4708585.5,14.12,False,True,True,False
+CANFINHOME,Can Fin Homes Ltd.,Financial Services,False,725.5,194988.0,14.03,True,False,True,False
+CRISIL,CRISIL Ltd.,Financial Services,False,4694.0,25110.5,11.4,True,False,True,False
+UCOBANK,UCO Bank,Financial Services,False,22.36,4050817.0,9.52,False,True,True,False
+IOB,Indian Overseas Bank,Financial Services,False,29.18,2722480.0,8.2,False,True,True,False
+AAVAS,Aavas Financiers Ltd.,Financial Services,False,1137.5,63294.0,7.64,True,False,True,False
+AIIL,Authum Investment & Infrastructure Ltd.,Financial Services,False,484.0,137402.5,7.57,True,False,True,False
+UTIAMC,UTI Asset Management Company Ltd.,Financial Services,False,810.8,68447.0,6.04,True,False,True,False
+360ONE,360 ONE WAM Ltd.,Financial Services,True,,,,False,False,False,False
+AUBANK,AU Small Finance Bank Ltd.,Financial Services,True,,,,False,False,False,False
+ABCAPITAL,Aditya Birla Capital Ltd.,Financial Services,True,,,,False,False,False,False
+ANANDRATHI,Anand Rathi Wealth Ltd.,Financial Services,True,,,,False,False,False,False
+ANGELONE,Angel One Ltd.,Financial Services,True,,,,False,False,False,False
+AXISBANK,Axis Bank Ltd.,Financial Services,True,,,,False,False,False,False
+BSE,BSE Ltd.,Financial Services,True,,,,False,False,False,False
+BAJFINANCE,Bajaj Finance Ltd.,Financial Services,True,,,,False,False,False,False
+BAJAJFINSV,Bajaj Finserv Ltd.,Financial Services,True,,,,False,False,False,False
+BAJAJHLDNG,Bajaj Holdings & Investment Ltd.,Financial Services,True,,,,False,False,False,False
+BANDHANBNK,Bandhan Bank Ltd.,Financial Services,True,,,,False,False,False,False
+BANKBARODA,Bank of Baroda,Financial Services,True,,,,False,False,False,False
+BANKINDIA,Bank of India,Financial Services,True,,,,False,False,False,False
+MAHABANK,Bank of Maharashtra,Financial Services,True,,,,False,False,False,False
+CANBK,Canara Bank,Financial Services,True,,,,False,False,False,False
+CDSL,Central Depository Services (India) Ltd.,Financial Services,True,,,,False,False,False,False
+CHOLAFIN,Cholamandalam Investment and Finance Company Ltd.,Financial Services,True,,,,False,False,False,False
+CAMS,Computer Age Management Services Ltd.,Financial Services,True,,,,False,False,False,False
+FEDERALBNK,Federal Bank Ltd.,Financial Services,True,,,,False,False,False,False
+HDFCAMC,HDFC Asset Management Company Ltd.,Financial Services,True,,,,False,False,False,False
+HDFCBANK,HDFC Bank Ltd.,Financial Services,True,,,,False,False,False,False
+HDFCLIFE,HDFC Life Insurance Company Ltd.,Financial Services,True,,,,False,False,False,False
+ICICIBANK,ICICI Bank Ltd.,Financial Services,True,,,,False,False,False,False
+ICICILIFE,ICICI Life Insurance Ltd.,Financial Services,True,,,,False,False,False,False
+ICICIGI,ICICI Lombard General Insurance Company Ltd.,Financial Services,True,,,,False,False,False,False
+IDFCFIRSTB,IDFC First Bank Ltd.,Financial Services,True,,,,False,False,False,False
+INDIANB,Indian Bank,Financial Services,True,,,,False,False,False,False
+IEX,Indian Energy Exchange Ltd.,Financial Services,True,,,,False,False,False,False
+IRFC,Indian Railway Finance Corporation Ltd.,Financial Services,True,,,,False,False,False,False
+IREDA,Indian Renewable Energy Development Agency Ltd.,Financial Services,True,,,,False,False,False,False
+INDUSINDBK,IndusInd Bank Ltd.,Financial Services,True,,,,False,False,False,False
+JIOFIN,Jio Financial Services Ltd.,Financial Services,True,,,,False,False,False,False
+KFINTECH,Kfin Technologies Ltd.,Financial Services,True,,,,False,False,False,False
+KOTAKBANK,Kotak Mahindra Bank Ltd.,Financial Services,True,,,,False,False,False,False
+LTF,L&T Finance Ltd.,Financial Services,True,,,,False,False,False,False
+LICHSGFIN,LIC Housing Finance Ltd.,Financial Services,True,,,,False,False,False,False
+LICI,Life Insurance Corporation of India,Financial Services,True,,,,False,False,False,False
+MANAPPURAM,Manappuram Finance Ltd.,Financial Services,True,,,,False,False,False,False
+MFSL,Max Financial Services Ltd.,Financial Services,True,,,,False,False,False,False
+MOTILALOFS,Motilal Oswal Financial Services Ltd.,Financial Services,True,,,,False,False,False,False
+MCX,Multi Commodity Exchange of India Ltd.,Financial Services,True,,,,False,False,False,False
+MUTHOOTFIN,Muthoot Finance Ltd.,Financial Services,True,,,,False,False,False,False
+NAM-INDIA,Nippon Life India Asset Management Ltd.,Financial Services,True,,,,False,False,False,False
+PAYTM,One 97 Communications Ltd.,Financial Services,True,,,,False,False,False,False
+POLICYBZR,PB Fintech Ltd.,Financial Services,True,,,,False,False,False,False
+PNBHOUSING,PNB Housing Finance Ltd.,Financial Services,True,,,,False,False,False,False
+PFC,Power Finance Corporation Ltd.,Financial Services,True,,,,False,False,False,False
+PNB,Punjab National Bank,Financial Services,True,,,,False,False,False,False
+RBLBANK,RBL Bank Ltd.,Financial Services,True,,,,False,False,False,False
+RECLTD,REC Ltd.,Financial Services,True,,,,False,False,False,False
+SBICARD,SBI Cards and Payment Services Ltd.,Financial Services,True,,,,False,False,False,False
+SBILIFE,SBI Life Insurance Company Ltd.,Financial Services,True,,,,False,False,False,False
+SHRIRAMFIN,Shriram Finance Ltd.,Financial Services,True,,,,False,False,False,False
+SBIN,State Bank of India,Financial Services,True,,,,False,False,False,False
+UNIONBANK,Union Bank of India,Financial Services,True,,,,False,False,False,False
+YESBANK,Yes Bank Ltd.,Financial Services,True,,,,False,False,False,False
+NEULANDLAB,Neuland Laboratories Ltd.,Healthcare,False,19315.0,40968.5,83.22,True,False,True,False
+AJANTPHARM,Ajanta Pharmaceuticals Ltd.,Healthcare,False,3353.6,92751.5,32.32,True,False,True,False
+CAPLIPOINT,Caplin Point Laboratories Ltd.,Healthcare,False,2348.0,106153.0,26.59,True,False,True,False
+RUBICON,Rubicon Research Ltd.,Healthcare,False,1490.0,160099.5,25.42,True,False,True,False
+NH,Narayana Hrudayalaya Ltd.,Healthcare,False,1713.2,140212.5,24.86,True,False,True,False
+MEDANTA,Global Health Ltd.,Healthcare,False,1260.0,178333.5,24.18,True,False,True,False
+RAINBOW,Rainbow Childrens Medicare Ltd.,Healthcare,False,1198.2,141438.5,17.61,True,False,True,False
+VIJAYA,Vijaya Diagnostic Centre Ltd.,Healthcare,False,1444.0,109969.0,15.93,True,False,True,False
+EMCURE,Emcure Pharmaceuticals Ltd.,Healthcare,False,1865.5,70912.5,13.7,True,False,True,False
+POLYMED,Poly Medicure Ltd.,Healthcare,False,1473.0,87035.0,13.55,True,False,True,False
+ABBOTINDIA,Abbott India Ltd.,Healthcare,False,25575.0,5122.5,13.11,True,False,True,False
+CONCORDBIO,Concord Biotech Ltd.,Healthcare,False,1388.9,88331.5,11.22,True,False,True,False
+GLAXO,Glaxosmithkline Pharmaceuticals Ltd.,Healthcare,False,2472.4,43533.0,11.14,True,False,True,False
+ALKEM,Alkem Laboratories Ltd.,Healthcare,True,,,,False,False,False,False
+APOLLOHOSP,Apollo Hospitals Enterprise Ltd.,Healthcare,True,,,,False,False,False,False
+AUROPHARMA,Aurobindo Pharma Ltd.,Healthcare,True,,,,False,False,False,False
+BIOCON,Biocon Ltd.,Healthcare,True,,,,False,False,False,False
+CIPLA,Cipla Ltd.,Healthcare,True,,,,False,False,False,False
+DIVISLAB,Divi's Laboratories Ltd.,Healthcare,True,,,,False,False,False,False
+DRREDDY,Dr. Reddy's Laboratories Ltd.,Healthcare,True,,,,False,False,False,False
+FORTIS,Fortis Healthcare Ltd.,Healthcare,True,,,,False,False,False,False
+GLENMARK,Glenmark Pharmaceuticals Ltd.,Healthcare,True,,,,False,False,False,False
+LAURUSLABS,Laurus Labs Ltd.,Healthcare,True,,,,False,False,False,False
+LUPIN,Lupin Ltd.,Healthcare,True,,,,False,False,False,False
+MANKIND,Mankind Pharma Ltd.,Healthcare,True,,,,False,False,False,False
+MAXHEALTH,Max Healthcare Institute Ltd.,Healthcare,True,,,,False,False,False,False
+SUNPHARMA,Sun Pharmaceutical Industries Ltd.,Healthcare,True,,,,False,False,False,False
+TORNTPHARM,Torrent Pharmaceuticals Ltd.,Healthcare,True,,,,False,False,False,False
+ZYDUSLIFE,Zydus Lifesciences Ltd.,Healthcare,True,,,,False,False,False,False
+LTTS,L&T Technology Services Ltd.,Information Technology,False,4174.2,95892.0,33.86,True,False,True,False
+IKS,Inventurus Knowledge Solutions Ltd.,Information Technology,False,1705.0,126430.0,22.0,True,False,True,False
+AFFLE,Affle 3i Ltd.,Information Technology,False,1354.8,122516.5,16.91,True,False,True,False
+COFORGE,Coforge Ltd.,Information Technology,True,,,,False,False,False,False
+HCLTECH,HCL Technologies Ltd.,Information Technology,True,,,,False,False,False,False
+INFY,Infosys Ltd.,Information Technology,True,,,,False,False,False,False
+KPITTECH,KPIT Technologies Ltd.,Information Technology,True,,,,False,False,False,False
+LTM,LTM Ltd.,Information Technology,True,,,,False,False,False,False
+MPHASIS,MphasiS Ltd.,Information Technology,True,,,,False,False,False,False
+OFSS,Oracle Financial Services Software Ltd.,Information Technology,True,,,,False,False,False,False
+PERSISTENT,Persistent Systems Ltd.,Information Technology,True,,,,False,False,False,False
+SAGILITY,Sagility Ltd.,Information Technology,True,,,,False,False,False,False
+TCS,Tata Consultancy Services Ltd.,Information Technology,True,,,,False,False,False,False
+TATAELXSI,Tata Elxsi Ltd.,Information Technology,True,,,,False,False,False,False
+TECHM,Tech Mahindra Ltd.,Information Technology,True,,,,False,False,False,False
+WIPRO,Wipro Ltd.,Information Technology,True,,,,False,False,False,False
+VISL,Vedanta Iron and Steel Ltd.,Metals & Mining,False,27.95,16108839.0,46.65,False,True,True,False
+GRAVITA,Gravita India Ltd.,Metals & Mining,False,1340.3,198629.5,27.29,True,False,True,False
+NSLNISP,NMDC Steel Ltd.,Metals & Mining,False,39.39,3452761.0,13.41,False,True,True,False
+ADANIENT,Adani Enterprises Ltd.,Metals & Mining,True,,,,False,False,False,False
+HINDALCO,Hindalco Industries Ltd.,Metals & Mining,True,,,,False,False,False,False
+HINDZINC,Hindustan Zinc Ltd.,Metals & Mining,True,,,,False,False,False,False
+JSWSTEEL,JSW Steel Ltd.,Metals & Mining,True,,,,False,False,False,False
+JINDALSTEL,Jindal Steel Ltd.,Metals & Mining,True,,,,False,False,False,False
+NMDC,NMDC Ltd.,Metals & Mining,True,,,,False,False,False,False
+NATIONALUM,National Aluminium Co. Ltd.,Metals & Mining,True,,,,False,False,False,False
+SAIL,Steel Authority of India Ltd.,Metals & Mining,True,,,,False,False,False,False
+TATASTEEL,Tata Steel Ltd.,Metals & Mining,True,,,,False,False,False,False
+VEDL,Vedanta Ltd.,Metals & Mining,True,,,,False,False,False,False
+VOGL,Vedanta Oil and Gas Ltd.,Oil Gas & Consumable Fuels,False,28.32,16408665.0,47.43,False,True,True,False
+BHARATCOAL,Bharat Coking Coal Ltd.,Oil Gas & Consumable Fuels,False,31.06,4214753.0,13.49,False,True,True,False
+MGL,Mahanagar Gas Ltd.,Oil Gas & Consumable Fuels,False,1051.2,120169.5,12.43,True,False,True,False
+BPCL,Bharat Petroleum Corporation Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+COALINDIA,Coal India Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+GAIL,GAIL (India) Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+HINDPETRO,Hindustan Petroleum Corporation Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+IOC,Indian Oil Corporation Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+ONGC,Oil & Natural Gas Corporation Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+OIL,Oil India Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+PETRONET,Petronet LNG Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+RELIANCE,Reliance Industries Ltd.,Oil Gas & Consumable Fuels,True,,,,False,False,False,False
+JPPOWER,Jaiprakash Power Ventures Ltd.,Power,False,13.19,44452064.0,63.89,False,True,True,False
+VEDPOWER,Vedanta Power Ltd.,Power,False,28.96,15391937.5,46.58,False,True,True,False
+RPOWER,Reliance Power Ltd.,Power,False,16.98,24253190.0,44.15,False,True,True,False
+TORNTPOWER,Torrent Power Ltd.,Power,False,1179.7,195145.0,23.57,True,False,True,False
+ADANIENSOL,Adani Energy Solutions Ltd.,Power,True,,,,False,False,False,False
+ADANIGREEN,Adani Green Energy Ltd.,Power,True,,,,False,False,False,False
+ADANIPOWER,Adani Power Ltd.,Power,True,,,,False,False,False,False
+JSWENERGY,JSW Energy Ltd.,Power,True,,,,False,False,False,False
+NHPC,NHPC Ltd.,Power,True,,,,False,False,False,False
+NTPC,NTPC Ltd.,Power,True,,,,False,False,False,False
+POWERGRID,Power Grid Corporation of India Ltd.,Power,True,,,,False,False,False,False
+TATAPOWER,Tata Power Co. Ltd.,Power,True,,,,False,False,False,False
+SOBHA,Sobha Ltd.,Realty,False,1195.6,128963.5,15.6,True,False,True,False
+BRIGADE,Brigade Enterprises Ltd.,Realty,False,552.1,189664.0,10.65,True,False,True,False
+BAGMANE,Bagmane Prime Office REIT,Realty,False,,,,False,False,False,False
+BIRET,Brookfield India Real Estate Trust,Realty,False,,,,False,False,False,False
+DLF,DLF Ltd.,Realty,True,,,,False,False,False,False
+EMBASSY,EMBASSY OFFICE PARKS REIT,Realty,False,,,,False,False,False,False
+GODREJPROP,Godrej Properties Ltd.,Realty,True,,,,False,False,False,False
+LODHA,Lodha Developers Ltd.,Realty,True,,,,False,False,False,False
+OBEROIRLTY,Oberoi Realty Ltd.,Realty,True,,,,False,False,False,False
+PHOENIXLTD,Phoenix Mills Ltd.,Realty,True,,,,False,False,False,False
+PRESTIGE,Prestige Estates Projects Ltd.,Realty,True,,,,False,False,False,False
+ECLERX,eClerx Services Ltd.,Services,False,1895.3,175801.5,31.65,True,False,True,False
+ADANIPORTS,Adani Ports and Special Economic Zone Ltd.,Services,True,,,,False,False,False,False
+CONCOR,Container Corporation of India Ltd.,Services,True,,,,False,False,False,False
+DELHIVERY,Delhivery Ltd.,Services,True,,,,False,False,False,False
+GMRAIRPORT,GMR Airports Ltd.,Services,True,,,,False,False,False,False
+INDIGO,InterGlobe Aviation Ltd.,Services,True,,,,False,False,False,False
+BHARTIHEXA,Bharti Hexacom Ltd.,Telecommunication,False,1665.9,143228.0,22.46,True,False,True,False
+TTML,Tata Teleservices (Maharashtra) Ltd.,Telecommunication,False,41.86,1966730.5,6.49,False,True,True,False
+ITI,ITI Ltd.,Telecommunication,False,217.56,156703.5,3.74,True,False,False,False
+BHARTIARTL,Bharti Airtel Ltd.,Telecommunication,True,,,,False,False,False,False
+HFCL,HFCL Ltd.,Telecommunication,False,,,,False,False,False,False
+INDUSTOWER,Indus Towers Ltd.,Telecommunication,True,,,,False,False,False,False
+STLTECH,Sterlite Technologies Ltd.,Telecommunication,False,,,,False,False,False,False
+IDEA,Vodafone Idea Ltd.,Telecommunication,True,,,,False,False,False,False
+KPRMILL,K.P.R. Mill Ltd.,Textiles,False,1036.0,138392.5,15.12,True,False,True,False
+VTL,Vardhman Textiles Ltd.,Textiles,False,495.1,184760.5,9.31,True,False,True,False
+TRIDENT,Trident Ltd.,Textiles,False,21.46,3013227.5,6.68,False,True,True,False
+PAGEIND,Page Industries Ltd.,Textiles,True,,,,False,False,False,False
