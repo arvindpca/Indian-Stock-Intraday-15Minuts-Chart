@@ -1,0 +1,45 @@
+name: Build Stock List (index -> non-F&O -> no penny -> volume)
+
+on:
+  workflow_dispatch:
+    inputs:
+      index:
+        description: "nifty500 / midcap100 / nifty100"
+        default: "nifty500"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-stock-list
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -r requirements.txt -r research/requirements.txt
+      - name: Build list
+        run: python sector_pullback/stock_list.py --index ${{ inputs.index }} | tee /tmp/list.txt
+      - name: Summary
+        run: cat /tmp/list.txt >> $GITHUB_STEP_SUMMARY
+      - name: Commit list
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add sector_pullback/stock_list_*.csv
+          git commit -m "Stock list ${{ inputs.index }} [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
