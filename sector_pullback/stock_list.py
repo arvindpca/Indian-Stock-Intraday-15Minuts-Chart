@@ -15,6 +15,7 @@ import io
 import os
 import sys
 import time
+import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,6 +30,11 @@ BASES = ["https://www.niftyindices.com/IndexConstituent/",
 SCRIP_MASTER = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                          "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
+
+
+def env(name: str) -> str:
+    """Secret from env, with invisible characters (e.g. U+200E) removed."""
+    return "".join(ch for ch in os.getenv(name, "").strip() if unicodedata.category(ch) != "Cf")
 
 
 def index_members(index: str) -> pd.DataFrame:
@@ -88,11 +94,20 @@ def main() -> None:
     print(f"F&O underlyings: {len(fno)} | in {args.index}: {members['fno'].sum()} | "
           f"non-F&O: {(~members['fno']).sum()}")
 
+    import logging
+
     import pyotp
     from SmartApi import SmartConnect
-    api = SmartConnect(api_key=os.environ["ANGEL_API_KEY"])
-    login = api.generateSession(os.environ["ANGEL_CLIENT_ID"], os.environ["ANGEL_PASSWORD"],
-                                pyotp.TOTP(os.environ["ANGEL_TOTP_SECRET"]).now())
+    # SmartApi logs full request headers/body (incl. credentials) on errors - silence it
+    import logzero
+    logzero.loglevel(logging.CRITICAL + 1)
+    logging.getLogger("SmartApi").setLevel(logging.CRITICAL + 1)
+    api = SmartConnect(api_key=env("ANGEL_API_KEY"))
+    try:
+        login = api.generateSession(env("ANGEL_CLIENT_ID"), env("ANGEL_PASSWORD"),
+                                    pyotp.TOTP(env("ANGEL_TOTP_SECRET")).now())
+    except Exception as exc:  # noqa: BLE001 - never print the request, it holds secrets
+        sys.exit(f"Angel login failed ({type(exc).__name__})")
     if not login or not login.get("status"):
         sys.exit(f"Angel login failed: {(login or {}).get('message')}")
 
