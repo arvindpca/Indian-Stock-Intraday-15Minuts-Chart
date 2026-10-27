@@ -146,7 +146,7 @@ def find_signals(df5: pd.DataFrame, cfg: dict) -> list[dict]:
             sigs.append({"side": side, "sig_time": av15[q], "sl": setup["ext"], "leg_ext": leg_ext,
                          "trend": int(t15[q]), "choch_lvl": lvl, "liq_lvl": setup["lvl"]})
             setup = None
-    return sigs
+    return sorted(sigs, key=lambda x: x["sig_time"])
 
 
 # ---------------------------------------------------------------- simulation
