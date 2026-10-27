@@ -13,6 +13,10 @@ Stock selection with 5-min data: the 09:15 candle (closes 09:20) is used for
 % change vs previous close and relative volume. First possible signal is the
 09:20 candle (closes 09:25), so there is no look-ahead.
 
+Nifty trend filter: BUY only when Nifty is UP, SHORT only when DOWN
+(Nifty close vs EMA20 and day open, same 5-min candle). The Nifty file is
+NIFTY.csv(.gz) in --data-dir or given with --nifty-file.
+
 Usage
 -----
   # one or more CSV files (datetime,open,high,low,close,volume)
@@ -32,7 +36,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwap_rsi_algo import NIFTY50, IntradayAlgo, StrategyConfig, add_indicators
+from vwap_rsi_algo import (NIFTY50, IntradayAlgo, StrategyConfig, add_indicators,
+                           nifty_trend_series, signal_allowed)
 
 
 @dataclass
@@ -111,7 +116,8 @@ def pick_watchlist(sel: pd.DataFrame, cfg: StrategyConfig) -> dict:
     return out
 
 
-def simulate_day(sym: str, day_df: pd.DataFrame, cfg: StrategyConfig, costs: Costs) -> list[dict]:
+def simulate_day(sym: str, day_df: pd.DataFrame, cfg: StrategyConfig, costs: Costs,
+                 trend: pd.Series | None = None) -> list[dict]:
     trades = []
     sl_f, tg_f, slip = cfg.stop_loss_pct / 100, cfg.target_pct / 100, costs.slippage_pct / 100
     times = day_df.index.time
@@ -120,6 +126,8 @@ def simulate_day(sym: str, day_df: pd.DataFrame, cfg: StrategyConfig, costs: Cos
         if times[i] >= dtime(15, 10):           # candle must close before 15:15
             break
         sig = IntradayAlgo.generate_signal(day_df.iloc[: i + 1], cfg.rsi_buy_level, cfg.rsi_short_level)
+        if sig and trend is not None and not signal_allowed(sig, trend.get(day_df.index[i])):
+            sig = None
         if not sig:
             i += 1
             continue
@@ -200,6 +208,8 @@ def main() -> None:
     ap.add_argument("--nifty50-only", action="store_true")
     ap.add_argument("--no-filter", action="store_true",
                     help="skip gainer/loser selection: trade every symbol every day")
+    ap.add_argument("--nifty-file", default=None)
+    ap.add_argument("--no-nifty-filter", action="store_true")
     ap.add_argument("--out", default="backtest_trades.csv")
     args = ap.parse_args()
 
@@ -209,9 +219,12 @@ def main() -> None:
                         if p.name.endswith((".csv", ".csv.gz")))
     cfg, costs = StrategyConfig(), Costs()
 
-    data = {}
+    data, nifty_path = {}, Path(args.nifty_file) if args.nifty_file else None
     for p in paths:
         sym = symbol_from_path(p)
+        if sym == cfg.nifty_symbol:
+            nifty_path = nifty_path or p
+            continue
         if args.nifty50_only and sym not in NIFTY50:
             continue
         try:
@@ -221,6 +234,13 @@ def main() -> None:
     if not data:
         raise SystemExit("No data loaded.")
     print(f"Loaded {len(data)} symbols: {', '.join(sorted(data))}")
+
+    trend = None
+    if not args.no_nifty_filter:
+        if nifty_path is None:
+            raise SystemExit("Nifty file not found: pass --nifty-file or use --no-nifty-filter")
+        trend = nifty_trend_series(load_csv(nifty_path), cfg.nifty_ema_period)
+        print("Nifty trend candles:", trend.value_counts().to_dict())
 
     watch = None if args.no_filter else pick_watchlist(selection_table(data, cfg), cfg)
 
@@ -232,12 +252,13 @@ def main() -> None:
                 continue
             if watch is not None and sym not in watch.get(day, []):
                 continue
-            all_trades += simulate_day(sym, day_df, cfg, costs)
+            all_trades += simulate_day(sym, day_df, cfg, costs, trend)
 
     t = pd.DataFrame(all_trades)
     first = min(d.index[0] for d in data.values()).date()
     last = max(d.index[-1] for d in data.values()).date()
     mode = "every day, no stock filter" if args.no_filter else "gainer/loser filter ON"
+    mode += " | Nifty trend OFF" if trend is None else " | Nifty trend ON"
     summarize(t, f"VWAP+RSI 5-min | {first} -> {last} | {mode}")
     if not t.empty:
         t.to_csv(args.out, index=False)

@@ -15,6 +15,10 @@ Pipeline
                 not installed).
                 BUY   : close crosses ABOVE VWAP and RSI > 60
                 SHORT : close crosses BELOW VWAP and RSI < 40
+                NIFTY TREND filter (on the same closed 5-min candle):
+                  UP   = Nifty close > EMA(20) and > today's open -> only BUY
+                  DOWN = Nifty close < EMA(20) and < today's open -> only SHORT
+                  otherwise SIDEWAYS -> no new entry
 4. Risk       : market entry on candle close, SL 0.5 %, target 1.0 % (1:2),
                 hard square-off of everything at >= 15:15 IST, then stop.
 
@@ -112,6 +116,10 @@ class StrategyConfig:
     rsi_period: int = 14
     rsi_buy_level: float = 60.0
     rsi_short_level: float = 40.0
+    # Nifty trend filter
+    nifty_trend_filter: bool = True
+    nifty_symbol: str = "NIFTY"
+    nifty_ema_period: int = 20
     # Risk (hardcoded rules from the spec)
     stop_loss_pct: float = 0.5
     target_pct: float = 1.0
@@ -269,6 +277,22 @@ def add_indicators(df: pd.DataFrame, rsi_period: int) -> pd.DataFrame:
     return df
 
 
+def nifty_trend_series(df_5m: pd.DataFrame, ema_period: int) -> pd.Series:
+    """Per 5-min candle: 'UP', 'DOWN' or 'SIDEWAYS'. EMA runs across days (needs
+    history for warm-up); day open resets daily. Index has no volume, so no VWAP."""
+    close = df_5m["close"]
+    ema = close.ewm(span=ema_period, adjust=False, min_periods=ema_period).mean()
+    day_open = df_5m["open"].groupby(df_5m.index.date).transform("first")
+    trend = pd.Series("SIDEWAYS", index=df_5m.index)
+    trend[(close > ema) & (close > day_open)] = "UP"
+    trend[(close < ema) & (close < day_open)] = "DOWN"
+    return trend
+
+
+def signal_allowed(signal: str, trend: Optional[str]) -> bool:
+    return (signal == "BUY" and trend == "UP") or (signal == "SHORT" and trend == "DOWN")
+
+
 # --------------------------------------------------------------------------- #
 # The algo
 # --------------------------------------------------------------------------- #
@@ -342,20 +366,25 @@ class IntradayAlgo:
         end = self._at(self.cfg.market_open)
         window_end = self.cfg.selection_time
         baseline = {}
-        for sym in self.cfg.universe:
+        symbols = list(self.cfg.universe)
+        if self.cfg.nifty_trend_filter:
+            symbols.append(self.cfg.nifty_symbol)
+        for sym in symbols:
             df = self._safe_call(f"history {sym}", self.data.get_candles, sym, start, end)
             if df is None or df.empty:
                 continue
             dates = sorted(set(df.index.date))[-self.cfg.history_days:]
             df = df[np.isin(df.index.date, dates)]
             self.history[sym] = df
+            if sym == self.cfg.nifty_symbol:
+                continue
             t = df.index.time
             opening = df[(t >= self.cfg.market_open) & (t < window_end)]
             per_day = opening.groupby(opening.index.date)["volume"].sum()
             if len(per_day):
                 baseline[sym] = per_day.mean()
         self.volume_baseline = pd.Series(baseline, dtype=float)
-        log.info("History loaded for %d/%d symbols", len(self.history), len(self.cfg.universe))
+        log.info("History loaded for %d/%d symbols", len(self.history), len(symbols))
 
     def select_stocks(self) -> None:
         snap = self._safe_call("quotes", self.data.get_quotes, self.cfg.universe)
@@ -411,6 +440,17 @@ class IntradayAlgo:
         return pd.Timestamp(start)
 
     def get_5min_frame(self, symbol: str, candle_end: datetime) -> Optional[pd.DataFrame]:
+        df_5m = self._get_5min_ohlcv(symbol, candle_end)
+        return None if df_5m is None else add_indicators(df_5m, self.cfg.rsi_period)
+
+    def get_nifty_trend(self, candle_start: pd.Timestamp) -> Optional[str]:
+        candle_end = (candle_start + pd.Timedelta(minutes=self.cfg.candle_minutes)).to_pydatetime()
+        df = self._get_5min_ohlcv(self.cfg.nifty_symbol, candle_end)
+        if df is None or df.empty or df.index[-1] != candle_start:
+            return None
+        return nifty_trend_series(df, self.cfg.nifty_ema_period).iloc[-1]
+
+    def _get_5min_ohlcv(self, symbol: str, candle_end: datetime) -> Optional[pd.DataFrame]:
         today_1m = self._safe_call(f"candles {symbol}", self.data.get_candles, symbol,
                                    self._at(self.cfg.market_open), candle_end)
         if today_1m is None or today_1m.empty:
@@ -419,9 +459,8 @@ class IntradayAlgo:
         df_1m = pd.concat([hist, today_1m])
         df_1m = df_1m[~df_1m.index.duplicated(keep="last")].sort_index()
         df_5m = resample_ohlcv(df_1m, self.cfg.candle_minutes)
-        df_5m = df_5m[df_5m.index + pd.Timedelta(minutes=self.cfg.candle_minutes)
-                      <= pd.Timestamp(candle_end)]
-        return add_indicators(df_5m, self.cfg.rsi_period)
+        return df_5m[df_5m.index + pd.Timedelta(minutes=self.cfg.candle_minutes)
+                     <= pd.Timestamp(candle_end)]
 
     @staticmethod
     def generate_signal(df: pd.DataFrame, rsi_buy: float, rsi_short: float) -> Optional[str]:
@@ -443,6 +482,8 @@ class IntradayAlgo:
 
     def scan_for_entries(self, candle_start: pd.Timestamp) -> None:
         candle_end = (candle_start + pd.Timedelta(minutes=self.cfg.candle_minutes)).to_pydatetime()
+        trend: Optional[str] = None
+        trend_checked = False
         for sym in self.watchlist:
             if self._last_eval_candle.get(sym) == candle_start:
                 continue
@@ -459,11 +500,24 @@ class IntradayAlgo:
             if self.trade_counts.get(sym, 0) >= self.cfg.max_trades_per_symbol:
                 continue
             signal = self.generate_signal(df, self.cfg.rsi_buy_level, self.cfg.rsi_short_level)
-            if signal:
-                log.info("SIGNAL %s %s @ candle %s close=%.2f vwap=%.2f rsi=%.1f",
-                         signal, sym, candle_start.strftime("%H:%M"),
-                         last.close, last.vwap, last.rsi)
-                self.enter_position(sym, signal, float(last.close))
+            if not signal:
+                continue
+            if self.cfg.nifty_trend_filter:
+                if not trend_checked:
+                    trend, trend_checked = self.get_nifty_trend(candle_start), True
+                if trend is None:
+                    log.warning("Nifty candle not available - skipping %s %s", signal, sym)
+                    self._last_eval_candle.pop(sym, None)  # retry on next poll
+                    trend_checked = False
+                    continue
+                if not signal_allowed(signal, trend):
+                    log.info("SKIP %s %s @ %s - Nifty trend is %s", signal, sym,
+                             candle_start.strftime("%H:%M"), trend)
+                    continue
+            log.info("SIGNAL %s %s @ candle %s close=%.2f vwap=%.2f rsi=%.1f nifty=%s",
+                     signal, sym, candle_start.strftime("%H:%M"),
+                     last.close, last.vwap, last.rsi, trend or "n/a")
+            self.enter_position(sym, signal, float(last.close))
 
     # ------------------------------------------------------------ execution
     def enter_position(self, symbol: str, signal: str, candle_close: float) -> None:
@@ -584,13 +638,16 @@ class MockDataSource(DataSource):
         gappers = self.rng.choice(len(symbols), size=8, replace=False)
         self.bars: dict[str, pd.DataFrame] = {}
         self.prev_close: dict[str, float] = {}
-        for i, sym in enumerate(symbols):
+        self.index_symbols = {"NIFTY"}
+        for i, sym in enumerate(symbols + ["NIFTY"]):
             gap = 0.0
             if i in gappers[:4]:
                 gap = self.rng.uniform(0.018, 0.035)
             elif i in gappers[4:]:
                 gap = -self.rng.uniform(0.018, 0.035)
             self.bars[sym] = self._generate(sym, gap)
+            if sym in self.index_symbols:
+                self.bars[sym]["volume"] = 0.0
 
     def _generate(self, sym: str, today_gap: float) -> pd.DataFrame:
         rng = self.rng
@@ -666,6 +723,7 @@ class AngelOneSession:
         master = requests.get(self.SCRIP_MASTER_URL, timeout=60).json()
         self.tokens = {row["symbol"][:-3]: row["token"] for row in master
                        if row.get("exch_seg") == "NSE" and row.get("symbol", "").endswith("-EQ")}
+        self.tokens["NIFTY"] = "99926000"  # Nifty 50 index (candle data only)
         log.info("Angel One login OK, %d NSE-EQ tokens loaded", len(self.tokens))
 
     def token(self, symbol: str) -> str:
