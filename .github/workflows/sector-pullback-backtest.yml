@@ -1,0 +1,66 @@
+name: Sector Pullback Strategy Backtest (174 stocks, 2y)
+
+# Manual run. Uses the 5-min candles cached by the research pipeline (no Angel download).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research-pipeline
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install pandas numpy requests tabulate
+
+      - name: Restore cached candle data
+        uses: actions/cache/restore@v4
+        with:
+          path: research_data
+          key: research-data-${{ github.run_id }}
+          restore-keys: research-data-
+
+      - name: Build sector map from NSE lists
+        run: python sector_pullback/build_sector_map.py
+
+      - name: Backtest
+        run: |
+          OUT=research_results/sector_pullback/run_$(date +%Y-%m-%d_%H%M)
+          echo "OUT=$OUT" >> $GITHUB_ENV
+          python sector_pullback/backtest.py --data-dir research_data/raw/5m \
+            --symbols-file stock_names.txt --out "$OUT"
+          cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sector-pullback-${{ github.run_id }}
+          path: |
+            research_results/sector_pullback/
+            sector_pullback/sector_map.csv
+          retention-days: 30
+
+      - name: Commit results to repo
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add research_results/sector_pullback/ sector_pullback/sector_map.csv
+          git commit -m "Sector pullback backtest ${OUT} [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
