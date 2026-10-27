@@ -1,12 +1,8 @@
-# schedule re-register: 2026-10-26
 name: Paper Trade Daily Settle (SHORT)
 
 on:
   workflow_dispatch:
-  schedule:
-    # 15:40 IST (10:10 UTC), Monday-Friday: close any open virtual trade at the
-    # 15:15 candle and send the daily paper-trading summary to Telegram.
-    - cron: "10 10 * * 1-5"
+  # Schedule ab Market Clock (clock/jobs.json) se chalta hai.
 
 permissions:
   contents: write

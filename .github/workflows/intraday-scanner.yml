@@ -1,12 +1,8 @@
-# schedule re-register: 2026-10-26
 name: Indian Intraday Scanner
 
 on:
   workflow_dispatch:
-  schedule:
-    # Runs every 15 minutes during the Indian market session (UTC schedule).
-    # GitHub Actions scheduled runs are best-effort and may be delayed.
-    - cron: "*/15 3-10 * * 1-5"
+  # Schedule ab Market Clock (clock/jobs.json) se chalta hai.
 
 permissions:
   contents: write   # paper-trade ledger on branch paper-trades
