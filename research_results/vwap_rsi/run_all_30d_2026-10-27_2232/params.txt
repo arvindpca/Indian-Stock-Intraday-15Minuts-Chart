@@ -1,0 +1,1 @@
+universe=all days=30
