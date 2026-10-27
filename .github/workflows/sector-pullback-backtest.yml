@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       universe:
-        description: "stock_names = 174 repo stocks | midcap100 / nifty100 = trade only NON-F&O stocks of that index"
-        default: "midcap100"
+        description: "stock_names = 174 repo stocks | nifty500 / midcap100 / nifty100 = trade only NON-F&O stocks of that index"
+        default: "nifty500"
 
 permissions:
   contents: write
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   backtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 330
     env:
       ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
       ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
@@ -56,7 +56,7 @@ jobs:
         run: |
           cp research/config.yaml /tmp/config.yaml.bak
           sed -i "s#^universe_file:.*#universe_file: sector_pullback/${{ inputs.universe }}.txt#" research/config.yaml
-          python research/data_download.py --time-budget-min 90
+          python research/data_download.py --time-budget-min 220
           cp /tmp/config.yaml.bak research/config.yaml
 
       - name: Save candle data cache

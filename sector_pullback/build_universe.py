@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build index universe files (default: Nifty Midcap 100).
+"""Build index universe files (e.g. Nifty 500, Nifty Midcap 100).
 
   sector_pullback/<index>.txt          all index stocks (used for sector strength)
   sector_pullback/<index>_nonfno.txt   index stocks with NO stock futures (non-F&O) -> traded
 
-  python build_universe.py --index midcap100     # or nifty100
+  python build_universe.py --index nifty500     # or midcap100 / nifty100
 
 F&O list comes from Angel One's scrip master (NFO FUTSTK underlyings), the
 Nifty 100 list from niftyindices.com / NSE archives.
@@ -20,7 +20,8 @@ import pandas as pd
 import requests
 
 HERE = Path(__file__).resolve().parent
-INDEX_FILES = {"nifty100": "ind_nifty100list.csv", "midcap100": "ind_niftymidcap100list.csv"}
+INDEX_FILES = {"nifty100": "ind_nifty100list.csv", "midcap100": "ind_niftymidcap100list.csv",
+               "nifty500": "ind_nifty500list.csv"}
 BASES = ["https://www.niftyindices.com/IndexConstituent/",
          "https://archives.nseindia.com/content/indices/"]
 SCRIP_MASTER = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"

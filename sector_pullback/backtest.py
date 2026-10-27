@@ -12,6 +12,8 @@ Decision time T0 (default 09:45) - only candles closed before T0 are used.
 3. Stock   : in that sector, change +1.0 % .. +3.5 %, relative volume >= 1.5
              (volume 09:15->T0 vs average of same window, last 10 days),
              price above VWAP, liquid (median daily turnover >= 5 Cr).
+             Tradable stock filters: no penny stocks (prev close >= Rs 50) and
+             median daily volume of last 20 days >= 2 lakh shares.
 4. Entry   : wait for a pullback after T0: candle low touches EMA20 (5-min),
              closes back above EMA20 and above VWAP, green candle.
              Buy at the NEXT candle open (no look-ahead).
@@ -57,6 +59,8 @@ class Params:
     min_rvol: float = 1.5
     rvol_days: int = 10
     min_turnover_cr: float = 5.0
+    min_price: float = 50.0              # penny-stock filter (previous close)
+    min_avg_volume: float = 200_000      # median daily shares, last 20 days
     max_candidates: int = 3
     use_pullback: bool = True
     touch_tol_pct: float = 0.10
@@ -151,10 +155,12 @@ class Market:
             ends = np.r_[pos, len(f)]
             self.slices[s] = {f["date"].iat[a]: (a, b) for a, b in zip(starts, ends)}
         # turnover filter (prior 20 days, no look-ahead)
-        self.turnover_ok = {}
+        self.turnover_ok, self.avg_volume = {}, {}
         for s, f in self.f.items():
             to = (f["close"] * f["volume"]).groupby(f["date"]).sum() / 1e7
             self.turnover_ok[s] = to.shift(1).rolling(20, min_periods=10).median()
+            dv = f["volume"].groupby(f["date"]).sum()
+            self.avg_volume[s] = dv.shift(1).rolling(20, min_periods=10).median()
         self._snap_cache: dict[int, pd.DataFrame] = {}
 
     def snapshot(self, decision_min: int, rvol_days: int) -> pd.DataFrame:
@@ -174,6 +180,8 @@ class Market:
                 "rvol": snap["cumvol"] / base,
                 "close": snap["close"], "vwap": snap["vwap"],
                 "turnover": self.turnover_ok[s].reindex(snap.index),
+                "avg_vol": self.avg_volume[s].reindex(snap.index),
+                "prev_close": snap["prev_close"],
             })
             out["symbol"] = s
             out["sector"] = self.sectors.get(s, "UNKNOWN")
@@ -223,6 +231,7 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
 
     if m.tradable is not None:
         s = s[s["symbol"].isin(m.tradable)]
+    s = s[(s["prev_close"] >= p.min_price) & (s["avg_vol"] >= p.min_avg_volume)]
     if side == 1:
         c = s[(s["chg"] >= p.stock_min_pct) & (s["chg"] <= p.stock_max_pct)
               & (s["rvol"] >= p.min_rvol) & (s["close"] > s["vwap"])]
