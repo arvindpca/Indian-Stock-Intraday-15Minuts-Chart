@@ -33,13 +33,17 @@ jobs:
       - name: Install
         run: pip install -r requirements.txt -r research/requirements.txt
       - name: Build list
-        run: python sector_pullback/stock_list.py --index ${{ inputs.index }} | tee /tmp/list.txt
+        run: |
+          set -o pipefail
+          python sector_pullback/stock_list.py --index ${{ inputs.index }} 2>&1 | tee sector_pullback/stock_list_${{ inputs.index }}_log.txt
       - name: Summary
-        run: cat /tmp/list.txt >> $GITHUB_STEP_SUMMARY
-      - name: Commit list
+        if: always()
+        run: cat sector_pullback/stock_list_*_log.txt >> $GITHUB_STEP_SUMMARY
+      - name: Commit list (and log, even on failure)
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add sector_pullback/stock_list_*.csv
+          git add sector_pullback/stock_list_* 
           git commit -m "Stock list ${{ inputs.index }} [skip ci]" || exit 0
           for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
