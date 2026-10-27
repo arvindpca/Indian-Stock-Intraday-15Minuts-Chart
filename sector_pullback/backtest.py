@@ -140,6 +140,7 @@ class Market:
         self.f = {s: prepare(d, ema_period) for s, d in stocks.items()}
         self.nifty = prepare(nifty, ema_period)
         self.sectors = sectors
+        self.tradable: set[str] | None = None   # None = every loaded stock can be traded
         days = sorted(set(self.nifty["date"]))
         self.days = [d for d in days if (self.nifty["date"] == d).sum() >= 60]
         # fast slicing per (symbol, day)
@@ -220,6 +221,8 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
             return side, []
         s = s[s["sector"].isin(chosen)]
 
+    if m.tradable is not None:
+        s = s[s["symbol"].isin(m.tradable)]
     if side == 1:
         c = s[(s["chg"] >= p.stock_min_pct) & (s["chg"] <= p.stock_max_pct)
               & (s["rvol"] >= p.min_rvol) & (s["close"] > s["vwap"])]
@@ -372,6 +375,8 @@ def main() -> None:
     ap.add_argument("--data-dir", required=True)
     ap.add_argument("--symbols-file", required=True)
     ap.add_argument("--sector-map", default=str(HERE / "sector_map.csv"))
+    ap.add_argument("--trade-symbols-file", default=None,
+                    help="trade only these; all --symbols-file stocks still count for sector strength")
     ap.add_argument("--out", required=True)
     ap.add_argument("--is-frac", type=float, default=2 / 3)
     args = ap.parse_args()
@@ -403,6 +408,13 @@ def main() -> None:
     print(sec_counts.to_string())
 
     m = Market(stocks, nifty, sectors, Params().ema_period)
+    if args.trade_symbols_file:
+        tr = {x.strip().upper() for x in Path(args.trade_symbols_file).read_text().splitlines() if x.strip()}
+        m.tradable = tr & set(stocks)
+        print(f"Tradable stocks ({len(m.tradable)}): {', '.join(sorted(m.tradable))}")
+        missing = tr - set(stocks)
+        if missing:
+            print("No data for:", ', '.join(sorted(missing)))
     days = m.days
     cut = int(len(days) * args.is_frac)
     is_days, oos_days = days[:cut], days[cut:]
@@ -451,6 +463,7 @@ def main() -> None:
 
     lines = ["# Strong Sector Pullback - backtest", "",
              f"Stocks: {len(stocks)} (sector known: {cover}) | Data: {days[0]} -> {days[-1]}",
+             f"Tradable: {'all' if m.tradable is None else ', '.join(sorted(m.tradable))}",
              f"In-sample {is_days[0]} -> {is_days[-1]} | Out-of-sample {oos_days[0]} -> {oos_days[-1]}",
              f"Chosen params (in-sample): {json.dumps({k: getattr(best, k) for k in ('decision_time', 'rr', 'breakeven', 'top_sectors')})}",
              "", "## Ablation (Rs, Rs 1,000 risk per trade, after charges)", "",

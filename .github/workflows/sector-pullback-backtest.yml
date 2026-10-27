@@ -1,8 +1,13 @@
-name: Sector Pullback Strategy Backtest (174 stocks, 2y)
+name: Sector Pullback Strategy Backtest
 
-# Manual run. Uses the 5-min candles cached by the research pipeline (no Angel download).
+# Manual run. Uses the 5-min candles cached by the research pipeline; for an index
+# universe the missing stocks are downloaded once from Angel One and cached.
 on:
   workflow_dispatch:
+    inputs:
+      universe:
+        description: "stock_names = 174 repo stocks | midcap100 / nifty100 = trade only NON-F&O stocks of that index"
+        default: "midcap100"
 
 permissions:
   contents: write
@@ -14,8 +19,12 @@ concurrency:
 jobs:
   backtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
       PYTHONUNBUFFERED: "1"
       TZ: Asia/Kolkata
     steps:
@@ -26,7 +35,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install
-        run: pip install pandas numpy requests tabulate
+        run: pip install -r requirements.txt -r research/requirements.txt tabulate
 
       - name: Restore cached candle data
         uses: actions/cache/restore@v4
@@ -38,12 +47,36 @@ jobs:
       - name: Build sector map from NSE lists
         run: python sector_pullback/build_sector_map.py
 
+      - name: Build index universe (all members + non-F&O list)
+        if: inputs.universe != 'stock_names'
+        run: python sector_pullback/build_universe.py --index ${{ inputs.universe }}
+
+      - name: Download missing index stocks (cached ones are skipped)
+        if: inputs.universe != 'stock_names'
+        run: |
+          cp research/config.yaml /tmp/config.yaml.bak
+          sed -i "s#^universe_file:.*#universe_file: sector_pullback/${{ inputs.universe }}.txt#" research/config.yaml
+          python research/data_download.py --time-budget-min 90
+          cp /tmp/config.yaml.bak research/config.yaml
+
+      - name: Save candle data cache
+        if: always() && inputs.universe != 'stock_names'
+        uses: actions/cache/save@v4
+        with:
+          path: research_data
+          key: research-data-${{ github.run_id }}
+
       - name: Backtest
         run: |
-          OUT=research_results/sector_pullback/run_$(date +%Y-%m-%d_%H%M)
+          U=${{ inputs.universe }}
+          OUT=research_results/sector_pullback/run_${U}_$(date +%Y-%m-%d_%H%M)
           echo "OUT=$OUT" >> $GITHUB_ENV
-          python sector_pullback/backtest.py --data-dir research_data/raw/5m \
-            --symbols-file stock_names.txt --out "$OUT"
+          if [ "$U" = "stock_names" ]; then
+            ARGS="--symbols-file stock_names.txt"
+          else
+            ARGS="--symbols-file sector_pullback/$U.txt --trade-symbols-file sector_pullback/${U}_nonfno.txt"
+          fi
+          python sector_pullback/backtest.py --data-dir research_data/raw/5m $ARGS --out "$OUT"
           cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload results artifact
@@ -53,7 +86,8 @@ jobs:
           name: sector-pullback-${{ github.run_id }}
           path: |
             research_results/sector_pullback/
-            sector_pullback/sector_map.csv
+            sector_pullback/*.csv
+            sector_pullback/*.txt
           retention-days: 30
 
       - name: Commit results to repo
@@ -61,6 +95,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add research_results/sector_pullback/ sector_pullback/sector_map.csv
+          git add research_results/sector_pullback/ sector_pullback/sector_map.csv sector_pullback/*.txt
           git commit -m "Sector pullback backtest ${OUT} [skip ci]" || exit 0
           for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
