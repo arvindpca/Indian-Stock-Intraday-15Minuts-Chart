@@ -31,6 +31,8 @@ from research.data_quality import validate_universe
 
 P = dict(k4=2, k1=2, k15=2, liq_age_1h=70, setup_max_15m=26, min_risk_pct=0.15, max_risk_pct=3.0,
          max_trades_day=2, rrs=[1.5, 2.0, 3.0])
+# MKT = turant; PCTx = confirmation price se x% pullback par limit; FIBx = leg ka x retrace par limit
+ENTRY_MODES = ("MKT", "PCT0.2", "PCT0.4", "PCT0.6", "PCT1.0", "FIB0.25", "FIB0.382", "FIB0.5", "FIB0.618")
 
 
 # ---------------------------------------------------------------- helpers
@@ -181,7 +183,13 @@ def simulate(df5: pd.DataFrame, sigs: list[dict], mode: str, rr: float, use4h: b
         if mode == "MKT":
             ie, E = i0, O[i0]
         else:
-            lim = sl + 0.5 * (s["leg_ext"] - sl)
+            if mode.startswith("PCT"):          # limit X% below/above the confirmation price
+                lim = O[i0] * (1 - d * float(mode[3:]) / 100)
+            else:                               # FIBx: retrace x of leg (sweep extreme -> leg high/low)
+                f = 0.5 if mode == "LIM" else float(mode[3:])
+                lim = s["leg_ext"] - f * (s["leg_ext"] - sl)
+            if (lim - sl) * d <= 0:
+                continue
             i = i0
             while i < len(t) and day[i] == day[i0] and tod[i] <= last_entry:
                 if (d == 1 and O[i] <= sl) or (d == -1 and O[i] >= sl):
@@ -207,7 +215,7 @@ def simulate(df5: pd.DataFrame, sigs: list[dict], mode: str, rr: float, use4h: b
                 break
             hit_sl = (L[i] <= sl) if d == 1 else (H[i] >= sl)
             hit_tp = (H[i] >= tp) if d == 1 else (L[i] <= tp)
-            if i == ie and mode == "LIM":
+            if i == ie and mode != "MKT":
                 # entry candle: only stop can be judged safely (we don't know path) -> stop if touched
                 hit_tp = False
             if hit_sl:
@@ -274,7 +282,7 @@ def main():
     q.to_csv(out / "data_quality.csv", index=False)
     log.info("usable symbols: %d", len(clean))
 
-    variants = [(f4, m, rr) for f4 in (True, False) for m in ("MKT", "LIM") for rr in P["rrs"]]
+    variants = [(f4, m, rr) for f4 in (True, False) for m in ENTRY_MODES for rr in P["rrs"]]
     allt = {v: [] for v in variants}
     nsig = 0
     t0 = time.time()
