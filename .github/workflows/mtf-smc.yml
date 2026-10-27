@@ -1,0 +1,64 @@
+name: MTF SMC Combo Backtest (4H-1H-15m-5m, 174 stocks)
+
+# Uses the 5-min data already cached by the research pipeline (no new Angel download).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - research/mtf_smc.py
+      - .github/workflows/mtf-smc.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mtf-smc
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -r research/requirements.txt
+
+      - name: Restore cached candle data (from research pipeline)
+        uses: actions/cache/restore@v4
+        with:
+          path: research_data
+          key: research-data-none
+          restore-keys: research-data-
+
+      - name: Check data
+        run: ls research_data/raw/5m | wc -l
+
+      - name: Run MTF SMC backtest
+        run: python -m research.mtf_smc --out research_results/mtf_smc
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtf-smc-${{ github.run_id }}
+          path: research_results/mtf_smc/
+          retention-days: 30
+
+      - name: Commit results
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add research_results/mtf_smc/
+          git commit -m "MTF SMC backtest results [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
