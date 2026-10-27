@@ -52,6 +52,7 @@ class Params:
     market_min_pct: float = 0.2
     use_market: bool = True
     use_sector: bool = True
+    sector_source: str = "median"        # "median" of sector stocks, or official sector "index"
     top_sectors: int = 1
     min_sector_stocks: int = 3
     stock_min_pct: float = 1.0
@@ -162,6 +163,21 @@ class Market:
             dv = f["volume"].groupby(f["date"]).sum()
             self.avg_volume[s] = dv.shift(1).rolling(20, min_periods=10).median()
         self._snap_cache: dict[int, pd.DataFrame] = {}
+        self.sector_index: dict[str, pd.DataFrame] = {}   # sector -> prepared index candles
+        self._sidx_cache: dict[int, pd.DataFrame] = {}
+
+    def set_sector_indices(self, frames: dict[str, pd.DataFrame], ema_period: int) -> None:
+        self.sector_index = {sec: prepare(df, ema_period) for sec, df in frames.items()}
+
+    def sector_index_chg(self, decision_min: int) -> pd.DataFrame:
+        """date x sector: % change of the sector index vs prev close at decision time."""
+        if decision_min not in self._sidx_cache:
+            cols = {}
+            for sec, f in self.sector_index.items():
+                snap = f[f["mins"] == decision_min - BAR].set_index("date")
+                cols[sec] = (snap["close"] / snap["prev_close"] - 1) * 100
+            self._sidx_cache[decision_min] = pd.DataFrame(cols)
+        return self._sidx_cache[decision_min]
 
     def snapshot(self, decision_min: int, rvol_days: int) -> pd.DataFrame:
         """Rows (date, symbol): chg %, rvol, above_vwap, turnover_cr - using the
@@ -217,9 +233,15 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
     s = snap_day.dropna(subset=["chg", "rvol", "turnover"])
     s = s[s["turnover"] >= p.min_turnover_cr]
     if p.use_sector:
-        known = s[s["sector"] != "UNKNOWN"]
-        sec = known.groupby("sector")["chg"].agg(["median", "count"])
-        sec = sec[sec["count"] >= p.min_sector_stocks]
+        if p.sector_source == "index":
+            tab = m.sector_index_chg(tmin(p.decision_time))
+            if day not in tab.index:
+                return side, []
+            sec = tab.loc[day].dropna().to_frame("median")
+        else:
+            known = s[s["sector"] != "UNKNOWN"]
+            sec = known.groupby("sector")["chg"].agg(["median", "count"])
+            sec = sec[sec["count"] >= p.min_sector_stocks]
         if side == 1:
             sec = sec[sec["median"] > max(nchg, 0)].sort_values("median", ascending=False)
         else:
@@ -388,6 +410,9 @@ def main() -> None:
                     help="trade only these; all --symbols-file stocks still count for sector strength")
     ap.add_argument("--out", required=True)
     ap.add_argument("--is-frac", type=float, default=2 / 3)
+    ap.add_argument("--sector-source", choices=["median", "index"], default="median",
+                    help="sector strength from median of its stocks, or from the NSE sector index")
+    ap.add_argument("--sector-index-map", default=str(HERE / "sector_index_map.csv"))
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -417,6 +442,18 @@ def main() -> None:
     print(sec_counts.to_string())
 
     m = Market(stocks, nifty, sectors, Params().ema_period)
+    if args.sector_source == "index":
+        smap = pd.read_csv(args.sector_index_map)
+        frames = {}
+        for r in smap.itertuples():
+            pth = next((Path(args.data_dir) / f"{r.index_file}{ext}" for ext in (".csv.gz", ".csv")
+                        if (Path(args.data_dir) / f"{r.index_file}{ext}").exists()), None)
+            if pth is not None:
+                frames[r.sector] = load_csv(pth)
+        m.set_sector_indices(frames, Params().ema_period)
+        print("Sector indices used:", {s_: smap.set_index('sector').loc[s_, 'index_name'] for s_ in frames})
+        if not frames:
+            raise SystemExit("No sector index data found")
     if args.trade_symbols_file:
         tr = {x.strip().upper() for x in Path(args.trade_symbols_file).read_text().splitlines() if x.strip()}
         m.tradable = tr & set(stocks)
@@ -434,7 +471,8 @@ def main() -> None:
     grid = list(itertools.product(["09:45", "10:15"], [1.5, 2.0], [True, False], [1, 2]))
     rows = []
     for dt, rr, be, ts in grid:
-        p = Params(decision_time=dt, rr=rr, breakeven=be, top_sectors=ts)
+        p = Params(decision_time=dt, rr=rr, breakeven=be, top_sectors=ts,
+                   sector_source=args.sector_source)
         s_is, s_oos = stats(run(m, p, is_days)), stats(run(m, p, oos_days))
         rows.append({"decision_time": dt, "rr": rr, "breakeven": be, "top_sectors": ts,
                      **{f"IS_{k}": v for k, v in s_is.items()},
@@ -445,7 +483,8 @@ def main() -> None:
     g.to_csv(out / "grid.csv", index=False)
     elig = g[g["IS_trades"] >= 60]
     best_row = (elig if len(elig) else g).sort_values(["IS_pf", "IS_net"], ascending=False).iloc[0]
-    best = Params(decision_time=best_row["decision_time"], rr=float(best_row["rr"]),
+    best = Params(sector_source=args.sector_source,
+                  decision_time=best_row["decision_time"], rr=float(best_row["rr"]),
                   breakeven=bool(best_row["breakeven"]), top_sectors=int(best_row["top_sectors"]))
     print("\nChosen on in-sample:", {k: getattr(best, k) for k in
                                      ("decision_time", "rr", "breakeven", "top_sectors")})
@@ -470,7 +509,7 @@ def main() -> None:
     t_all["period"] = np.where(t_all["date"].isin(set(oos_days)), "OOS", "IS")
     t_all.to_csv(out / "trades_best.csv", index=False)
 
-    lines = ["# Strong Sector Pullback - backtest", "",
+    lines = [f"# Strong Sector Pullback - backtest (sector strength: {args.sector_source})", "",
              f"Stocks: {len(stocks)} (sector known: {cover}) | Data: {days[0]} -> {days[-1]}",
              f"Tradable: {'all' if m.tradable is None else ', '.join(sorted(m.tradable))}",
              f"In-sample {is_days[0]} -> {is_days[-1]} | Out-of-sample {oos_days[0]} -> {oos_days[-1]}",

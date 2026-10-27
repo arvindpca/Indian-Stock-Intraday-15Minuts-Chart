@@ -8,6 +8,9 @@ on:
       universe:
         description: "stock_names = 174 repo stocks | nifty500 / midcap100 / nifty100 = trade only NON-F&O stocks of that index"
         default: "nifty500"
+      sector_source:
+        description: "median = sector strength from its stocks | index = NSE sector index | both"
+        default: "both"
       trade_file:
         description: "Optional: trade ONLY the stocks in this file (e.g. sector_pullback/nifty500_selected182.txt)"
         default: ""
@@ -62,8 +65,12 @@ jobs:
           python research/data_download.py --time-budget-min 220
           cp /tmp/config.yaml.bak research/config.yaml
 
+      - name: Download NSE sector indices (5-min, 2y)
+        if: inputs.sector_source != 'median'
+        run: python sector_pullback/sector_index_download.py
+
       - name: Save candle data cache
-        if: always() && inputs.universe != 'stock_names'
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: research_data
@@ -83,8 +90,13 @@ jobs:
             ARGS="--symbols-file sector_pullback/$U.txt --trade-symbols-file ${{ inputs.trade_file }}"
             OUT=${OUT}_$(basename ${{ inputs.trade_file }} .txt); echo "OUT=$OUT" >> $GITHUB_ENV
           fi
-          python sector_pullback/backtest.py --data-dir research_data/raw/5m $ARGS --out "$OUT"
-          cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
+          SRC=${{ inputs.sector_source }}
+          [ "$SRC" = "both" ] && SRCS="median index" || SRCS="$SRC"
+          for S in $SRCS; do
+            python sector_pullback/backtest.py --data-dir research_data/raw/5m $ARGS \
+              --sector-source $S --out "$OUT/$S"
+            cat "$OUT/$S/summary.md" >> $GITHUB_STEP_SUMMARY
+          done
 
       - name: Upload results artifact
         if: always()
@@ -102,6 +114,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add research_results/sector_pullback/ sector_pullback/sector_map.csv sector_pullback/*.txt
+          git add research_results/sector_pullback/ sector_pullback/*.csv sector_pullback/*.txt
           git commit -m "Sector pullback backtest ${OUT} [skip ci]" || exit 0
           for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
