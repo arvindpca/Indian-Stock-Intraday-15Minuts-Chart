@@ -1,10 +1,17 @@
-name: VWAP + RSI Backtest (Nifty 50, saved 5-min data)
+name: VWAP + RSI Backtest (saved 5-min data)
 
 # Manual run. Re-uses the 5-min candles already cached by the research pipeline,
 # downloads only the missing Nifty 50 stocks from Angel One (once), saves them
 # back to the same cache, then backtests vwap_rsi/vwap_rsi_algo.py rules.
 on:
   workflow_dispatch:
+    inputs:
+      universe:
+        description: "nifty50 = Nifty 50 stocks | all = 174 stocks in stock_names.txt"
+        default: "nifty50"
+      days:
+        description: "Backtest only the last N trading days (0 = full 2 years)"
+        default: "0"
 
 permissions:
   contents: write
@@ -42,6 +49,7 @@ jobs:
           restore-keys: research-data-
 
       - name: Download missing Nifty 50 stocks (cached ones are skipped)
+        if: inputs.universe == 'nifty50'
         run: |
           cp research/config.yaml /tmp/config.yaml.bak
           sed -i 's#^universe_file:.*#universe_file: vwap_rsi/nifty50.txt#' research/config.yaml
@@ -57,13 +65,16 @@ jobs:
 
       - name: Backtest
         run: |
-          OUT=research_results/vwap_rsi/run_$(date +%Y-%m-%d_%H%M)
+          OUT=research_results/vwap_rsi/run_${{ inputs.universe }}_${{ inputs.days }}d_$(date +%Y-%m-%d_%H%M)
           echo "OUT=$OUT" >> $GITHUB_ENV
           mkdir -p "$OUT"
+          if [ "${{ inputs.universe }}" = "all" ]; then UNI="--symbols-file ../stock_names.txt"; else UNI="--nifty50-only"; fi
+          ARGS="--data-dir ../research_data/raw/5m $UNI --days ${{ inputs.days }}"
+          echo "universe=${{ inputs.universe }} days=${{ inputs.days }}" > "$OUT/params.txt"
           cd vwap_rsi
-          python vwap_rsi_backtest.py --data-dir ../research_data/raw/5m --nifty50-only \
+          python vwap_rsi_backtest.py $ARGS \
             --out "../$OUT/trades_filter.csv" | tee "../$OUT/summary_filter.txt"
-          python vwap_rsi_backtest.py --data-dir ../research_data/raw/5m --nifty50-only --no-filter \
+          python vwap_rsi_backtest.py $ARGS --no-filter \
             --out "../$OUT/trades_nofilter.csv" | tee "../$OUT/summary_nofilter.txt"
           cat "../$OUT/summary_filter.txt" "../$OUT/summary_nofilter.txt" >> $GITHUB_STEP_SUMMARY
 

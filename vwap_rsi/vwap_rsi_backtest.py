@@ -206,6 +206,9 @@ def main() -> None:
     ap.add_argument("--files", nargs="*", default=[])
     ap.add_argument("--data-dir", default=None)
     ap.add_argument("--nifty50-only", action="store_true")
+    ap.add_argument("--symbols-file", default=None, help="only symbols listed in this file")
+    ap.add_argument("--days", type=int, default=0,
+                    help="trade only the last N trading days (older data still used for warm-up)")
     ap.add_argument("--no-filter", action="store_true",
                     help="skip gainer/loser selection: trade every symbol every day")
     ap.add_argument("--nifty-file", default=None)
@@ -218,6 +221,9 @@ def main() -> None:
         paths += sorted(p for p in Path(args.data_dir).iterdir()
                         if p.name.endswith((".csv", ".csv.gz")))
     cfg, costs = StrategyConfig(), Costs()
+    allowed = None
+    if args.symbols_file:
+        allowed = {x.strip().upper() for x in Path(args.symbols_file).read_text().splitlines() if x.strip()}
 
     data, nifty_path = {}, Path(args.nifty_file) if args.nifty_file else None
     for p in paths:
@@ -226,6 +232,8 @@ def main() -> None:
             nifty_path = nifty_path or p
             continue
         if args.nifty50_only and sym not in NIFTY50:
+            continue
+        if allowed is not None and sym not in allowed:
             continue
         try:
             data[sym] = load_csv(p)
@@ -244,19 +252,27 @@ def main() -> None:
 
     watch = None if args.no_filter else pick_watchlist(selection_table(data, cfg), cfg)
 
+    trade_days = None
+    if args.days:
+        all_days = sorted(set().union(*(set(d.index.date) for d in data.values())))
+        trade_days = set(all_days[-args.days:])
+        print(f"Trading window: {min(trade_days)} -> {max(trade_days)} ({len(trade_days)} days)")
+
     all_trades = []
     for sym, df in data.items():
         ind = add_indicators(df, cfg.rsi_period)   # RSI continuous across days, VWAP per day
         for day, day_df in ind.groupby(ind.index.date):
             if len(day_df) < 60:                     # special / half sessions
                 continue
+            if trade_days is not None and day not in trade_days:
+                continue
             if watch is not None and sym not in watch.get(day, []):
                 continue
             all_trades += simulate_day(sym, day_df, cfg, costs, trend)
 
     t = pd.DataFrame(all_trades)
-    first = min(d.index[0] for d in data.values()).date()
-    last = max(d.index[-1] for d in data.values()).date()
+    first = min(trade_days) if trade_days else min(d.index[0] for d in data.values()).date()
+    last = max(trade_days) if trade_days else max(d.index[-1] for d in data.values()).date()
     mode = "every day, no stock filter" if args.no_filter else "gainer/loser filter ON"
     mode += " | Nifty trend OFF" if trend is None else " | Nifty trend ON"
     summarize(t, f"VWAP+RSI 5-min | {first} -> {last} | {mode}")
