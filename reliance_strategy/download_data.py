@@ -37,16 +37,18 @@ def main(days=int(os.getenv("DAYS", "380"))):
             rows, cur = [], end - timedelta(days=days)
             while cur < end:
                 nxt = min(cur + timedelta(days=chunk), end)
-                for attempt in range(3):
+                for attempt in range(6):
                     try:
                         r = api.getCandleData({"exchange": exch, "symboltoken": token, "interval": iv,
                                                "fromdate": cur.strftime("%Y-%m-%d 09:15"),
                                                "todate": nxt.strftime("%Y-%m-%d 15:30")})
+                        if r and r.get("status") is False:      # rate limit / access denied -> retry
+                            raise RuntimeError(r.get("message"))
                         rows += (r or {}).get("data") or []
                         break
                     except Exception as e:
                         print("retry", sym, tag, cur.date(), e)
-                        time.sleep(3)
+                        time.sleep(3 * (attempt + 1))
                 cur = nxt + timedelta(days=1)
                 time.sleep(0.6)
             df = pd.DataFrame(rows, columns=["datetime", "open", "high", "low", "close", "volume"])
