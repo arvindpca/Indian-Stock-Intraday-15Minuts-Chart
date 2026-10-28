@@ -1,0 +1,5 @@
+variant,IS_trades,IS_days,IS_net,IS_win_rate,IS_pf,IS_avg_R,IS_max_dd,IS_charges,OOS_trades,OOS_days,OOS_net,OOS_win_rate,OOS_pf,OOS_avg_R,OOS_max_dd,OOS_charges,ALL_trades,ALL_days,ALL_net,ALL_win_rate,ALL_pf,ALL_avg_R,ALL_max_dd,ALL_charges
+FULL strategy,65,55,2176,41.5,1.07,0.033,-7400,7159,88,64,-17441,31.8,0.65,-0.199,-19373,9558,153,119,-15265,35.9,0.81,-0.101,-21682,16717
+without market filter,121,96,694,37.2,1.01,0.005,-6496,13186,159,112,-35593,29.6,0.62,-0.224,-37458,17170,280,208,-34899,32.9,0.77,-0.125,-40692,30356
+without sector filter,245,115,-47826,32.2,0.67,-0.196,-50802,26693,314,138,-48878,30.6,0.72,-0.156,-56666,34523,559,253,-96704,31.3,0.69,-0.174,-102212,61216
+without pullback entry,82,61,-16756,37.8,0.59,-0.205,-16886,5773,102,69,432,51.0,1.01,0.005,-6591,7231,184,130,-16324,45.1,0.8,-0.089,-19282,13004
