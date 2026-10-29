@@ -1,0 +1,17 @@
+version,brokerage,days_with_trade_%,trades_per_month,trades,net,avg_per_trade,win_%,max_dd,charges,months_profit,year1,year2
+FINAL,Rs 20/order,15,4.9,112,11398,102,46.4,-3113,7262,16/23,4268,7130
+FINAL,Zero brokerage,15,4.9,112,16685,149,49.1,-2830,1976,17/23,7100,9585
+FINAL + Nifty EMA,Rs 20/order,13,4.1,95,11907,125,48.4,-2714,6161,14/23,4912,6995
+FINAL + Nifty EMA,Zero brokerage,13,4.1,95,16391,173,52.6,-2332,1677,17/23,7319,9072
+FINAL + Nifty EMA + POC,Rs 20/order,11,3.4,77,11751,153,50.6,-2592,4994,16/22,6797,4954
+FINAL + Nifty EMA + POC,Zero brokerage,11,3.4,77,15385,200,55.8,-2215,1360,17/22,8638,6747
+3 scans + Nifty EMA + POC,Rs 20/order,18,6.6,152,10438,69,45.4,-3594,9858,18/24,10203,235
+3 scans + Nifty EMA + POC,Zero brokerage,18,6.6,152,17612,116,51.3,-2914,2684,18/24,14167,3445
+"Every 5 min (10:15-14:30, confirmed days)",Rs 20/order,24,16.3,373,1449,4,43.7,-8583,24177,10/24,-1111,2560
+"Every 5 min (10:15-14:30, confirmed days)",Zero brokerage,24,16.3,373,19055,51,49.1,-5329,6572,14/24,8140,10915
+Every 5 min + Nifty EMA,Rs 20/order,23,14.1,324,10342,32,46.6,-5088,21006,14/24,5811,4531
+Every 5 min + Nifty EMA,Zero brokerage,23,14.1,324,25635,79,52.5,-3923,5713,17/24,14023,11612
+Every 5 min + Nifty EMA + POC,Rs 20/order,22,12.4,283,13021,46,49.5,-5464,18349,15/24,9665,3356
+Every 5 min + Nifty EMA + POC,Zero brokerage,22,12.4,283,26378,93,54.4,-4371,4991,17/24,16414,9964
+Every 5 min till 12:30 + Nifty EMA + POC,Rs 20/order,19,8.4,192,8011,42,49.0,-5216,12448,15/23,9809,-1798
+Every 5 min till 12:30 + Nifty EMA + POC,Zero brokerage,19,8.4,192,17073,89,52.6,-3679,3386,16/23,14529,2544
