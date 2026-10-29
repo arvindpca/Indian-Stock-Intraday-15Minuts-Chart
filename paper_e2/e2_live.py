@@ -652,7 +652,7 @@ def intro(tg: Telegram):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["live", "intro", "sample"], default="live")
+    ap.add_argument("--mode", choices=["live", "intro", "sample", "check"], default="live")
     ap.add_argument("--dry", action="store_true", help="do not send Telegram")
     args = ap.parse_args()
     tg = Telegram(dry=args.dry)
@@ -663,6 +663,19 @@ def main():
         for m in json.loads((HERE / "sample_messages.json").read_text()):
             tg.send("🧪 <b>SAMPLE — nakli data, sirf format dikhane ke liye</b>\n\n" + m)
             time.sleep(1)
+        return
+    if args.mode == "check":
+        t0 = time.time()
+        bot = E2Bot(AngelAPI(), Clock(), tg, Cfg(), HERE / "state", git_save=False)
+        bot.premarket()
+        ok = len(bot.daily) > 400 and len(bot.base_vol) > 100
+        tg.send(f"<b>{'✅' if ok else '⚠️'} SYSTEM CHECK</b>\n📘 <b>{STRATEGY}</b> · PAPER\n\n"
+                f"Angel login: OK\nDaily data: {len(bot.daily)}/{len(bot.universe)} stocks\n"
+                f"Tradable (≥4x leverage): {len(bot.tradable)} | volume baseline: {len(bot.base_vol)}\n"
+                f"NSE margin file: {'OK' if bot.lev else 'nahi mila (list wali file use hogi)'}\n"
+                f"Nifty kal {bot.nifty_prev:,.1f} vs 20-din EMA {bot.nifty_ema20:,.1f} → "
+                f"{'BUY' if bot.regime == 1 else 'SHORT'} trend\nTime: {time.time() - t0:.0f}s\n\n"
+                f"Pehla live run: agla trading din 9:30 se.")
         return
     bot = E2Bot(AngelAPI(), Clock(), tg, Cfg(), HERE / "state", git_save=bool(os.getenv("GITHUB_ACTIONS")))
     bot.run()

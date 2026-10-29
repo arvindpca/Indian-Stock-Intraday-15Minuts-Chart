@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "live / intro / sample"
+        description: "live / intro / sample / check"
         default: "live"
 
 permissions:
