@@ -69,6 +69,7 @@ class Params:
     rank_by: str = "chg"                 # "chg" (biggest move first) or "atr" (most volatile first)
     skip_weekdays: tuple = ()            # e.g. (0,) = no trades on Monday
     direction: str = "intraday"          # "intraday" = from Nifty at decision time | "regime" = from 20-day trend only
+    extra_scans: tuple = ()              # more scan times after decision_time, e.g. ("11:15", "12:15")
     fixed_notional: float = 0.0          # >0: every trade uses this much money (qty = amount / price)
     disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
@@ -87,10 +88,13 @@ class Params:
     slippage_pct: float = 0.03
 
 
+BROKERAGE = {"pct": 0.10, "cap": 20.0, "min": 5.0}   # per order; set cap/min/pct to 0 for zero brokerage
+
+
 def charges(buy_v: float, sell_v: float) -> float:
     """Angel One equity intraday (same rates as research/config.yaml)."""
     def brok(v: float) -> float:
-        return max(5.0, min(20.0, v * 0.10 / 100))
+        return max(BROKERAGE["min"], min(BROKERAGE["cap"], v * BROKERAGE["pct"] / 100))
     b = brok(buy_v) + brok(sell_v)
     t = buy_v + sell_v
     exch, sebi = t * 0.0030699 / 100, t * 10 / 1e7
@@ -406,21 +410,41 @@ def first_trade(m: Market, p: Params, sym: str, day, side: int, decision_min: in
             "charges": round(ch, 2), "net": round(gross - ch, 2), "R": round((gross - ch) / p.risk_rs, 2)}
 
 
+_SCAN_CACHE: dict = {}
+
+
+def _scan_data(m: Market, st: str, rvol_days: int):
+    key = (id(m), st, rvol_days)
+    if key not in _SCAN_CACHE:
+        dmin = tmin(st)
+        snap = m.snapshot(dmin, rvol_days)
+        _SCAN_CACHE[key] = (dmin, dict(tuple(snap.groupby(level=0))), m.nifty_state(dmin))
+    return _SCAN_CACHE[key]
+
+
 def run(m: Market, p: Params, days) -> pd.DataFrame:
-    dmin = tmin(p.decision_time)
-    snap = m.snapshot(dmin, p.rvol_days)
-    nifty = m.nifty_state(dmin)
-    snap_by_day = dict(tuple(snap.groupby(level=0)))
+    from dataclasses import replace as _replace
+    scans = [(p, *_scan_data(m, p.decision_time, p.rvol_days))]
+    for st in p.extra_scans:
+        scans.append((_replace(p, decision_time=st), *_scan_data(m, st, p.rvol_days)))
     out = []
     for day in days:
-        if day not in nifty.index or day not in snap_by_day or pd.isna(nifty.loc[day, "chg"]):
-            continue
         if p.skip_weekdays and pd.Timestamp(day).weekday() in p.skip_weekdays:
             continue
-        side, cands = pick_candidates(m, p, day, snap_by_day[day], nifty.loc[day])
-        if not side or not cands:
-            continue
-        trades = [t for s in cands if (t := first_trade(m, p, s, day, side, dmin))]
+        trades, seen = [], set()
+        for ps, dmin, snap_by_day, nifty in scans:
+            if day not in nifty.index or day not in snap_by_day or pd.isna(nifty.loc[day, "chg"]):
+                continue
+            side, cands = pick_candidates(m, ps, day, snap_by_day[day], nifty.loc[day])
+            if not side or not cands:
+                continue
+            for s in cands:
+                if s in seen:
+                    continue
+                t = first_trade(m, ps, s, day, side, dmin)
+                if t:
+                    trades.append(t)
+                    seen.add(s)
         trades.sort(key=lambda t: t["entry_min"])
         taken = []
         for t in trades:
