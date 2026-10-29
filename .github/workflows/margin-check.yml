@@ -1,0 +1,29 @@
+name: Margin check (NSE VaR+ELM -> intraday leverage)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas requests
+      - name: Check
+        run: python sector_pullback/margin_check.py | tee /tmp/m.txt
+      - run: cat /tmp/m.txt >> $GITHUB_STEP_SUMMARY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          cp /tmp/m.txt sector_pullback/margin_summary.txt
+          git add sector_pullback/margin_*.csv sector_pullback/margin_summary.txt
+          git commit -m "Margin check [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
