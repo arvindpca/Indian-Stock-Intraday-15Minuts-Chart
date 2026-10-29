@@ -64,6 +64,7 @@ class Params:
     min_avg_volume: float = 200_000      # median daily shares, last 20 days
     max_candidates: int = 3
     use_pullback: bool = True
+    nifty_regime: int = 0                # 0 = off; N = trade only with Nifty's N-day EMA trend (prev close)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
     touch_tol_pct: float = 0.10
     ema_period: int = 20
@@ -165,7 +166,19 @@ class Market:
             self.avg_volume[s] = dv.shift(1).rolling(20, min_periods=10).median()
         self._snap_cache: dict[int, pd.DataFrame] = {}
         self.sector_index: dict[str, pd.DataFrame] = {}   # sector -> prepared index candles
+        nd = self.nifty.groupby("date")["close"].last()
+        self.nifty_daily_close = nd
+        self._regime_cache: dict[int, pd.Series] = {}
         self._sidx_cache: dict[int, pd.DataFrame] = {}
+
+    def regime(self, n: int) -> pd.Series:
+        """+1 if previous day's Nifty close > its n-day EMA, -1 if below (known before today's open)."""
+        if n not in self._regime_cache:
+            c = self.nifty_daily_close
+            ema = c.ewm(span=n, adjust=False, min_periods=n).mean()
+            r = np.sign(c - ema).where(ema.notna(), 0)
+            self._regime_cache[n] = r.shift(1).fillna(0)
+        return self._regime_cache[n]
 
     def set_sector_indices(self, frames: dict[str, pd.DataFrame], ema_period: int) -> None:
         self.sector_index = {sec: prepare(df, ema_period) for sec, df in frames.items()}
@@ -230,6 +243,9 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
             return 0, []
     else:
         side = 1 if nchg >= 0 else -1
+    if p.nifty_regime:
+        if m.regime(p.nifty_regime).get(day, 0) != side:
+            return 0, []
 
     s = snap_day.dropna(subset=["chg", "rvol", "turnover"])
     s = s[s["turnover"] >= p.min_turnover_cr]

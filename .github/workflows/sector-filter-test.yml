@@ -1,7 +1,11 @@
-name: Sector Pullback - Nifty/Sector filter test (with & without SL/TP)
+name: Sector Pullback - filter / regime tests
 
 on:
   workflow_dispatch:
+    inputs:
+      script:
+        description: "filter_test or regime_test"
+        default: "regime_test"
 
 permissions:
   contents: write
@@ -31,8 +35,8 @@ jobs:
           restore-keys: research-data-
       - name: Test
         run: |
-          OUT=research_results/sector_pullback/filter_test_$(date +%Y-%m-%d_%H%M)
-          python sector_pullback/filter_test.py --data-dir research_data/raw/5m \
+          OUT=research_results/sector_pullback/${{ inputs.script }}_$(date +%Y-%m-%d_%H%M)
+          python sector_pullback/${{ inputs.script }}.py --data-dir research_data/raw/5m \
             --symbols-file sector_pullback/nifty500.txt \
             --trade-symbols-file sector_pullback/nifty500_selected182.txt --out "$OUT"
           cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
