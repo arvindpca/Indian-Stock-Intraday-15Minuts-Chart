@@ -68,6 +68,7 @@ class Params:
     min_atr_pct: float = 0.0             # only stocks whose 14-day ATR (as % of price, till yesterday) >= this
     rank_by: str = "chg"                 # "chg" (biggest move first) or "atr" (most volatile first)
     skip_weekdays: tuple = ()            # e.g. (0,) = no trades on Monday
+    fixed_notional: float = 0.0          # >0: every trade uses this much money (qty = amount / price)
     disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
     touch_tol_pct: float = 0.10
@@ -350,6 +351,8 @@ def first_trade(m: Market, p: Params, sym: str, day, side: int, decision_min: in
     risk = abs(entry - stop)
     target = entry + side * p.rr * risk
     qty = int(min(p.risk_rs / risk, p.max_notional / entry))
+    if p.fixed_notional > 0:
+        qty = int(p.fixed_notional / entry)
     if qty < 1:
         return None
 
