@@ -70,6 +70,8 @@ class Params:
     skip_weekdays: tuple = ()            # e.g. (0,) = no trades on Monday
     direction: str = "intraday"          # "intraday" = from Nifty at decision time | "regime" = from 20-day trend only
     extra_scans: tuple = ()
+    nifty_ema_entry: bool = False        # entry candle: Nifty 5-min close on our side of its EMA20
+    poc_entry: bool = False              # entry candle: price on our side of today's volume POC
     confirm_time: str = ""               # later scans only if the day's direction was already valid at this time              # more scan times after decision_time, e.g. ("11:15", "12:15")
     fixed_notional: float = 0.0          # >0: every trade uses this much money (qty = amount / price)
     disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
@@ -187,6 +189,14 @@ class Market:
         self.nifty_daily_close = nd
         self._regime_cache: dict[int, pd.Series] = {}
         self._sidx_cache: dict[int, pd.DataFrame] = {}
+
+    def nifty_bar(self, day, mins: int):
+        """(close, ema20) of the Nifty 5-min candle starting at `mins` on `day`."""
+        if not hasattr(self, "_nbar"):
+            n = self.nifty
+            self._nbar = {(d, mi): (cl, em) for d, mi, cl, em in
+                          zip(n["date"].values, n["mins"].values, n["close"].values, n["ema"].values)}
+        return self._nbar.get((day, mins))
 
     def regime(self, n: int) -> pd.Series:
         """+1 if previous day's Nifty close > its n-day EMA, -1 if below (known before today's open)."""
@@ -308,6 +318,16 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
     return side, list(c["symbol"].iloc[: p.max_candidates])
 
 
+def _poc(prices, vols, lo, hi, bins=40):
+    if hi <= lo or vols.sum() <= 0:
+        return np.nan
+    edges = np.linspace(lo, hi, bins + 1)
+    k = np.clip(np.digitize(prices, edges) - 1, 0, bins - 1)
+    w = np.bincount(k, weights=vols, minlength=bins)
+    j = int(np.argmax(w))
+    return (edges[j] + edges[j + 1]) / 2
+
+
 def first_trade(m: Market, p: Params, sym: str, day, side: int, decision_min: int):
     """Simulate the first valid trade of `sym` on `day`. Returns dict or None."""
     a, b = m.slices[sym].get(day, (0, 0))
@@ -335,6 +355,16 @@ def first_trade(m: Market, p: Params, sym: str, day, side: int, decision_min: in
                 trig = h[t] >= ema[t] * (1 - tol) and c[t] < ema[t] and c[t] < vw[t] and c[t] < o[t]
             if not trig:
                 continue
+            if p.nifty_ema_entry:
+                nb = m.nifty_bar(day, int(mins[t]))
+                if nb is None or side * (nb[0] - nb[1]) <= 0:
+                    continue
+            if p.poc_entry:
+                vv = f["volume"].values[a:a + t + 1]
+                tp = (h[:t + 1] + lo[:t + 1] + c[:t + 1]) / 3
+                pc_ = _poc(tp, vv, lo[:t + 1].min(), h[:t + 1].max())
+                if np.isnan(pc_) or side * (c[t] - pc_) <= 0:
+                    continue
             ent = o[t + 1]
             sl = (lo[max(0, t - 2): t + 1].min() * (1 - 0.0005) if side == 1
                   else h[max(0, t - 2): t + 1].max() * (1 + 0.0005))
