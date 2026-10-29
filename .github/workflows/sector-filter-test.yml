@@ -12,6 +12,9 @@ on:
       amount:
         description: "benchmark_test: Rs per trade"
         default: "50000"
+      trade_file:
+        description: "benchmark_test: tradable list file inside sector_pullback/ (blank = nifty500_nonfno.txt)"
+        default: ""
 
 permissions:
   contents: write
@@ -44,6 +47,7 @@ jobs:
           ONLY_COMBO: ${{ inputs.only_combo }}
           ONLY2: ${{ inputs.only_combo }}
           AMT: ${{ inputs.amount }}
+          TRADE_FILE: ${{ inputs.trade_file }}
         run: |
           OUT=research_results/sector_pullback/${{ inputs.script }}_$(date +%Y-%m-%d_%H%M)
           if [ "${{ inputs.script }}" = "loss_analysis" ]; then

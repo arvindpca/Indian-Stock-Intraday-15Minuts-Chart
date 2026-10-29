@@ -40,7 +40,8 @@ final = Params(decision_time="10:15", rr=2.0, breakeven=False, top_sectors=2, ni
                exit_mode="eod", max_candidates=5, max_trades_day=5, market_min_pct=0.0,
                fixed_notional=AMT, skip_weekdays=(0,))
 m = Market(stocks, nifty, sectors, final.ema_period)
-m.tradable = read("nifty500_nonfno.txt") & set(stocks)
+m.tradable = read(os.environ.get("TRADE_FILE") or "nifty500_nonfno.txt") & set(stocks)
+print("tradable stocks:", len(m.tradable))
 start = pd.to_datetime(run(m, final, m.days)["date"]).min()
 days = [d for d in m.days if pd.Timestamp(d) >= start]
 tl = [f"{x // 60:02d}:{x % 60:02d}" for x in range(615, 871, 5)]
