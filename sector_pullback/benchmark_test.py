@@ -34,7 +34,8 @@ for pth in sorted(Path(args.data_dir).iterdir()):
         nifty = load_csv(pth)
     elif sym in n500:
         stocks[sym] = load_csv(pth)
-AMT = 50_000
+import os
+AMT = int(os.environ.get("AMT", "50000"))
 final = Params(decision_time="10:15", rr=2.0, breakeven=False, top_sectors=2, nifty_regime=20,
                exit_mode="eod", max_candidates=5, max_trades_day=5, market_min_pct=0.0,
                fixed_notional=AMT, skip_weekdays=(0,))
@@ -45,7 +46,15 @@ days = [d for d in m.days if pd.Timestamp(d) >= start]
 tl = [f"{x // 60:02d}:{x % 60:02d}" for x in range(615, 871, 5)]
 S5 = replace(final, decision_time=tl[0], extra_scans=tuple(tl[1:]), last_entry="14:30", confirm_time="10:15")
 NP = dict(nifty_ema_entry=True, poc_entry=True)
+ONLY2 = os.environ.get("ONLY2") == "1"
 V = {
+    "A. FINAL": final,
+    "B. FINAL, max 2 trades/day": replace(final, max_trades_day=2),
+    "E. FINAL + NiftyEMA + POC": replace(final, **NP),
+    "E2. FINAL + NiftyEMA + POC, max 2/day": replace(final, max_trades_day=2, **NP),
+    "F2. FINAL + NiftyEMA + POC + ATR>=3%, max 2/day": replace(final, min_atr_pct=3.0, max_trades_day=2, **NP),
+    "G2. 5-min + NiftyEMA + POC, max 2/day": replace(S5, max_trades_day=2, **NP),
+} if ONLY2 else {
     "A. FINAL": final,
     "B. FINAL, max 2 trades/day": replace(final, max_trades_day=2),
     "C. FINAL + ATR>=3%": replace(final, min_atr_pct=3.0),

@@ -9,6 +9,9 @@ on:
       only_combo:
         description: "more_trades_test: 1 = only the short combo list"
         default: "0"
+      amount:
+        description: "benchmark_test: Rs per trade"
+        default: "50000"
 
 permissions:
   contents: write
@@ -39,6 +42,8 @@ jobs:
       - name: Test
         env:
           ONLY_COMBO: ${{ inputs.only_combo }}
+          ONLY2: ${{ inputs.only_combo }}
+          AMT: ${{ inputs.amount }}
         run: |
           OUT=research_results/sector_pullback/${{ inputs.script }}_$(date +%Y-%m-%d_%H%M)
           if [ "${{ inputs.script }}" = "loss_analysis" ]; then
