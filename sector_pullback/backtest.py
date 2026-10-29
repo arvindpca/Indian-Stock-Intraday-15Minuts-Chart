@@ -65,6 +65,9 @@ class Params:
     max_candidates: int = 3
     use_pullback: bool = True
     nifty_regime: int = 0                # 0 = off; N = trade only with Nifty's N-day EMA trend (prev close)
+    min_atr_pct: float = 0.0             # only stocks whose 14-day ATR (as % of price, till yesterday) >= this
+    rank_by: str = "chg"                 # "chg" (biggest move first) or "atr" (most volatile first)
+    skip_weekdays: tuple = ()            # e.g. (0,) = no trades on Monday
     disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
     touch_tol_pct: float = 0.10
@@ -165,6 +168,12 @@ class Market:
             self.turnover_ok[s] = to.shift(1).rolling(20, min_periods=10).median()
             dv = f["volume"].groupby(f["date"]).sum()
             self.avg_volume[s] = dv.shift(1).rolling(20, min_periods=10).median()
+        self.atr_pct = {}
+        for s, f in self.f.items():
+            g = f.groupby("date")
+            dh, dl, dc = g["high"].max(), g["low"].min(), g["close"].last()
+            tr = pd.concat([dh - dl, (dh - dc.shift()).abs(), (dl - dc.shift()).abs()], axis=1).max(axis=1)
+            self.atr_pct[s] = (tr.ewm(alpha=1 / 14, adjust=False, min_periods=10).mean() / dc * 100).shift(1)
         self._snap_cache: dict[int, pd.DataFrame] = {}
         self.sector_index: dict[str, pd.DataFrame] = {}   # sector -> prepared index candles
         nd = self.nifty.groupby("date")["close"].last()
@@ -213,6 +222,7 @@ class Market:
                 "turnover": self.turnover_ok[s].reindex(snap.index),
                 "avg_vol": self.avg_volume[s].reindex(snap.index),
                 "prev_close": snap["prev_close"],
+                "atr_pct": self.atr_pct[s].reindex(snap.index),
             })
             out["symbol"] = s
             out["sector"] = self.sectors.get(s, "UNKNOWN")
@@ -272,6 +282,8 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
     if m.tradable is not None:
         s = s[s["symbol"].isin(m.tradable)]
     s = s[(s["prev_close"] >= p.min_price) & (s["avg_vol"] >= p.min_avg_volume)]
+    if p.min_atr_pct > 0:
+        s = s[s["atr_pct"] >= p.min_atr_pct]
     if side == 1:
         c = s[(s["chg"] >= p.stock_min_pct) & (s["chg"] <= p.stock_max_pct)
               & (s["rvol"] >= p.min_rvol) & (s["close"] > s["vwap"])]
@@ -280,6 +292,8 @@ def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row
         c = s[(s["chg"] <= -p.stock_min_pct) & (s["chg"] >= -p.stock_max_pct)
               & (s["rvol"] >= p.min_rvol) & (s["close"] < s["vwap"])]
         c = c.sort_values("chg")
+    if p.rank_by == "atr":
+        c = c.sort_values("atr_pct", ascending=False)
     return side, list(c["symbol"].iloc[: p.max_candidates])
 
 
@@ -392,6 +406,8 @@ def run(m: Market, p: Params, days) -> pd.DataFrame:
     out = []
     for day in days:
         if day not in nifty.index or day not in snap_by_day or pd.isna(nifty.loc[day, "chg"]):
+            continue
+        if p.skip_weekdays and pd.Timestamp(day).weekday() in p.skip_weekdays:
             continue
         side, cands = pick_candidates(m, p, day, snap_by_day[day], nifty.loc[day])
         if not side or not cands:
