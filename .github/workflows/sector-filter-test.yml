@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       script:
-        description: "filter_test, regime_test or more_trades_test"
+        description: "filter_test, regime_test, more_trades_test or universe_test"
         default: "regime_test"
       only_combo:
         description: "more_trades_test: 1 = only the short combo list"
@@ -41,9 +41,13 @@ jobs:
           ONLY_COMBO: ${{ inputs.only_combo }}
         run: |
           OUT=research_results/sector_pullback/${{ inputs.script }}_$(date +%Y-%m-%d_%H%M)
+          if [ "${{ inputs.script }}" = "universe_test" ]; then
+            python sector_pullback/universe_test.py --data-dir research_data/raw/5m --out "$OUT"
+          else
           python sector_pullback/${{ inputs.script }}.py --data-dir research_data/raw/5m \
             --symbols-file sector_pullback/nifty500.txt \
             --trade-symbols-file sector_pullback/nifty500_selected182.txt --out "$OUT"
+          fi
           cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
       - name: Commit
         run: |

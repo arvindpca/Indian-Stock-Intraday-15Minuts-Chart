@@ -65,6 +65,7 @@ class Params:
     max_candidates: int = 3
     use_pullback: bool = True
     nifty_regime: int = 0                # 0 = off; N = trade only with Nifty's N-day EMA trend (prev close)
+    disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
     touch_tol_pct: float = 0.10
     ema_period: int = 20
@@ -341,6 +342,8 @@ def first_trade(m: Market, p: Params, sym: str, day, side: int, decision_min: in
     sl, be_done, exit_px, reason, j = stop, False, None, None, entry_i
     if p.exit_mode == "eod":             # same entry & quantity, but no SL / no target
         sl, target = -side * np.inf, side * np.inf
+        if p.disaster_sl_pct > 0:
+            sl = entry * (1 - side * p.disaster_sl_pct / 100)
     for j in range(entry_i, len(c)):
         if mins[j] >= exit_t:
             exit_px, reason = o[j], "TIME"
