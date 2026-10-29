@@ -1,0 +1,19 @@
+filter,trades,Y1_net,Y2_net,Y1_avg,Y2_avg,kept_%,both
+(no filter),112,4268,7130,71,137,100,
+EMA: stock above 5-min EMA50,107,3867,6904,69,135,96,
+EMA: stock daily trend (prev close vs 20-day EMA),68,4431,4838,117,161,61,YES
+EMA: stock daily trend (prev close vs 50-day EMA),52,5121,5240,205,194,46,YES
+S/R: already broke prev-day high (long) / low (short),85,839,4397,19,107,76,
+"S/R: >=1% room to prev-day high/low, or already broken",103,3765,5468,70,112,92,
+S/R: broke opening-range (30 min) high/low,58,-1520,3944,-58,123,52,
+S/R: within 0.5% of day high (long) / low (short),27,1739,4615,145,308,24,YES
+VOL: signal candle volume >= 1.5x last 20 candles,13,-654,1131,-131,141,12,
+VOL: signal candle volume >= 1.0x last 20 candles,20,-1397,703,-140,70,18,
+POC: price above prev-day POC (long) / below (short),108,4541,7375,78,148,96,YES
+POC: price above today's POC (long) / below (short),75,4726,4575,121,127,67,
+RSI: 5-min RSI 55-70 (long) / 30-45 (short),92,1595,4623,32,110,82,
+"RSI: 5-min RSI not extreme (<75 long, >25 short)",111,4268,7944,71,156,99,
+VWAP: entry within 1% of VWAP,88,2391,1496,48,39,79,
+NIFTY: 5-min close on our side of its EMA20,74,5370,7258,138,207,66,YES
+NIFTY: moved >= 0.3% our way at entry,59,3040,3387,95,125,53,
+NIFTY: prev close on our side of 50-day EMA,97,4068,6494,77,148,87,YES
