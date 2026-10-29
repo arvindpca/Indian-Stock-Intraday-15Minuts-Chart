@@ -1,4 +1,4 @@
-name: MTF Roadmap Backtest (1D -> 4H -> 15M)
+name: MTF Roadmap Backtest (1D -> 4H -> 15M, or intraday version)
 
 # Manual run. Uses cached 5-min candles (no Angel login needed).
 on:
@@ -7,6 +7,9 @@ on:
       symbols_file:
         description: "Stocks to trade"
         default: "sector_pullback/nifty500_selected182.txt"
+      version:
+        description: "intraday = 1D trend -> intraday levels -> 5m sweep+MSS | swing = 1D -> 4H -> 15M"
+        default: "intraday"
 
 permissions:
   contents: write
@@ -37,9 +40,11 @@ jobs:
           restore-keys: research-data-
       - name: Backtest
         run: |
-          OUT=research_results/mtf_roadmap/run_$(basename ${{ inputs.symbols_file }} .txt)_$(date +%Y-%m-%d_%H%M)
+          V=${{ inputs.version }}
+          OUT=research_results/mtf_roadmap/run_${V}_$(basename ${{ inputs.symbols_file }} .txt)_$(date +%Y-%m-%d_%H%M)
           echo "OUT=$OUT" >> $GITHUB_ENV
-          python mtf_roadmap/backtest.py --data-dir research_data/raw/5m \
+          [ "$V" = "intraday" ] && SCRIPT=mtf_roadmap/intraday.py || SCRIPT=mtf_roadmap/backtest.py
+          python $SCRIPT --data-dir research_data/raw/5m \
             --symbols-file ${{ inputs.symbols_file }} --out "$OUT"
           cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
       - name: Commit results
