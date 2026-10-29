@@ -443,6 +443,7 @@ def run(m: Market, p: Params, days) -> pd.DataFrame:
                     continue
                 t = first_trade(m, ps, s, day, side, dmin)
                 if t:
+                    t["scan"] = ps.decision_time
                     trades.append(t)
                     seen.add(s)
         trades.sort(key=lambda t: t["entry_min"])

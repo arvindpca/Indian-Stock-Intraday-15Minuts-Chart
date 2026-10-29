@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       script:
-        description: "filter_test, regime_test, more_trades_test universe_test, loss_analysis, fix_test, fixed_test, daily_test, extra_test or scan_test"
+        description: "filter_test, regime_test, more_trades_test universe_test, loss_analysis, fix_test, fixed_test, daily_test, extra_test, scan_test or scan_loss"
         default: "regime_test"
       only_combo:
         description: "more_trades_test: 1 = only the short combo list"
@@ -45,7 +45,7 @@ jobs:
             T=$(ls -d research_results/sector_pullback/universe_test_* | tail -1)/trades.csv
             python sector_pullback/loss_analysis.py --trades "$T" --universe "All non-F&O" \
               --data-dir research_data/raw/5m --out "$OUT"
-          elif [ "${{ inputs.script }}" = "universe_test" ] || [ "${{ inputs.script }}" = "fix_test" ] || [ "${{ inputs.script }}" = "fixed_test" ] || [ "${{ inputs.script }}" = "daily_test" ] || [ "${{ inputs.script }}" = "extra_test" ] || [ "${{ inputs.script }}" = "scan_test" ]; then
+          elif [ "${{ inputs.script }}" = "universe_test" ] || [ "${{ inputs.script }}" = "fix_test" ] || [ "${{ inputs.script }}" = "fixed_test" ] || [ "${{ inputs.script }}" = "daily_test" ] || [ "${{ inputs.script }}" = "extra_test" ] || [ "${{ inputs.script }}" = "scan_test" ] || [ "${{ inputs.script }}" = "scan_loss" ]; then
             python sector_pullback/${{ inputs.script }}.py --data-dir research_data/raw/5m --out "$OUT"
           else
           python sector_pullback/${{ inputs.script }}.py --data-dir research_data/raw/5m \
