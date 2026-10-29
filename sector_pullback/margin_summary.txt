@@ -1,0 +1,42 @@
+OK https://nsearchives.nseindia.com/archives/nsccl/var/C_VAR1_29102026_6.DAT
+
+## All 289 non-F&O in Nifty 500: 289 stocks (NSE margin file 2026-10-29)
+bucket
+5x      193
+4-5x     72
+3-4x     12
+2-3x      1
+<2x       7
+no margin data: 4
+
+## Liquid list (182, price/volume/turnover ok): 182 stocks (NSE margin file 2026-10-29)
+bucket
+5x      114
+4-5x     54
+3-4x     10
+2-3x      1
+<2x       3
+no margin data: 0
+
+5x stocks by sector:
+sector
+Automobile and Auto Components       APOLLOTYRE, ARE&M, ASAHIINDIA, BALKRISIND, BEL...
+Capital Goods                        ACE, AIAENG, CARBORUNIV, CPPLUS, ELGIEQUIP, EM...
+Chemicals                            AARTIIND, AETHER, ANURAS, ATUL, CHAMBLFERT, CL...
+Construction                                                IRB, KEC, KPIL, NCC, RITES
+Construction Materials               ACC, DALBHARAT, INDIACEM, JKCEMENT, JSWCEMENT,...
+Consumer Durables                          BATAINDIA, BERGEPAINT, KAJARIACER, LGEINDIA
+Consumer Services                    DEVYANI, EIHOTEL, INDIAMART, IRCTC, ITCHOTELS,...
+Diversified                                                                  GODREJIND
+Fast Moving Consumer Goods           ABDL, AWL, BALRAMCHIN, CCL, DOMS, EIDPARRY, EM...
+Financial Services                   AADHARHFC, AAVAS, ABSLAMC, APTUS, BAJAJHFL, CA...
+Healthcare                           ABBOTINDIA, AJANTPHARM, ANTHEM, ASTERDM, CAPLI...
+Information Technology               AFFLE, BSOFT, CYIENT, FRACTAL, HEXT, IKS, INTE...
+Media Entertainment & Publication                                       PVRINOX, SUNTV
+Metals & Mining                      GRAVITA, JSL, LLOYDSME, NSLNISP, SARDAEN, VAML...
+Oil Gas & Consumable Fuels                      BHARATCOAL, CASTROLIND, IGL, MGL, VOGL
+Power                                ACMESOLAR, CESC, CLEANMAX, NAVA, NLCINDIA, NTP...
+Realty                                                ABREL, BRIGADE, SIGNATURE, SOBHA
+Services                                                 CMPDI, GESHIP, IGIL, JSWINFRA
+Telecommunication                                   BHARTIHEXA, ITI, RAILTEL, TATACOMM
+Textiles                                                         KPRMILL, TRIDENT, VTL
