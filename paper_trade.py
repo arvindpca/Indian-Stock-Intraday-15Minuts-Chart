@@ -122,9 +122,16 @@ def evaluate_exit(trade, candles, now=None):
     c = candles.copy()
     c["time"] = pd.to_datetime(c["time"], utc=True).dt.tz_convert(IST)
     c = c[(c["time"] > sig) & (c["time"].dt.date == sig.date())].sort_values("time")
+    prev = None
     for _, row in c.iterrows():
         t, o, h, l, cl = row["time"], float(row["open"]), float(row["high"]), float(row["low"]), float(row["close"])
         stamp = t.strftime("%Y-%m-%d %H:%M")
+        # 15:15 candle missing ho aur seedha 15:20+ (closing auction) candle aaye to us par SL/TP mat lagao:
+        # trade 15:15 pe pichhli candle ke close pe band maano (backtest rule).
+        if t.hour * 60 + t.minute > EOD_EXIT_MINUTE:
+            if prev is not None:
+                return "EOD", prev[0], prev[1]
+            return "EOD", stamp, o
         if short:
             if h >= sl:
                 return "SL", stamp, max(sl, o)
@@ -137,6 +144,7 @@ def evaluate_exit(trade, candles, now=None):
                 return "TP", stamp, max(tp, o)
         if t.hour * 60 + t.minute >= EOD_EXIT_MINUTE:
             return "EOD", stamp, cl
+        prev = (stamp, cl)
     # Day is over but the 15:15 candle is missing -> close at the last candle we have.
     day_end = datetime.combine(sig.date(), datetime.min.time(), IST) + timedelta(hours=15, minutes=20)
     if now >= day_end + timedelta(minutes=5):
