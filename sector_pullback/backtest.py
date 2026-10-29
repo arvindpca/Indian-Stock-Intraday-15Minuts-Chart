@@ -68,6 +68,7 @@ class Params:
     min_atr_pct: float = 0.0             # only stocks whose 14-day ATR (as % of price, till yesterday) >= this
     rank_by: str = "chg"                 # "chg" (biggest move first) or "atr" (most volatile first)
     skip_weekdays: tuple = ()            # e.g. (0,) = no trades on Monday
+    direction: str = "intraday"          # "intraday" = from Nifty at decision time | "regime" = from 20-day trend only
     fixed_notional: float = 0.0          # >0: every trade uses this much money (qty = amount / price)
     disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
@@ -246,7 +247,11 @@ class Market:
 def pick_candidates(m: Market, p: Params, day, snap_day: pd.DataFrame, nifty_row) -> tuple[int, list[str]]:
     """Returns (direction +1/-1/0, candidate symbols)."""
     nchg = nifty_row["chg"]
-    if p.use_market:
+    if p.direction == "regime" and p.nifty_regime:
+        side = int(m.regime(p.nifty_regime).get(day, 0))
+        if side == 0:
+            return 0, []
+    elif p.use_market:
         if nchg >= p.market_min_pct and nifty_row["above_open"]:
             side = 1
         elif nchg <= -p.market_min_pct and nifty_row["below_open"]:
