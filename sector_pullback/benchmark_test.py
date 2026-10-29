@@ -86,6 +86,13 @@ for name, p in V.items():
                      "capital needed": cap, "max DD % of capital": round(st["max_dd"] / cap * 100, 1),
                      "yearly return %": round(yr / cap * 100, 1),
                      "Y1 Rs": round(y1), "Y2 Rs": round(st["net"] - y1), "total Rs": st["net"]})
+        if bname == "Rs 20/order":
+            safe = name.split(".")[0]
+            t.to_csv(out / f"trades_{safe}.csv", index=False)
+            g = t.groupby("month").agg(trades=("net", "size"), wins=("net", lambda x: int((x > 0).sum())),
+                                       net=("net", "sum"))
+            g["net"] = g["net"].round(0)
+            g.to_csv(out / f"monthly_{safe}.csv")
         print(rows[-1], flush=True)
     bt._SCAN_CACHE.clear()
 res = pd.DataFrame(rows)
