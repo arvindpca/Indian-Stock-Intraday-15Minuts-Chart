@@ -69,7 +69,8 @@ class Params:
     rank_by: str = "chg"                 # "chg" (biggest move first) or "atr" (most volatile first)
     skip_weekdays: tuple = ()            # e.g. (0,) = no trades on Monday
     direction: str = "intraday"          # "intraday" = from Nifty at decision time | "regime" = from 20-day trend only
-    extra_scans: tuple = ()              # more scan times after decision_time, e.g. ("11:15", "12:15")
+    extra_scans: tuple = ()
+    confirm_time: str = ""               # later scans only if the day's direction was already valid at this time              # more scan times after decision_time, e.g. ("11:15", "12:15")
     fixed_notional: float = 0.0          # >0: every trade uses this much money (qty = amount / price)
     disaster_sl_pct: float = 0.0         # eod mode: emergency stop this % from entry (0 = none)
     exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
@@ -427,6 +428,18 @@ def run(m: Market, p: Params, days) -> pd.DataFrame:
     scans = [(p, *_scan_data(m, p.decision_time, p.rvol_days))]
     for st in p.extra_scans:
         scans.append((_replace(p, decision_time=st), *_scan_data(m, st, p.rvol_days)))
+    conf = None
+    if p.confirm_time:
+        cmin = tmin(p.confirm_time)
+        cn = m.nifty_state(cmin)
+        rg = m.regime(p.nifty_regime) if p.nifty_regime else None
+        conf = {}
+        for d, r in cn.iterrows():
+            sd = 1 if (r["chg"] >= p.market_min_pct and r["above_open"]) else (
+                -1 if (r["chg"] <= -p.market_min_pct and r["below_open"]) else 0)
+            if rg is not None and rg.get(d, 0) != sd:
+                sd = 0
+            conf[d] = sd
     out = []
     for day in days:
         if p.skip_weekdays and pd.Timestamp(day).weekday() in p.skip_weekdays:
@@ -435,8 +448,12 @@ def run(m: Market, p: Params, days) -> pd.DataFrame:
         for ps, dmin, snap_by_day, nifty in scans:
             if day not in nifty.index or day not in snap_by_day or pd.isna(nifty.loc[day, "chg"]):
                 continue
+            if conf is not None and dmin > cmin and conf.get(day, 0) == 0:
+                continue
             side, cands = pick_candidates(m, ps, day, snap_by_day[day], nifty.loc[day])
             if not side or not cands:
+                continue
+            if conf is not None and dmin > cmin and side != conf.get(day, 0):
                 continue
             for s in cands:
                 if s in seen:
