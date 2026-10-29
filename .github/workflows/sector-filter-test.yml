@@ -6,6 +6,9 @@ on:
       script:
         description: "filter_test, regime_test or more_trades_test"
         default: "regime_test"
+      only_combo:
+        description: "more_trades_test: 1 = only the short combo list"
+        default: "0"
 
 permissions:
   contents: write
@@ -34,6 +37,8 @@ jobs:
           key: research-data-${{ github.run_id }}
           restore-keys: research-data-
       - name: Test
+        env:
+          ONLY_COMBO: ${{ inputs.only_combo }}
         run: |
           OUT=research_results/sector_pullback/${{ inputs.script }}_$(date +%Y-%m-%d_%H%M)
           python sector_pullback/${{ inputs.script }}.py --data-dir research_data/raw/5m \

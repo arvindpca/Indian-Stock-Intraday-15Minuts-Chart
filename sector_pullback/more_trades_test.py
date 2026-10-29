@@ -49,7 +49,15 @@ D = dict(min_rvol=1.2)
 E = dict(market_min_pct=0.0)
 F = dict(last_entry="14:00")
 G = dict(decision_time="09:45")
+import os
+ONLY = os.environ.get("ONLY_COMBO") == "1"
 variants = {
+    "BASE (20-day trend, no SL/TP)": {},
+    "A: 5 stocks & 5 trades a day (was 3)": A,
+    "E: Nifty just above/below prev close (was 0.2%)": E,
+    "A+E": {**A, **E},
+    "A+E, 7 stocks & 7 trades a day": {**E, "max_candidates": 7, "max_trades_day": 7},
+} if ONLY else {
     "BASE (20-day trend, no SL/TP)": {},
     "A: 5 stocks & 5 trades a day (was 3)": A,
     "B: top 3 sectors (was 2)": B,
