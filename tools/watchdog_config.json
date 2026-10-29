@@ -1,0 +1,17 @@
+{
+ "interval": [
+  {
+   "wf": "intraday-scanner.yml",
+   "gap_min": 40,
+   "window": "market",
+   "label": "Indian Intraday Scanner"
+  }
+ ],
+ "daily": [
+  {
+   "wf": "paper-trade-settle.yml",
+   "by": "16:10",
+   "label": "Paper Trade Daily Settle"
+  }
+ ]
+}
