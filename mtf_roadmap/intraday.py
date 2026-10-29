@@ -15,7 +15,7 @@ Lvl  key supports for today: previous day low (PDL), previous close (PDC), openi
      3. confirm within 12 candles (1 hour) of the sweep:
           MSS  = 5m close above the high of the previous 3 candles
           CISD = 5m close above the open of the first red candle of the leg into the sweep
-     4. entry at the next 5m open (09:50 - 13:30)
+     4. entry at the next 5m open; scanning starts at scan_start (09:45 / 10:30 / 11:30), last 13:30
 Risk SL = sweep low - 0.05 %, risk 0.3 % .. 1.5 % of price
      target = 1.5R / 2R, or "level" = next intraday resistance (day high so far, ORH, PDH)
      if it gives >= 1.5R (capped 3R). Optional SL to entry after +1R. Exit 15:10.
@@ -55,6 +55,7 @@ class IP:
     max_losses_day: int = 2
     slippage_pct: float = 0.03
     or_end: int = 9 * 60 + 45
+    scan_start: int = 9 * 60 + 45   # sweeps/entries only from this time (minutes)
     entry_end: int = 13 * 60 + 30
     exit_min: int = 15 * 60 + 10
 
@@ -101,6 +102,9 @@ class IStock:
         if len(orb) < 3 or orb[-1] + 2 >= n:
             return None
         k0 = orb[-1] + 1                       # first candle after the opening range
+        ks = int(np.searchsorted(mins, max(p.or_end, p.scan_start)))
+        if ks >= n - 1:
+            return None
         orh, orl, ref = h[orb].max(), l[orb].min(), c[orb[-1]]
         atr, day_open = pl["atr"], o[0]
         if side == 1:
@@ -114,7 +118,7 @@ class IStock:
         buf, brk = p.sweep_buf_atr * atr, p.break_atr * atr
         alive = {x: True for x in levels}
         sweep_i, ext, entry_i = None, None, None
-        for j in range(k0, n - 1):
+        for j in range(ks, n - 1):
             if mins[j] > p.entry_end:
                 break
             for x in levels:                   # broken levels
@@ -279,19 +283,22 @@ def main() -> None:
     print(f"IS {f(is_days[0])} -> {f(is_days[-1])} ({len(is_days)}) | OOS {f(oos_days[0])} -> {f(oos_days[-1])} ({len(oos_days)})")
 
     rows = []
-    for trig, tgt, be in itertools.product(["MSS", "CISD"], ["1.5R", "2R", "level"], [False, True]):
-        p = IP(trigger=trig, target=tgt, breakeven=be)
+    hm = lambda m: f"{m // 60:02d}:{m % 60:02d}"  # noqa: E731
+    for trig, tgt, st in itertools.product(["MSS", "CISD"], ["1.5R", "2R", "level"], [585, 630, 690]):
+        be = False
+        p = IP(trigger=trig, target=tgt, breakeven=be, scan_start=st)
         si, so = stats(run(stocks, p, is_days)), stats(run(stocks, p, oos_days))
-        rows.append({"trigger": trig, "target": tgt, "breakeven": be,
+        rows.append({"trigger": trig, "target": tgt, "start": hm(st), "scan_start": st, "breakeven": be,
                      **{f"IS_{k}": v for k, v in si.items()}, **{f"OOS_{k}": v for k, v in so.items()}})
-        print(f"{trig:4s} {tgt:5s} be={be!s:5s} | IS {si['net']:>9,} pf {si['pf']:.2f} n={si['trades']:>4} wr {si['win_rate']}"
+        print(f"{trig:4s} {tgt:5s} from {hm(st)} | IS {si['net']:>9,} pf {si['pf']:.2f} n={si['trades']:>4} wr {si['win_rate']}"
               f" | OOS {so['net']:>9,} pf {so['pf']:.2f} n={so['trades']:>4} wr {so['win_rate']}", flush=True)
     g = pd.DataFrame(rows)
     g.to_csv(out / "grid.csv", index=False)
     elig = g[g["IS_trades"] >= 60]
     br = (elig if len(elig) else g).sort_values(["IS_pf", "IS_net"], ascending=False).iloc[0]
-    best = IP(trigger=br["trigger"], target=br["target"], breakeven=bool(br["breakeven"]))
-    chosen = {"trigger": best.trigger, "target": best.target, "breakeven": best.breakeven}
+    best = IP(trigger=br["trigger"], target=br["target"], breakeven=bool(br["breakeven"]),
+              scan_start=int(br["scan_start"]))
+    chosen = {"trigger": best.trigger, "target": best.target, "scan_from": hm(best.scan_start)}
     print("Chosen on in-sample:", chosen)
 
     variants = {"FULL (1D trend + level sweep + 5m confirm)": best,
