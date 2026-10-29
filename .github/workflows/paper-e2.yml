@@ -1,0 +1,51 @@
+name: Paper E2 - Sector Pullback (live paper trading)
+
+# Started by Market Clock at 09:30 IST (clock/jobs.json). Runs till ~15:05 IST.
+# mode: live = full day | intro = send strategy intro to Telegram | sample = send sample-format messages
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "live / intro / sample"
+        default: "live"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-e2
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    env:
+      ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+      ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+      ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+      ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Git identity (bot saves ledger during the day)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+      - name: Run
+        # stdout only; SmartApi logging is silenced inside the script
+        run: python paper_e2/e2_live.py --mode ${{ inputs.mode || 'live' }}
+      - name: Save ledger
+        if: always()
+        run: |
+          git add paper_e2/state || true
+          git commit -m "paper E2: end of run [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done

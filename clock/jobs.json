@@ -1,4 +1,20 @@
 [
-  {"wf": "intraday-scanner.yml", "every": 15, "from": "09:15", "to": "15:15"},
-  {"wf": "paper-trade-settle.yml", "at": ["15:40"]}
+  {
+    "wf": "intraday-scanner.yml",
+    "every": 15,
+    "from": "09:15",
+    "to": "15:15"
+  },
+  {
+    "wf": "paper-trade-settle.yml",
+    "at": [
+      "15:40"
+    ]
+  },
+  {
+    "wf": "paper-e2.yml",
+    "at": [
+      "09:30"
+    ]
+  }
 ]
