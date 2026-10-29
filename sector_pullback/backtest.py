@@ -64,6 +64,7 @@ class Params:
     min_avg_volume: float = 200_000      # median daily shares, last 20 days
     max_candidates: int = 3
     use_pullback: bool = True
+    exit_mode: str = "sltp"              # "sltp" = SL + target | "eod" = no SL/target, hold till exit_time
     touch_tol_pct: float = 0.10
     ema_period: int = 20
     last_entry: str = "13:30"
@@ -322,6 +323,8 @@ def first_trade(m: Market, p: Params, sym: str, day, side: int, decision_min: in
         return None
 
     sl, be_done, exit_px, reason, j = stop, False, None, None, entry_i
+    if p.exit_mode == "eod":             # same entry & quantity, but no SL / no target
+        sl, target = -side * np.inf, side * np.inf
     for j in range(entry_i, len(c)):
         if mins[j] >= exit_t:
             exit_px, reason = o[j], "TIME"

@@ -1,0 +1,45 @@
+name: Sector Pullback - Nifty/Sector filter test (with & without SL/TP)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research-pipeline
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas numpy tabulate
+      - name: Restore cached candle data
+        uses: actions/cache/restore@v4
+        with:
+          path: research_data
+          key: research-data-${{ github.run_id }}
+          restore-keys: research-data-
+      - name: Test
+        run: |
+          OUT=research_results/sector_pullback/filter_test_$(date +%Y-%m-%d_%H%M)
+          python sector_pullback/filter_test.py --data-dir research_data/raw/5m \
+            --symbols-file sector_pullback/nifty500.txt \
+            --trade-symbols-file sector_pullback/nifty500_selected182.txt --out "$OUT"
+          cat "$OUT/summary.md" >> $GITHUB_STEP_SUMMARY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add research_results/sector_pullback/
+          git commit -m "Sector filter test [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
