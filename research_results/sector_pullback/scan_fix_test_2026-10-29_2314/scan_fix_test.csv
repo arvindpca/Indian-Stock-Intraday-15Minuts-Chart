@@ -1,0 +1,15 @@
+version,brokerage,days_with_trade_%,trades_per_month,trades,net,avg_per_trade,win_%,max_dd,charges,months_profit,year1,year2
+FINAL (one scan 10:15),Rs 20/order,15,4.9,112,11398,102,46.4,-3113,7262,16/23,4268,7130
+FINAL (one scan 10:15),Zero brokerage,15,4.9,112,16685,149,49.1,-2830,1976,17/23,7100,9585
+3 scans 10:15/11:15/12:15 (old),Rs 20/order,22,9.3,212,10296,49,44.3,-4024,13747,16/24,6382,3914
+3 scans 10:15/11:15/12:15 (old),Zero brokerage,22,9.3,212,20302,96,49.5,-3298,3741,20/24,11858,8444
+Every 5 min 10:00-14:30 (no fix),Rs 20/order,36,23.2,532,-12550,-24,41.9,-18035,34484,7/24,-4974,-7576
+Every 5 min 10:00-14:30 (no fix),Zero brokerage,36,23.2,532,12561,24,46.6,-7056,9373,12/24,8147,4414
+"FIX A: every 5 min 10:15-14:30, only 10:15-confirmed days",Rs 20/order,24,16.3,373,1449,4,43.7,-8583,24177,10/24,-1111,2560
+"FIX A: every 5 min 10:15-14:30, only 10:15-confirmed days",Zero brokerage,24,16.3,373,19055,51,49.1,-5329,6572,14/24,8140,10915
+"FIX B: every 5 min 10:15-12:30, confirmed days, entry till 13:00",Rs 20/order,23,12.9,295,1162,4,43.7,-8144,19122,12/24,1822,-660
+"FIX B: every 5 min 10:15-12:30, confirmed days, entry till 13:00",Zero brokerage,23,12.9,295,15086,51,48.5,-6444,5198,15/24,8996,6090
+"FIX C: every 15 min 10:15-12:30, confirmed days, entry till 13:00",Rs 20/order,21,10.6,243,2850,12,44.4,-7995,15751,16/24,7396,-4546
+"FIX C: every 15 min 10:15-12:30, confirmed days, entry till 13:00",Zero brokerage,21,10.6,243,14320,59,49.0,-6719,4281,17/24,13390,930
+FIX B + 7 trades/day,Rs 20/order,23,13.7,313,2892,9,44.7,-7729,20290,13/24,3825,-933
+FIX B + 7 trades/day,Zero brokerage,23,13.7,313,17665,56,49.2,-5880,5516,16/24,11472,6193
