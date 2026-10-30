@@ -158,13 +158,31 @@ class AngelAPI:
         import pyotp
         from SmartApi import SmartConnect
         e = lambda k: "".join(c for c in os.getenv(k, "").strip() if unicodedata.category(c) != "Cf")  # noqa: E731
-        self.api = SmartConnect(api_key=e("ANGEL_API_KEY"))
-        try:
-            r = self.api.generateSession(e("ANGEL_CLIENT_ID"), e("ANGEL_PASSWORD"), pyotp.TOTP(e("ANGEL_TOTP_SECRET")).now())
-        except Exception as exc:  # noqa: BLE001
-            raise SystemExit(f"Angel login failed ({type(exc).__name__})")
-        if not r or not r.get("status"):
-            raise SystemExit(f"Angel login failed: {(r or {}).get('message')}")
+        try:  # scanner ka aaj ka session reuse (din me ek login)
+            sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+            import angel_session_cache as cache
+        except Exception:  # noqa: BLE001
+            cache = None
+        self.api = cache.load() if cache else None
+        if self.api is None:
+            # 9:30 par kai bots saath login karte hain -> ek try fail ho sakta hai, isliye 5 try
+            last = ""
+            for attempt in range(1, 6):
+                self.api = SmartConnect(api_key=e("ANGEL_API_KEY"))
+                try:
+                    r = self.api.generateSession(e("ANGEL_CLIENT_ID"), e("ANGEL_PASSWORD"),
+                                                 pyotp.TOTP(e("ANGEL_TOTP_SECRET")).now())
+                except Exception as exc:  # noqa: BLE001
+                    r, last = None, type(exc).__name__
+                if r and r.get("status"):
+                    if cache:
+                        cache.save(self.api)
+                    break
+                last = (r or {}).get("message") or last
+                print(f"Angel login try {attempt}/5 fail: {last}", flush=True)
+                time.sleep(max(5, 31 - int(time.time()) % 30) + attempt * 10)
+            else:
+                raise SystemExit(f"Angel login failed after 5 tries: {last}")
         master = requests.get(SCRIP_MASTER, timeout=90).json()
         self.tok = {str(i["symbol"]).upper()[:-3]: str(i["token"]) for i in master
                     if str(i.get("exch_seg")).upper() == "NSE" and str(i.get("symbol", "")).upper().endswith("-EQ")}

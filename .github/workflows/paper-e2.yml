@@ -40,6 +40,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+      - name: Restore Angel session (din me ek hi login)
+        uses: actions/cache/restore@v4
+        with:
+          path: .angel_session
+          key: angel-session-${{ github.run_id }}
+          restore-keys: angel-session-
       - name: Run
         # stdout only; SmartApi logging is silenced inside the script
         run: python paper_e2/e2_live.py --mode ${{ inputs.mode || 'live' }}
@@ -49,3 +55,9 @@ jobs:
           git add paper_e2/state || true
           git commit -m "paper E2: end of run [skip ci]" || exit 0
           for i in 1 2 3; do git pull -q --rebase origin main && git push -q && break; sleep 5; done
+      - name: Save Angel session (agle run ke liye)
+        if: always() && hashFiles('.angel_session/session.bin') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .angel_session
+          key: angel-session-${{ github.run_id }}

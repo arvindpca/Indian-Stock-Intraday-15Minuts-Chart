@@ -12,6 +12,11 @@
    "wf": "paper-trade-settle.yml",
    "by": "16:10",
    "label": "Paper Trade Daily Settle"
+  },
+  {
+   "wf": "paper-e2.yml",
+   "by": "09:50",
+   "label": "Paper E2 (Sector Pullback)"
   }
  ]
 }

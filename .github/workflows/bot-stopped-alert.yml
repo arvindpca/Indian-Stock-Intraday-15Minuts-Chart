@@ -9,6 +9,7 @@ on:
       - "Market Clock (paper trading auto-run)"
       - "Indian Intraday Scanner"
       - "Paper Trade Daily Settle (SHORT)"
+      - "Paper E2 - Sector Pullback (live paper trading)"
     types: [completed]
 
 permissions:
