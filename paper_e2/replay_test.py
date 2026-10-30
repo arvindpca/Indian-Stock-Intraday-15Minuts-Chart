@@ -13,6 +13,8 @@ import traceback
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+import zlib
+
 import numpy as np
 import pandas as pd
 
@@ -37,16 +39,16 @@ class FakeClock:
 class FakeAPI:
     """Har stock ka random-walk data.  trend: +1 sab upar, -1 sab neeche (signal paths chalane ke liye)."""
 
-    def __init__(self, clock: FakeClock, trend: int, seed: int, empty_quotes=False, flaky=False):
+    def __init__(self, clock: FakeClock, trend: int, seed: int, empty_quotes=False, flaky=False, no_nifty=False):
         self.clock, self.trend, self.seed = clock, trend, seed
-        self.empty_quotes, self.flaky = empty_quotes, flaky
+        self.empty_quotes, self.flaky, self.no_nifty = empty_quotes, flaky, no_nifty
         self.calls = 0
 
     def _rng(self, sym):
-        return np.random.default_rng(abs(hash((sym, self.seed))) % (2 ** 32))
+        return np.random.default_rng(zlib.crc32(f'{sym}|{self.seed}'.encode()))
 
     def _base(self, sym):
-        return 100 + (abs(hash(sym)) % 2000)
+        return 100 + (zlib.crc32(sym.encode()) % 2000)
 
     _cache: dict = {}
 
@@ -77,7 +79,7 @@ class FakeAPI:
         frames = []
         endn = pd.Timestamp(end.replace(tzinfo=None))
         for d in pd.bdate_range(start.date(), end.date()):
-            r = np.random.default_rng(abs(hash((sym, str(d.date()), self.seed))) % (2 ** 32))
+            r = np.random.default_rng(zlib.crc32(f'{sym}|{d.date()}|{self.seed}'.encode()))
             mins = [m for m in range(9 * 60 + 15, 15 * 60 + 30, 5)
                     if pd.Timestamp(d) + pd.Timedelta(minutes=m + 5) <= endn]
             if not mins:
@@ -98,6 +100,8 @@ class FakeAPI:
         self.calls += 1
         if self.flaky and self.calls % 9 == 0:
             return pd.DataFrame()
+        if self.no_nifty and sym == "NIFTY":
+            return pd.DataFrame()      # 30-Oct jaisa: Angel ne Nifty data nahi diya
         if interval == "ONE_DAY":
             return self._daily(sym, start, end)
         return self._five(sym, start, end)
@@ -113,7 +117,7 @@ class FakeAPI:
                 continue
             today = d[d.index.normalize() == pd.Timestamp(now.date())]
             pc = self._prev_close(s, now.date())
-            ltp = pc * (1 + 0.02 * self.trend * (0.6 + (abs(hash(s)) % 7) / 10))
+            ltp = pc * (1 + 0.02 * self.trend * (0.6 + (zlib.crc32(s.encode()) % 7) / 10))
             out[s] = {"ltp": ltp, "open": pc, "prev_close": pc, "vwap": pc * (1 + 0.01 * self.trend),
                       "volume": 5_000_000.0}
         return out
@@ -133,8 +137,10 @@ def main() -> int:
     import io
     import contextlib
     scenarios = [
+        ("Tue BUY din + trades", date(2026, 11, 3), 1, 2, {"expect": "ENTRY"}),
+        ("Tue SHORT din + trade", date(2026, 11, 3), -1, 3, {"expect": "ENTRY"}),
+        ("Tue plan bana, entry nahi", date(2026, 11, 3), -1, 1, {"expect": "DAY CLOSE"}),
         ("Fri trend UP", date(2026, 10, 30), 1, 1, {}),
-        ("Tue trend DOWN", date(2026, 11, 3), -1, 2, {}),
         ("Wed flat/confused", date(2026, 11, 4), 0, 3, {}),
         ("Thu quotes empty (API dikkat)", date(2026, 11, 5), 1, 4, {"empty_quotes": True}),
         ("Fri flaky candles", date(2026, 11, 6), 1, 5, {"flaky": True}),
@@ -144,10 +150,13 @@ def main() -> int:
     shared = tempfile.mkdtemp()   # ledger ek hi folder me -> din-ba-din jodna bhi test hota hai
     for name, day, trend, seed, kw in scenarios:
         buf = io.StringIO()
+        expect = kw.pop("expect", None)
         try:
             with contextlib.redirect_stdout(buf):
-                bot, tg = run_day(day, trend, seed, state_dir=shared, **kw)
+                bot, tg = run_day(day, trend, seed, state_dir=tempfile.mkdtemp() if expect else shared, **kw)
             titles = [m.split("\n")[0][:60] for m in tg.sent]
+            if expect and not any(expect in t for t in titles):
+                raise AssertionError(f"'{expect}' message nahi aaya: {titles}")
             print(f"OK   {name}: {len(tg.sent)} msgs {titles}")
         except BaseException as exc:  # noqa: BLE001
             bad += 1
@@ -166,6 +175,53 @@ def main() -> int:
     except BaseException as exc:  # noqa: BLE001
         bad += 1
         print(f"FAIL resume mid-day: {type(exc).__name__}: {exc}")
+        traceback.print_exc(limit=6)
+    # 30-Oct wala crash: Nifty daily nahi mila -> crash nahi, Telegram + exit 2
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            clock = FakeClock(datetime.combine(date(2026, 11, 3), datetime.min.time(), IST).replace(hour=9, minute=5))
+            tg = E.Telegram(dry=True)
+            bot = E.E2Bot(FakeAPI(clock, -1, 9, no_nifty=True), clock, tg, E.Cfg(), Path(tempfile.mkdtemp()), git_save=False)
+            try:
+                bot.run()
+                raise AssertionError("exit hona chahiye tha")
+            except SystemExit as se:
+                assert se.code == 2, se.code
+        assert tg.sent and "Data nahi mila" in tg.sent[-1], tg.sent
+        print("OK   Nifty data missing (30-Oct crash): saaf message + exit 2")
+    except BaseException as exc:  # noqa: BLE001
+        bad += 1
+        print(f"FAIL Nifty data missing: {type(exc).__name__}: {exc}")
+        traceback.print_exc(limit=6)
+    # AngelAPI.candles: rate-limit (DataException) par retry, phir khaali DataFrame (crash nahi)
+    try:
+        class DataException(Exception):
+            pass
+
+        class FakeSmart:
+            n = 0
+
+            def getCandleData(self, p):
+                FakeSmart.n += 1
+                if FakeSmart.n <= 3:
+                    raise DataException("Access denied because of exceeding access rate")
+                return {"status": True, "data": [["2026-11-03T09:15:00+05:30", 1, 2, 0.5, 1.5, 100]]}
+        a = E.AngelAPI.__new__(E.AngelAPI)
+        a.api, a.tok = FakeSmart(), {"X": "1"}
+        real_sleep, E.time.sleep = E.time.sleep, (lambda s: None)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                d = a.candles("X", "FIVE_MINUTE", datetime(2026, 11, 3), datetime(2026, 11, 4))
+                FakeSmart.n = -100
+                e = a.candles("X", "FIVE_MINUTE", datetime(2026, 11, 3), datetime(2026, 11, 4))
+        finally:
+            E.time.sleep = real_sleep
+        assert len(d) == 1, "3 baar mana ke baad 4th try me data aana chahiye"
+        assert e.empty or len(e) == 1
+        print("OK   Angel rate-limit retry: 3 baar mana -> 4th try me data mila")
+    except BaseException as exc:  # noqa: BLE001
+        bad += 1
+        print(f"FAIL rate-limit retry: {type(exc).__name__}: {exc}")
         traceback.print_exc(limit=6)
     print("RESULT:", "SAB THEEK" if not bad else f"{bad} FAIL")
     return 1 if bad else 0

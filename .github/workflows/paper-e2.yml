@@ -1,6 +1,7 @@
 name: Paper E2 - Sector Pullback (live paper trading)
 
-# Started by Market Clock at 09:30 IST (clock/jobs.json). Runs till ~15:05 IST.
+# Started by Market Clock at 09:05 IST (backup 09:20) - pre-market data 9:15 ki bheed se pehle.
+# Runs till ~15:05 IST.
 # mode: live = full day | intro = send strategy intro to Telegram | sample = send sample-format messages
 on:
   workflow_dispatch:

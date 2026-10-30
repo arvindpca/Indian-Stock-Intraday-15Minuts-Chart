@@ -194,10 +194,11 @@ class AngelAPI:
             return pd.DataFrame()
         p = {"exchange": "NSE", "symboltoken": tok, "interval": interval,
              "fromdate": start.strftime("%Y-%m-%d %H:%M"), "todate": end.strftime("%Y-%m-%d %H:%M")}
-        for attempt in range(3):
+        waits = (3, 6, 10, 15, 20)   # Angel "zyada requests" bole to dheere-dheere ruk ke dobara
+        for attempt in range(len(waits)):
             try:
                 r = self.api.getCandleData(p)
-                time.sleep(0.36)
+                time.sleep(0.4)
                 if r and r.get("status"):
                     d = pd.DataFrame(r.get("data") or [], columns=["ts", "open", "high", "low", "close", "volume"])
                     if d.empty:
@@ -206,7 +207,7 @@ class AngelAPI:
                     return d.astype(float)
             except Exception as exc:  # noqa: BLE001
                 print("candles retry", sym, type(exc).__name__, flush=True)
-            time.sleep(2 + attempt * 3)
+            time.sleep(waits[attempt])
         return pd.DataFrame()
 
     def quotes(self, syms: list[str]) -> dict:
@@ -258,6 +259,28 @@ def nse_leverage(today: date) -> dict:
             except Exception:  # noqa: BLE001
                 pass
     return {}
+
+
+class DataUnavailable(RuntimeError):
+    pass
+
+
+def yahoo_nifty_daily(start: datetime, end: datetime) -> pd.DataFrame:
+    """Backup: Nifty 50 daily candles Yahoo (^NSEI) se, jab Angel se na mile."""
+    try:
+        r = requests.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI",
+                         params={"interval": "1d", "period1": int(start.timestamp()), "period2": int(end.timestamp())},
+                         headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130 Safari/537.36"},
+                         timeout=20)
+        res = r.json()["chart"]["result"][0]
+        q = res["indicators"]["quote"][0]
+        idx = pd.to_datetime(res["timestamp"], unit="s", utc=True).tz_convert(IST).tz_localize(None).normalize()
+        d = pd.DataFrame({k: q[k] for k in ("open", "high", "low", "close", "volume")}, index=idx).dropna()
+        print(f"Nifty daily Yahoo backup se: {len(d)} din", flush=True)
+        return d.astype(float)
+    except Exception as exc:  # noqa: BLE001
+        print("Yahoo Nifty backup fail:", type(exc).__name__, flush=True)
+        return pd.DataFrame()
 
 
 # --------------------------------------------------------------------------- indicators
@@ -358,8 +381,14 @@ class E2Bot:
                 cv = d[m < tmin(c.decision)].groupby(d[m < tmin(c.decision)].index.normalize())["volume"].sum()
                 if len(cv) >= 5:
                     self.base_vol[s] = float(cv.tail(10).mean())
-        nd = self.api.candles("NIFTY", "ONE_DAY", datetime.combine(self.today - timedelta(days=200), datetime.min.time()), end)
-        nd = nd[nd.index.normalize() < pd.Timestamp(self.today)]
+        n_start = datetime.combine(self.today - timedelta(days=200), datetime.min.time())
+        nd = self.api.candles("NIFTY", "ONE_DAY", n_start, end)
+        if nd.empty and hasattr(self.api, "tok"):
+            nd = yahoo_nifty_daily(n_start.replace(tzinfo=IST), end.replace(tzinfo=IST))
+        if not nd.empty:
+            nd = nd[nd.index.normalize() < pd.Timestamp(self.today)]
+        if len(nd) < c.regime_ema:
+            raise DataUnavailable(f"Nifty daily data nahi mila ({len(nd)} din)")
         ema = nd["close"].ewm(span=c.regime_ema, adjust=False, min_periods=c.regime_ema).mean()
         self.nifty_prev = float(nd["close"].iloc[-1])
         self.nifty_ema20 = float(ema.iloc[-1])
@@ -623,7 +652,15 @@ class E2Bot:
             print("too late for today")
             return
         resume = d and d.get("date") == str(self.today)
-        self.premarket()
+        try:
+            self.premarket()
+        except DataUnavailable as exc:
+            print("DATA UNAVAILABLE:", exc, flush=True)
+            self.tg.send(self.head("⚠️ Data nahi mila — aaj bot ruka") +
+                         f"\n\nAngel One se zaroori data nahi aaya ({exc}).\n"
+                         "Shayad Angel ne zyada requests ki wajah se roka. Koi paper trade nahi hua.\n"
+                         "Backup run (9:20) ya agle din se phir try hoga.")
+            raise SystemExit(2)
         if resume and d.get("candidates"):
             cands = d["candidates"]
             self.tg.send(self.head("♻️ Bot dobara shuru (resume)") + f"\n\nWatchlist: {', '.join(cands)} | "
