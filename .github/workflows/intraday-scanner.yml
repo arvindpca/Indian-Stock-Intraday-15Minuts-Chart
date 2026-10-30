@@ -50,5 +50,17 @@ jobs:
               sys.exit(1)
           print("Required environment variables are configured.")
           PY
+      - name: Restore Angel session (din me ek hi login)
+        uses: actions/cache/restore@v4
+        with:
+          path: .angel_session
+          key: angel-session-${{ github.run_id }}
+          restore-keys: angel-session-
       - name: Run scanner
         run: python "python3 Indian_NSE_TradingView_V1_SMC_FINAL_CANDIDATE_5M_LIVE_VWAP_2.py"
+      - name: Save Angel session (agle run ke liye)
+        if: always() && hashFiles('.angel_session/session.bin') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .angel_session
+          key: angel-session-${{ github.run_id }}
