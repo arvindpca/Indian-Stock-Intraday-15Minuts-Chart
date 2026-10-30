@@ -275,7 +275,9 @@ def yahoo_nifty_daily(start: datetime, end: datetime) -> pd.DataFrame:
         res = r.json()["chart"]["result"][0]
         q = res["indicators"]["quote"][0]
         idx = pd.to_datetime(res["timestamp"], unit="s", utc=True).tz_convert(IST).tz_localize(None).normalize()
-        d = pd.DataFrame({k: q[k] for k in ("open", "high", "low", "close", "volume")}, index=idx).dropna()
+        d = pd.DataFrame({k: q.get(k) for k in ("open", "high", "low", "close", "volume")}, index=idx)
+        d["volume"] = d["volume"].fillna(0)          # index ka volume aksar khaali hota hai
+        d = d.dropna(subset=["close"])
         print(f"Nifty daily Yahoo backup se: {len(d)} din", flush=True)
         return d.astype(float)
     except Exception as exc:  # noqa: BLE001
